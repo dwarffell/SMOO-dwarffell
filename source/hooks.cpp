@@ -1,36 +1,53 @@
 #include <sys/types.h>
+
+#include "al/byaml/ByamlIter.h"
+#include "al/byaml/writer/ByamlWriter.h"
 #include "al/execute/ExecuteDirector.h"
 #include "al/execute/ExecuteOrder.h"
 #include "al/execute/ExecuteTable.h"
 #include "al/execute/ExecuteTableHolderDraw.h"
 #include "al/execute/ExecuteTableHolderUpdate.h"
 #include "al/scene/Scene.h"
+#include "al/util.hpp"
 #include "al/util/GraphicsUtil.h"
 #include "al/util/KitUtil.h"
-#include "basis/seadNew.h"
-#include "logger.hpp"
-#include "rs/util.hpp"
-#include "server/Client.hpp"
-#include "al/byaml/ByamlIter.h"
-#include "al/util.hpp"
+
 #include "game/Actors/WorldEndBorderKeeper.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "game/StageScene/StageSceneStateOption.h"
 #include "game/StageScene/StageSceneStatePauseMenu.h"
 #include "game/StageScene/StageSceneStateServerConfig.hpp"
+
+#include "logger.hpp"
+
 #include "main.hpp"
-#include "al/byaml/writer/ByamlWriter.h"
-#include "math/seadVector.h"
+
+#include "rs/util.hpp"
 #include "rs/util/InputUtil.h"
+
+#include "sead/basis/seadNew.h"
+#include "sead/math/seadVector.h"
 #include "sead/prim/seadSafeString.h"
-#include "server/hns/HideAndSeekMode.hpp"
+
+#include "server/Client.hpp"
+#include "server/gamemode/GameModeBase.hpp"
+#include "server/gamemode/GameModeManager.hpp"
 
 bool comboBtnHook(int port) {
-    if (GameModeManager::instance()->isActive()) { // only switch to combo if any gamemode is active
-        return !al::isPadHoldL(port) && al::isPadTriggerDown(port);
-    } else {
+    GameModeManager* gmm = GameModeManager::instance();
+
+    // only switch to combo if the gamemode is active
+    if (!gmm->isActive()) {
         return al::isPadTriggerDown(port);
     }
+
+    // only if the gamemode wants it
+    GameModeBase* mode = gmm->getMode<GameModeBase>();
+    if (!mode || mode->ignoreComboBtn()) {
+        return false;
+    }
+
+    return !al::isPadHoldL(port) && al::isPadTriggerDown(port);
 }
 
 void saveWriteHook(al::ByamlWriter* saveByml) {
@@ -118,19 +135,19 @@ void initNerveStateHook(
 
 // skips starting both coin counters
 void startCounterHook(CoinCounter* thisPtr) {
-    if (!GameModeManager::instance()->isActive()) {
+    if (!GameModeManager::instance()->isModeRequireUI()) {
         thisPtr->tryStart();
     }
 }
 
 // Simple hook that can be used to override isModeE3 checks to enable/disable certain behaviors
 bool modeE3Hook() {
-    return GameModeManager::instance()->isActive();
+    return GameModeManager::instance()->isModeRequireUI();
 }
 
 // Skips ending the play guide layout if a mode is active, since the mode would have already ended it
 void playGuideEndHook(al::SimpleLayoutAppearWaitEnd* thisPtr) {
-    if (!GameModeManager::instance()->isActive()) {
+    if (!GameModeManager::instance()->isModeRequireUI()) {
         thisPtr->end();
     }
 }
@@ -142,17 +159,12 @@ void initHackCapHook(al::LiveActor* cappy) {
 }
 
 al::PlayerHolder* createTicketHook(StageScene* curScene) {
-    // only creates custom gravity camera ticket if hide and seek mode is active
-    if (GameModeManager::instance()->isMode(GameMode::HIDEANDSEEK)) {
+    // only creates custom camera ticket if the mode wants it
+    GameModeBase* mode = GameModeManager::instance()->getMode<GameModeBase>();
+    if (mode && mode->hasCustomCamera()) {
         al::CameraDirector* director = curScene->getCameraDirector();
-        if (director) {
-            if (director->mFactory) {
-                al::CameraTicket* gravityCamera = director->createCameraFromFactory("CameraPoserCustom", nullptr, 0, 5, sead::Matrix34f::ident);
-
-                HideAndSeekMode* mode = GameModeManager::instance()->getMode<HideAndSeekMode>();
-
-                mode->setCameraTicket(gravityCamera);
-            }
+        if (director && director->mFactory) {
+            mode->createCustomCameraTicket(director);
         }
     }
 
@@ -162,13 +174,10 @@ al::PlayerHolder* createTicketHook(StageScene* curScene) {
 bool borderPullBackHook(WorldEndBorderKeeper* thisPtr) {
     bool isFirstStep = al::isFirstStep(thisPtr);
 
-    if (isFirstStep) {
-        if (GameModeManager::instance()->isModeAndActive(GameMode::HIDEANDSEEK)) {
-            HideAndSeekMode* mode = GameModeManager::instance()->getMode<HideAndSeekMode>();
-
-            if (mode->isUseGravity()) {
-                killMainPlayer(thisPtr->mActor);
-            }
+    if (isFirstStep && GameModeManager::instance()->isActive()) {
+        GameModeBase* mode = GameModeManager::instance()->getMode<GameModeBase>();
+        if (mode) {
+            mode->onBorderPullBackFirstStep(thisPtr->mActor);
         }
     }
 

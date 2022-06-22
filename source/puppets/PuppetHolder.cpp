@@ -1,12 +1,17 @@
 #include "puppets/PuppetHolder.hpp"
+
 #include <math.h>
+
 #include "actors/PuppetActor.h"
+
 #include "al/util.hpp"
 #include "al/util/LiveActorUtil.h"
-#include "container/seadPtrArray.h"
-#include "heap/seadHeap.h"
-#include "heap/seadHeapMgr.h"
+
 #include "logger.hpp"
+
+#include "sead/container/seadPtrArray.h"
+#include "sead/heap/seadHeap.h"
+#include "sead/heap/seadHeapMgr.h"
 
 PuppetHolder::PuppetHolder(int size) {
     if (!mPuppetArr.tryAllocBuffer(size, nullptr)) {
