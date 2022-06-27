@@ -37,11 +37,11 @@ void updateTimeStates(PlayerActorHakoniwa* p1)
     }
 
     // If position has changed enough, push a new frame
-    if (container.timeFrames.size() > 1){
+    if (container.timeFrames.isEmpty()){
         if (!rs::isActiveDemo(p1) && !container.isRewinding)
             pushNewFrame();
     } else {
-        if (al::calcDistance(p1, container.timeFrames.at(container.timeFrames.size())->position) > container.minPushDistance && !rs::isActiveDemo(p1) && !container.isRewinding)
+        if (al::calcDistance(p1, container.timeFrames.at(container.timeFrames.size()-1)->position) > container.minPushDistance && !rs::isActiveDemo(p1) && !container.isRewinding)
             pushNewFrame();
     }
 
@@ -61,30 +61,38 @@ void pushNewFrame()
 {
     timeContainer& container = getTimeContainer();
     container.lastRecordColorFrame += 0.04f;
-    timeFrame* newFrame;
+    timeFrame* newFrame = nullptr; 
+    sead::Heap* seqHeap = sead::HeapMgr::instance()->findHeapByName("SceneHeap",0);
+    if (seqHeap) {
+        newFrame = new (seqHeap) timeFrame();
+    } else {
+        newFrame = new timeFrame();
+    }
+    
 
     // Before doing anything, if the frame container is full push data down
     if (container.maxFrames <= container.timeFrames.size())
-        container.timeFrames.erase(0);
+        container.timeFrames.popFront();
 
     al::PlayerHolder* pHolder = al::getScenePlayerHolder(container.stageSceneRef);
     PlayerActorHakoniwa* p1 = (PlayerActorHakoniwa*)al::tryGetPlayerActor(pHolder, 0);
     
     // newFrame->colorFrame = container.lastRecordColorFrame;
-    // if (p1->mHackKeeper->currentHackActor) {
-    //     newFrame->position = al::getTrans(p1);
-    //     newFrame->gravity = al::getGravity(p1);
-    //     newFrame->velocity = al::getVelocity(p1);
-    //     newFrame->rotation = p1->mPoseKeeper->getQuat();
-    //     newFrame->animation.clear();
-    //     newFrame->animation.append(p1->mPlayerAnimator->curAnim);
-    //     newFrame->animationFrame = p1->mPlayerAnimator->getAnimFrame();
-    // } else {
-    //     newFrame->position = al::getTrans(p1->mHackKeeper->currentHackActor);
-    //     newFrame->velocity = al::getVelocity(p1->mHackKeeper->currentHackActor);
-    // }
+    if (!p1->mHackKeeper->currentHackActor) {
+        newFrame->position = al::getTrans(p1);
+        newFrame->gravity = al::getGravity(p1);
+        newFrame->velocity = al::getVelocity(p1);
+        newFrame->rotation = p1->mPoseKeeper->getQuat();
+        newFrame->animation.clear();
+        newFrame->animation.append(p1->mPlayerAnimator->curAnim);
+        newFrame->animationFrame = p1->mPlayerAnimator->getAnimFrame();
+    } else {
+        newFrame->position = al::getTrans(p1->mHackKeeper->currentHackActor);
+        newFrame->velocity = al::getVelocity(p1->mHackKeeper->currentHackActor);
+    }
+    
 
-    container.timeFrames.pushFront(newFrame);
+    container.timeFrames.pushBack(newFrame);
     
     return;
 }
@@ -105,16 +113,16 @@ void rewindFrame(PlayerActorHakoniwa* p1)
         startRewind(p1);
 
     if (isNotCaptured) {
-        al::setTrans(p1, container.timeFrames[container.timeFrames.size()]->position);
-        al::setGravity(p1, container.timeFrames[container.timeFrames.size()]->gravity);
-        al::setVelocity(p1, container.timeFrames[container.timeFrames.size()]->velocity);
-        al::setQuat(p1, container.timeFrames[container.timeFrames.size()]->rotation);
-        if (!container.timeFrames[container.timeFrames.size()]->animation.isEqual(p1->mPlayerAnimator->curAnim))
-            p1->mPlayerAnimator->startAnim(container.timeFrames[container.timeFrames.size()]->animation);
-        p1->mPlayerAnimator->setAnimFrame(container.timeFrames[container.timeFrames.size()]->animationFrame);
+        al::setTrans(p1, container.timeFrames.back()->position);
+        al::setGravity(p1, container.timeFrames.back()->gravity);
+        al::setVelocity(p1, container.timeFrames.back()->velocity);
+        al::setQuat(p1, container.timeFrames.back()->rotation);
+        if (!container.timeFrames.back()->animation.isEqual(p1->mPlayerAnimator->curAnim))
+            p1->mPlayerAnimator->startAnim(container.timeFrames.back()->animation);
+        p1->mPlayerAnimator->setAnimFrame(container.timeFrames.back()->animationFrame);
     } else {
-        al::setTrans(p1->mHackKeeper->currentHackActor, container.timeFrames[container.timeFrames.size()]->position);
-        al::setVelocity(p1->mHackKeeper->currentHackActor, container.timeFrames[container.timeFrames.size()]->velocity);
+        al::setTrans(p1->mHackKeeper->currentHackActor, container.timeFrames.back()->position);
+        al::setVelocity(p1->mHackKeeper->currentHackActor, container.timeFrames.back()->velocity);
     }
 
     container.timeFrames.erase(container.timeFrames.size());

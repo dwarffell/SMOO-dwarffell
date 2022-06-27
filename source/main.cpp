@@ -236,19 +236,19 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
         gTextWriter->printf("Color B: %f\n", calcColorFrame(container.lastRecordColorFrame).b);
         gTextWriter->printf("Array Size: %i\n", container.timeFrames.size());
         gTextWriter->printf("\nFrame Data #%i:\n-----------------\n", container.debugCheckFrame);
-        // if (!container.timeFrames.isEmpty()){
-        //     if(!container.timeFrames[container.debugCheckFrame])
-        //         container.debugCheckFrame = container.timeFrames.size()-1;
+        if (!container.timeFrames.isEmpty()){
+            if(!container.timeFrames[container.debugCheckFrame])
+                container.debugCheckFrame = container.timeFrames.size()-1;
             
-        //     gTextWriter->printf("Animation: %s\n", container.timeFrames[container.debugCheckFrame]->animation.cstr());
-        //     gTextWriter->printf("Current Animation Already This: %s\n", container.timeFrames[container.debugCheckFrame]->animation.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
-        //     gTextWriter->printf("Animation Frame: %f\n", container.timeFrames[container.debugCheckFrame]->animationFrame);
-        //     gTextWriter->printf("Position X: %f\n", container.timeFrames[container.debugCheckFrame]->position.x);
-        //     gTextWriter->printf("Position Y: %f\n", container.timeFrames[container.debugCheckFrame]->position.y);
-        //     gTextWriter->printf("Position Z: %f\n", container.timeFrames[container.debugCheckFrame]->position.z);
-        // } else {
-        //     gTextWriter->printf("Array is empty\n");
-        // }
+            gTextWriter->printf("Animation: %s\n", container.timeFrames[container.debugCheckFrame]->animation.cstr());
+            gTextWriter->printf("Current Animation Already This: %s\n", container.timeFrames[container.debugCheckFrame]->animation.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
+            gTextWriter->printf("Animation Frame: %f\n", container.timeFrames[container.debugCheckFrame]->animationFrame);
+            gTextWriter->printf("Position X: %f\n", container.timeFrames[container.debugCheckFrame]->position.x);
+            gTextWriter->printf("Position Y: %f\n", container.timeFrames[container.debugCheckFrame]->position.y);
+            gTextWriter->printf("Position Z: %f\n", container.timeFrames[container.debugCheckFrame]->position.z);
+        } else {
+            gTextWriter->printf("Array is empty\n");
+        }
 
         // Frame scrolling
         if (al::isPadHoldR(-1) && al::isPadTriggerRight(-1) && container.debugCheckFrame < container.timeFrames.size())

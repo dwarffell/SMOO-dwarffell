@@ -27,9 +27,7 @@ public:
     int minTrailLength = 40;
     float minPushDistance = 20.f;
     float lastRecordColorFrame = 0;
-
-    int maxFrames = 200;
-    // sead::SafeArray<timeFrame, 200> timeFrames;
+    static const int maxFrames = 200;
     sead::PtrArray<timeFrame> timeFrames;
     // timeFrame timeFrames[200];
 };
