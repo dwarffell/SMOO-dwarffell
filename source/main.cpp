@@ -338,6 +338,7 @@ bool threadInit(HakoniwaSequence *mainSeq) {  // hook for initializing client cl
 
 bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
     StageScene* stageScene = (StageScene*)sequence->curScene;
+    getTimeContainer().stageSceneRef = stageScene;
 
     static bool isCameraActive = false;
 
