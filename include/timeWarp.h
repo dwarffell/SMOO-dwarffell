@@ -20,6 +20,8 @@ class timeContainer {
 public:
     StageScene* stageSceneRef;
     bool isRewinding = false;
+    bool isCaptured = false;
+    int sceneInvactiveTime = -1;
     int frameCount = 0;
     int debugCheckFrame = 0;
     int minTrailLength = 40;
@@ -38,6 +40,7 @@ sead::Color4f calcColorFrame(float colorFrame);
 
 void removeOldestFrame();
 void pushNewFrame();
+void emptyFrameInfo();
 void isFramesEmpty();
 void rewindFrame(PlayerActorHakoniwa* p1);
 

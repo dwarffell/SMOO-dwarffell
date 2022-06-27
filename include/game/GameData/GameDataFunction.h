@@ -138,4 +138,5 @@ public:
     // subtracts the supplied int value from the current coin count
     static void subCoin(GameDataHolderWriter, int value);
 
+    static bool isMissEndPrevStageForSceneDead(GameDataHolderAccessor);
 };

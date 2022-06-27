@@ -73,3 +73,5 @@ constexpr const char* captureNames[] = {
     // "HackFork",
     // "Yoshi" (is a player actor)
 };
+
+#define HOOK_ATTR __attribute__((section(".text.hooks")))

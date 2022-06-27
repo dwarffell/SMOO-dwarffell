@@ -17,6 +17,17 @@ void updateTimeStates(PlayerActorHakoniwa* p1)
 {
     timeContainer& container = getTimeContainer();
 
+    //Cancel early if the invactive time is still running
+    if(container.sceneInvactiveTime >= 0){
+        container.sceneInvactiveTime--;
+        return;
+    }
+
+    if(container.isCaptured != (p1->mHackKeeper->currentHackActor != nullptr)){
+        emptyFrameInfo();
+        container.isCaptured = (p1->mHackKeeper->currentHackActor != nullptr);
+    }
+
     // If position has changed enough, push a new frame
     if (al::calcDistance(p1, container.lastRecordPosition) > container.minPushDistance && !rs::isActiveDemo(p1) && !container.isRewinding)
         pushNewFrame();
@@ -71,6 +82,16 @@ void pushNewFrame()
         container.frameCount++;
 
     container.lastRecordPosition = al::getTrans(p1);
+    return;
+}
+
+void emptyFrameInfo()
+{
+    timeContainer& container = getTimeContainer();
+    container.frameCount = 0;
+    for (int i = 0; i < container.maxFrames; i++) {
+        container.timeFrames[i].isEmptyFrame = true;
+    }
     return;
 }
 

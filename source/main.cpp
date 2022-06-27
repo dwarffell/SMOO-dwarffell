@@ -73,7 +73,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
     sead::PrimitiveRenderer* renderer = sead::PrimitiveRenderer::instance();
 
     if (!debugMode) {
-        if (curScene && isInGame) {
+        if (curScene && isInGame && container.sceneInvactiveTime < 0) {
             sead::LookAtCamera* cam = al::getLookAtCamera(curScene, 0);
             sead::Projection* projection = al::getProjectionSead(curScene, 0);
             renderer->setDrawContext(drawContext);
@@ -226,6 +226,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
         gTextWriter->setCursorFromTopLeft(sead::Vector2f((dispWidth / 5.f) * 3.f + 15.f, (dispHeight / 3.f) + 30.f));
         gTextWriter->setScaleFromFontHeight(20.f);
         gTextWriter->printf("Is Rewind: %s\n", container.isRewinding ? "True" : "False");
+        gTextWriter->printf("Is Captured: %s\n", container.isCaptured ? "True" : "False");
         gTextWriter->printf("Filter ID: %i\n", al::getPostProcessingFilterPresetId(curScene));
         gTextWriter->printf("Frame Count: %i\n", container.frameCount);
         gTextWriter->printf("Color Frame: %f\n", container.lastRecordColorFrame);
@@ -286,6 +287,13 @@ void sendShinePacket(GameDataHolderWriter thisPtr, Shine* curShine) {
     GameDataFunction::setGotShine(thisPtr, curShine->curShineInfo);
 }
 
+bool sceneKillHook(GameDataHolderAccessor value)
+{
+    getTimeContainer().sceneInvactiveTime = 25;
+
+    return GameDataFunction::isMissEndPrevStageForSceneDead(value);
+}
+
 void stageInitHook(al::ActorInitInfo *info, StageScene *curScene, al::PlacementInfo const *placement, al::LayoutInitInfo const *lytInfo, al::ActorFactory const *factory, al::SceneMsgCtrl *sceneMsgCtrl, al::GameDataHolderBase *dataHolder) {
 
     al::initActorInitInfo(info, curScene, placement, lytInfo, factory, sceneMsgCtrl,
@@ -302,7 +310,8 @@ void stageInitHook(al::ActorInitInfo *info, StageScene *curScene, al::PlacementI
     }
 
     Client::sendGameInfPacket(info->mActorSceneInfo.mSceneObjHolder);
-    
+
+    emptyFrameInfo();
 }
 
 PlayerCostumeInfo *setPlayerModel(al::LiveActor *player, const al::ActorInitInfo &initInfo, const char *bodyModel, const char *capModel, al::AudioKeeper *keeper, bool isCloset) {
