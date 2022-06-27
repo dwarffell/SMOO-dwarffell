@@ -32,15 +32,27 @@ void setupDebugMenu(GameSystem *gSys) {
     __asm("MOV W8, #0xFFFFFFFF");
 }
 
-void drawBackground(agl::DrawContext *context) {
-    sead::Vector3<float> p1(-1, .3, 0); // top left
-    sead::Vector3<float> p2(-.2, .3, 0); // top right
-    sead::Vector3<float> p3(-1, -1, 0); // bottom left
-    sead::Vector3<float> p4(-.2, -1, 0); // bottom right
+void drawBackground(agl::DrawContext* context)
+{
+    sead::Vector3<float> p1l(-1, .3, 0); // top left
+    sead::Vector3<float> p2l(-.2, .3, 0); // top right
+    sead::Vector3<float> p3l(-1, -1, 0); // bottom left
+    sead::Vector3<float> p4l(-.2, -1, 0); // bottom right
+
+    sead::Vector3<float> p1r(1, .3, 0); // top left
+    sead::Vector3<float> p2r(.2, .3, 0); // top right
+    sead::Vector3<float> p3r(1, -1, 0); // bottom left
+    sead::Vector3<float> p4r(.2, -1, 0); // bottom right
+
     sead::Color4f c(.1, .1, .1, .9);
 
     agl::utl::DevTools::beginDrawImm(context, sead::Matrix34<float>::ident, sead::Matrix44<float>::ident);
-    agl::utl::DevTools::drawTriangleImm(context, p1, p2, p3, c);
-    agl::utl::DevTools::drawTriangleImm(context, p3, p4, p2, c);
 
+    // Left debug menu
+    agl::utl::DevTools::drawTriangleImm(context, p1l, p2l, p3l, c);
+    agl::utl::DevTools::drawTriangleImm(context, p3l, p4l, p2l, c);
+
+    // Right debug menu
+    agl::utl::DevTools::drawTriangleImm(context, p1r, p2r, p3r, c);
+    agl::utl::DevTools::drawTriangleImm(context, p3r, p4r, p2r, c);
 }
