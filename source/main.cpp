@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include <cmath>
 #include <math.h>
+#include "al/factory/ActorFactoryEntries100.h"
 #include "server/Client.hpp"
 #include "puppets/PuppetInfo.h"
 #include "actors/PuppetActor.h"
@@ -72,21 +73,21 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
     al::Scene* curScene = curSequence->curScene;
     sead::PrimitiveRenderer* renderer = sead::PrimitiveRenderer::instance();
 
-    if (!debugMode) {
-        if (curScene && isInGame && container.sceneInvactiveTime < 0) {
-            sead::LookAtCamera* cam = al::getLookAtCamera(curScene, 0);
-            sead::Projection* projection = al::getProjectionSead(curScene, 0);
-            renderer->setDrawContext(drawContext);
-            renderer->setCamera(*cam);
-            renderer->setProjection(*projection);
-            renderer->begin();
-            renderer->setModelMatrix(sead::Matrix34f::ident);
-            for (int i = 0; i < container.maxFrames; i++) {
-                if (!container.timeFrames[i].isEmptyFrame)
-                    renderer->drawSphere4x8(container.timeFrames[i].position, 6.f, calcColorFrame(container.timeFrames[i].colorFrame));
-            }
-            renderer->end();
+    if (curScene && isInGame && container.sceneInvactiveTime < 0 && container.timeFrames.size() > 5) {
+        sead::LookAtCamera* cam = al::getLookAtCamera(curScene, 0);
+        sead::Projection* projection = al::getProjectionSead(curScene, 0);
+        renderer->setDrawContext(drawContext);
+        renderer->setCamera(*cam);
+        renderer->setProjection(*projection);
+        renderer->begin();
+        renderer->setModelMatrix(sead::Matrix34f::ident);
+        for (int i = 0; i < container.timeFrames.size(); i++) {
+            renderer->drawSphere4x8(container.timeFrames.at(i)->position, 6.f, calcColorFrame(container.timeFrames.at(i)->colorFrame));
         }
+        renderer->end();
+    }
+
+    if (!debugMode) {
         al::executeDraw(curSequence->mLytKit, "２Ｄバック（メイン画面）");
         return;
     }
@@ -227,32 +228,38 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
         gTextWriter->setScaleFromFontHeight(20.f);
         gTextWriter->printf("Is Rewind: %s\n", container.isRewinding ? "True" : "False");
         gTextWriter->printf("Is Captured: %s\n", container.isCaptured ? "True" : "False");
+        gTextWriter->printf("Is 2D: %s\n", container.is2D ? "True" : "False");
         gTextWriter->printf("Filter ID: %i\n", al::getPostProcessingFilterPresetId(curScene));
-        gTextWriter->printf("Frame Count: %i\n", container.frameCount);
         gTextWriter->printf("Color Frame: %f\n", container.lastRecordColorFrame);
         gTextWriter->printf("Color R: %f\n", calcColorFrame(container.lastRecordColorFrame).r);
         gTextWriter->printf("Color G: %f\n", calcColorFrame(container.lastRecordColorFrame).g);
         gTextWriter->printf("Color B: %f\n", calcColorFrame(container.lastRecordColorFrame).b);
-        gTextWriter->printf("Last Record Position:\n  %fx\n  %fy\n  %fz\n", container.lastRecordPosition.x, container.lastRecordPosition.y, container.lastRecordPosition.z);
+        gTextWriter->printf("Array Size: %i\n", container.timeFrames.size());
         gTextWriter->printf("\nFrame Data #%i:\n-----------------\n", container.debugCheckFrame);
-        gTextWriter->printf("Is Empty Frame: %s\n", container.timeFrames[container.debugCheckFrame].isEmptyFrame ? "True" : "False");
-        gTextWriter->printf("Animation: %s\n", container.timeFrames[container.debugCheckFrame].animation.cstr());
-        gTextWriter->printf("Current Animation Already This: %s\n", container.timeFrames[container.debugCheckFrame].animation.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
-        gTextWriter->printf("Animation Frame: %f\n", container.timeFrames[container.debugCheckFrame].animationFrame);
-        gTextWriter->printf("Position X: %f\n", container.timeFrames[container.debugCheckFrame].position.x);
-        gTextWriter->printf("Position Y: %f\n", container.timeFrames[container.debugCheckFrame].position.y);
-        gTextWriter->printf("Position Z: %f\n", container.timeFrames[container.debugCheckFrame].position.z);
+        // if (!container.timeFrames.isEmpty()){
+        //     if(!container.timeFrames[container.debugCheckFrame])
+        //         container.debugCheckFrame = container.timeFrames.size()-1;
+            
+        //     gTextWriter->printf("Animation: %s\n", container.timeFrames[container.debugCheckFrame]->animation.cstr());
+        //     gTextWriter->printf("Current Animation Already This: %s\n", container.timeFrames[container.debugCheckFrame]->animation.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
+        //     gTextWriter->printf("Animation Frame: %f\n", container.timeFrames[container.debugCheckFrame]->animationFrame);
+        //     gTextWriter->printf("Position X: %f\n", container.timeFrames[container.debugCheckFrame]->position.x);
+        //     gTextWriter->printf("Position Y: %f\n", container.timeFrames[container.debugCheckFrame]->position.y);
+        //     gTextWriter->printf("Position Z: %f\n", container.timeFrames[container.debugCheckFrame]->position.z);
+        // } else {
+        //     gTextWriter->printf("Array is empty\n");
+        // }
 
         // Frame scrolling
-        if (al::isPadHoldR(-1) && al::isPadTriggerRight(-1) && container.debugCheckFrame < container.maxFrames)
+        if (al::isPadHoldR(-1) && al::isPadTriggerRight(-1) && container.debugCheckFrame < container.timeFrames.size())
             container.debugCheckFrame++;
         if (al::isPadHoldR(-1) && al::isPadTriggerLeft(-1) && container.debugCheckFrame > 0)
             container.debugCheckFrame--;
 
         // Frame fast jumping
-        if (al::isPadHoldR(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame < container.maxFrames - 10)
+        if (al::isPadHoldR(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame < container.timeFrames.size() - 10)
             container.debugCheckFrame += 10;
-        if (al::isPadHoldR(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame >= container.maxFrames - 10)
+        if (al::isPadHoldR(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame > container.timeFrames.size())
             container.debugCheckFrame = 0;
 
         renderer->begin();

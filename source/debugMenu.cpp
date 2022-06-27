@@ -1,4 +1,5 @@
 #include "debugMenu.hpp"
+#include "timeWarp.h"
 
 static const char *DBG_FONT_PATH = "DebugData/Font/nvn_font_jis1.ntx";
 static const char *DBG_SHADER_PATH = "DebugData/Font/nvn_font_shader_jis1.bin";
@@ -27,6 +28,10 @@ void setupDebugMenu(GameSystem *gSys) {
             sead::PrimitiveDrawer drawer(context);
         }
     }
+
+    timeContainer& container = getTimeContainer();
+    container.sceneInvactiveTime = 300;
+    container.timeFrames.allocBuffer(container.maxFrames, nullptr);
 
     __asm("MOV W23, #0x3F800000");
     __asm("MOV W8, #0xFFFFFFFF");

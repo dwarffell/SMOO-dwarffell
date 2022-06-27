@@ -1,3 +1,4 @@
+#include "container/seadSafeArray.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "game/StageScene/StageScene.h"
 #include "gfx/seadColor.h"
@@ -6,11 +7,10 @@
 
 class timeFrame {
 public:
-    bool isEmptyFrame = true;
     float colorFrame = 0;
-    sead::Vector3f position = { 0.f, 0.f, 0.f };
-    sead::Vector3f velocity = { 0.f, 0.f, 0.f };
-    sead::Vector3f gravity = { 0.f, -1.f, 0.f };
+    sead::Vector3f position = sead::Vector3f::zero;
+    sead::Vector3f velocity = sead::Vector3f::zero;
+    sead::Vector3f gravity = -1*sead::Vector3f::ey;
     sead::Quatf rotation;
     sead::FixedSafeString<0x20> animation;
     float animationFrame;
@@ -21,16 +21,17 @@ public:
     StageScene* stageSceneRef;
     bool isRewinding = false;
     bool isCaptured = false;
+    bool is2D = false;
     int sceneInvactiveTime = -1;
-    int frameCount = 0;
     int debugCheckFrame = 0;
     int minTrailLength = 40;
     float minPushDistance = 20.f;
-    sead::Vector3f lastRecordPosition;
     float lastRecordColorFrame = 0;
 
     int maxFrames = 200;
-    timeFrame timeFrames[201];
+    // sead::SafeArray<timeFrame, 200> timeFrames;
+    sead::PtrArray<timeFrame> timeFrames;
+    // timeFrame timeFrames[200];
 };
 
 timeContainer& getTimeContainer();
@@ -38,7 +39,6 @@ timeContainer& getTimeContainer();
 void updateTimeStates(PlayerActorHakoniwa* p1);
 sead::Color4f calcColorFrame(float colorFrame);
 
-void removeOldestFrame();
 void pushNewFrame();
 void emptyFrameInfo();
 void isFramesEmpty();
