@@ -72,12 +72,12 @@ void pushNewFrame()
 
     // Before doing anything, if the frame container is full push data down
     if (container.maxFrames <= container.timeFrames.size())
-        container.timeFrames.popFront();
+        delete container.timeFrames.popFront();
 
     al::PlayerHolder* pHolder = al::getScenePlayerHolder(container.stageSceneRef);
     PlayerActorHakoniwa* p1 = (PlayerActorHakoniwa*)al::tryGetPlayerActor(pHolder, 0);
     
-    // newFrame->colorFrame = container.lastRecordColorFrame;
+    newFrame->colorFrame = container.lastRecordColorFrame;
     if (!p1->mHackKeeper->currentHackActor) {
         newFrame->position = al::getTrans(p1);
         newFrame->gravity = al::getGravity(p1);
@@ -107,12 +107,12 @@ void emptyFrameInfo()
 void rewindFrame(PlayerActorHakoniwa* p1)
 {
     timeContainer& container = getTimeContainer();
-    bool isNotCaptured = p1->mHackKeeper->currentHackActor == nullptr;
+    bool isCaptured = p1->mHackKeeper->currentHackActor != nullptr;
 
     if (!container.isRewinding)
         startRewind(p1);
 
-    if (isNotCaptured) {
+    if (!isCaptured) {
         al::setTrans(p1, container.timeFrames.back()->position);
         al::setGravity(p1, container.timeFrames.back()->gravity);
         al::setVelocity(p1, container.timeFrames.back()->velocity);
@@ -125,7 +125,7 @@ void rewindFrame(PlayerActorHakoniwa* p1)
         al::setVelocity(p1->mHackKeeper->currentHackActor, container.timeFrames.back()->velocity);
     }
 
-    container.timeFrames.erase(container.timeFrames.size());
+    delete container.timeFrames.popBack();
     if (container.timeFrames.isEmpty())
         endRewind(p1);
 
