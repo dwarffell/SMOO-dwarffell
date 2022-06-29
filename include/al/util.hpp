@@ -389,6 +389,7 @@ void initActorInitInfo(al::ActorInitInfo*, al::Scene const*, al::PlacementInfo c
 uint32_t getPostProcessingFilterPresetId(const Scene*);
 void incrementPostProcessingFilterPreset(Scene const*);
 void decrementPostProcessingFilterPreset(Scene const*);
+void validatePostProcessingFilter(al::Scene const*);
 
 void readSaveDataSync(const char* dataFile, uint, uint);
 

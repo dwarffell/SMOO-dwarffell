@@ -112,4 +112,6 @@ B59E28 B seadPrintHook // sead::system::print
 
 5C00B0 BL borderPullBackHook // hooks over isFirstStep in WorldEndBorderKeeper::exePullBack so we can kill the player if they reach the border of the map
 
+// Timewarp hooks
+
 9D0EB4 RET // Allows snapshot filters to be used during gameplay

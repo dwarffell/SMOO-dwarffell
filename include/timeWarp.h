@@ -22,14 +22,14 @@ public:
     bool isRewinding = false;
     bool isCaptured = false;
     bool is2D = false;
+    bool isFirstStep = false;
     int sceneInvactiveTime = -1;
     int debugCheckFrame = 0;
     int minTrailLength = 40;
     float minPushDistance = 20.f;
     float lastRecordColorFrame = 0;
-    static const int maxFrames = 200;
+    static const int maxFrames = 300;
     sead::PtrArray<timeFrame> timeFrames;
-    // timeFrame timeFrames[200];
 };
 
 timeContainer& getTimeContainer();

@@ -359,6 +359,7 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
     static bool isCameraActive = false;
 
     bool isFirstStep = al::isFirstStep(sequence);
+    if(isFirstStep) al::validatePostProcessingFilter(stageScene);
 
     al::PlayerHolder *pHolder = al::getScenePlayerHolder(stageScene);
     PlayerActorHakoniwa* p1 = (PlayerActorHakoniwa*)al::tryGetPlayerActor(pHolder, 0);
