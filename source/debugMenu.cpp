@@ -29,7 +29,7 @@ void setupDebugMenu(GameSystem *gSys) {
         }
     }
 
-    timeContainer& container = getTimeContainer();
+    TimeContainer& container = getTimeContainer();
     container.sceneInvactiveTime = 15;
     container.timeFrames.allocBuffer(container.maxFrames, nullptr);
 

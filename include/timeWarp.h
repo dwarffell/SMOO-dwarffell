@@ -5,7 +5,14 @@
 #include "prim/seadSafeString.h"
 #include "sead/math/seadVector.h"
 
-class timeFrame {
+class TimeFrameCap {
+public:
+    bool isFlying = false;
+    sead::Vector3f position = sead::Vector3f::zero;
+    sead::Quatf rotation;
+};
+
+class TimeFrame {
 public:
     float colorFrame = 0;
     sead::Vector3f position = sead::Vector3f::zero;
@@ -14,9 +21,10 @@ public:
     sead::Quatf rotation;
     sead::FixedSafeString<0x20> animation;
     float animationFrame;
+    TimeFrameCap capFrame;
 };
 
-class timeContainer {
+class TimeContainer {
 public:
     StageScene* stageSceneRef;
     bool isRewinding = false;
@@ -25,14 +33,18 @@ public:
     bool isFirstStep = false;
     int sceneInvactiveTime = -1;
     int debugCheckFrame = 0;
+
+    int rewindFrameDelay = 0;
+    int rewindFrameDelayTarget = 8;
+
     int minTrailLength = 40;
     float minPushDistance = 20.f;
     float lastRecordColorFrame = 0;
     static const int maxFrames = 300;
-    sead::PtrArray<timeFrame> timeFrames;
+    sead::PtrArray<TimeFrame> timeFrames;
 };
 
-timeContainer& getTimeContainer();
+TimeContainer& getTimeContainer();
 
 void updateTimeStates(PlayerActorHakoniwa* p1);
 sead::Color4f calcColorFrame(float colorFrame);

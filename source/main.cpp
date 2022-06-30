@@ -68,7 +68,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
     // }
 
     Time::calcTime(); // this needs to be ran every frame, so running it here works
-    timeContainer& container = getTimeContainer();
+    TimeContainer& container = getTimeContainer();
 
     al::Scene* curScene = curSequence->curScene;
     sead::PrimitiveRenderer* renderer = sead::PrimitiveRenderer::instance();
@@ -230,6 +230,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
         gTextWriter->printf("Is Captured: %s\n", container.isCaptured ? "True" : "False");
         gTextWriter->printf("Is 2D: %s\n", container.is2D ? "True" : "False");
         gTextWriter->printf("Filter ID: %i\n", al::getPostProcessingFilterPresetId(curScene));
+        gTextWriter->printf("Rewind Delay: %i/%i\n", container.rewindFrameDelay, container.rewindFrameDelayTarget);
         gTextWriter->printf("Color Frame: %f\n", container.lastRecordColorFrame);
         gTextWriter->printf("Color R: %f\n", calcColorFrame(container.lastRecordColorFrame).r);
         gTextWriter->printf("Color G: %f\n", calcColorFrame(container.lastRecordColorFrame).g);
@@ -243,6 +244,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
             gTextWriter->printf("Animation: %s\n", container.timeFrames[container.debugCheckFrame]->animation.cstr());
             gTextWriter->printf("Current Animation Already This: %s\n", container.timeFrames[container.debugCheckFrame]->animation.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
             gTextWriter->printf("Animation Frame: %f\n", container.timeFrames[container.debugCheckFrame]->animationFrame);
+            gTextWriter->printf("Is Cap Flying: %s\n", container.timeFrames[container.debugCheckFrame]->capFrame.isFlying ? "True" : "False");
             gTextWriter->printf("Position X: %f\n", container.timeFrames[container.debugCheckFrame]->position.x);
             gTextWriter->printf("Position Y: %f\n", container.timeFrames[container.debugCheckFrame]->position.y);
             gTextWriter->printf("Position Z: %f\n", container.timeFrames[container.debugCheckFrame]->position.z);

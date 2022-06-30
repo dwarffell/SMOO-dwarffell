@@ -8,15 +8,15 @@
 #include "rs/util.hpp"
 #include <cmath>
 
-timeContainer& getTimeContainer()
+TimeContainer& getTimeContainer()
 {
-    static timeContainer i;
+    static TimeContainer i;
     return i;
 }
 
 void updateTimeStates(PlayerActorHakoniwa* p1)
 {
-    timeContainer& container = getTimeContainer();
+    TimeContainer& container = getTimeContainer();
 
     //Cancel early if the invactive time is still running
     if(container.sceneInvactiveTime >= 0){
@@ -46,7 +46,8 @@ void updateTimeStates(PlayerActorHakoniwa* p1)
     }
 
     if (al::isPadHoldR(-1) && !rs::isActiveDemo(p1) && (container.timeFrames.size() >= container.minTrailLength || container.isRewinding)) {
-        rewindFrame(p1);
+        if(container.rewindFrameDelay >= container.rewindFrameDelayTarget) rewindFrame(p1);
+        else container.rewindFrameDelay++;
     } else if (container.isRewinding) {
         endRewind(p1);
     }
@@ -59,14 +60,14 @@ void updateTimeStates(PlayerActorHakoniwa* p1)
 
 void pushNewFrame()
 {
-    timeContainer& container = getTimeContainer();
+    TimeContainer& container = getTimeContainer();
     container.lastRecordColorFrame += 0.04f;
-    timeFrame* newFrame = nullptr; 
+    TimeFrame* newFrame = nullptr; 
     sead::Heap* seqHeap = sead::HeapMgr::instance()->findHeapByName("SceneHeap",0);
     if (seqHeap) {
-        newFrame = new (seqHeap) timeFrame();
+        newFrame = new (seqHeap) TimeFrame();
     } else {
-        newFrame = new timeFrame();
+        newFrame = new TimeFrame();
     }
     
 
@@ -79,6 +80,7 @@ void pushNewFrame()
     
     newFrame->colorFrame = container.lastRecordColorFrame;
     if (!p1->mHackKeeper->currentHackActor) {
+        //Mario
         newFrame->position = al::getTrans(p1);
         newFrame->gravity = al::getGravity(p1);
         newFrame->velocity = al::getVelocity(p1);
@@ -86,33 +88,40 @@ void pushNewFrame()
         newFrame->animation.clear();
         newFrame->animation.append(p1->mPlayerAnimator->curAnim);
         newFrame->animationFrame = p1->mPlayerAnimator->getAnimFrame();
+
+        //Cappy
+        newFrame->capFrame.isFlying = p1->mHackCap->isFlying();
+        newFrame->capFrame.position = al::getTrans(p1->mHackCap);
+        newFrame->capFrame.rotation = p1->mHackCap->mPoseKeeper->getQuat();
     } else {
+        //Capture
         newFrame->position = al::getTrans(p1->mHackKeeper->currentHackActor);
         newFrame->velocity = al::getVelocity(p1->mHackKeeper->currentHackActor);
+        newFrame->rotation = p1->mHackKeeper->currentHackActor->mPoseKeeper->getQuat();
     }
     
-
     container.timeFrames.pushBack(newFrame);
-    
     return;
 }
 
 void emptyFrameInfo()
 {
-    timeContainer& container = getTimeContainer();
+    TimeContainer& container = getTimeContainer();
     container.timeFrames.clear();
     return;
 }
 
 void rewindFrame(PlayerActorHakoniwa* p1)
 {
-    timeContainer& container = getTimeContainer();
+    TimeContainer& container = getTimeContainer();
     bool isCaptured = p1->mHackKeeper->currentHackActor != nullptr;
+    container.rewindFrameDelay = 0;
 
     if (!container.isRewinding)
         startRewind(p1);
 
     if (!isCaptured) {
+        //Mario
         al::setTrans(p1, container.timeFrames.back()->position);
         al::setGravity(p1, container.timeFrames.back()->gravity);
         al::setVelocity(p1, container.timeFrames.back()->velocity);
@@ -120,6 +129,19 @@ void rewindFrame(PlayerActorHakoniwa* p1)
         if (!container.timeFrames.back()->animation.isEqual(p1->mPlayerAnimator->curAnim))
             p1->mPlayerAnimator->startAnim(container.timeFrames.back()->animation);
         p1->mPlayerAnimator->setAnimFrame(container.timeFrames.back()->animationFrame);
+
+        //Cappy
+        if(container.timeFrames.back()->capFrame.isFlying != p1->mHackCap->isFlying()){
+            if(container.timeFrames.back()->capFrame.isFlying){
+                p1->mHackCap->setupThrowStart();
+                p1->mHackCap->showPuppetCap();
+            } else {
+                p1->mHackCap->startCatch("Default", true, al::getTrans(p1));
+                p1->mHackCap->hidePuppetCap();
+            }
+        }
+        al::setTrans(p1->mHackCap, container.timeFrames.back()->capFrame.position);
+        al::setQuat(p1->mHackCap, container.timeFrames.back()->capFrame.rotation);
     } else {
         al::setTrans(p1->mHackKeeper->currentHackActor, container.timeFrames.back()->position);
         al::setVelocity(p1->mHackKeeper->currentHackActor, container.timeFrames.back()->velocity);
@@ -151,7 +173,7 @@ sead::Color4f calcColorFrame(float colorFrame)
 
 void startRewind(PlayerActorHakoniwa* p1)
 {
-    timeContainer& container = getTimeContainer();
+    TimeContainer& container = getTimeContainer();
     al::Scene* scene = container.stageSceneRef;
     int filterID = al::getPostProcessingFilterPresetId(scene);
 
@@ -175,7 +197,7 @@ void startRewind(PlayerActorHakoniwa* p1)
 }
 void endRewind(PlayerActorHakoniwa* p1)
 {
-    timeContainer& container = getTimeContainer();
+    TimeContainer& container = getTimeContainer();
 
     al::Scene* scene = container.stageSceneRef;
     int filterID = al::getPostProcessingFilterPresetId(scene);
