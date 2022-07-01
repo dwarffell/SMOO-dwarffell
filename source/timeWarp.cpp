@@ -226,13 +226,14 @@ void endRewind(PlayerActorHakoniwa* p1)
     al::Scene* scene = container.stageSceneRef;
     int filterID = al::getPostProcessingFilterPresetId(scene);
 
-    //Cleanup cappy state
-    p1->mHackCap->startCatch("Default", true, al::getTrans(p1));
-    p1->mHackCap->forcePutOn();
-    p1->mHackCap->hidePuppetCap();
-
     if (!p1->mHackKeeper->currentHackActor)
         p1->endDemoPuppetable();
+        
+        //Cleanup cappy state
+        p1->mHackCap->startCatch("Default", true, al::getTrans(p1));
+        p1->mHackCap->forcePutOn();
+        p1->mHackCap->hidePuppetCap();
+    
     container.isRewinding = false;
 
     while (filterID != 0) {
