@@ -22,6 +22,7 @@
 #include "PlayerModelChangerHakoniwa.h"
 #include "PlayerFormSensorCollisionArranger.h"
 #include "PlayerInitInfo.h"
+#include "PlayerModelHolder.h"
 
 #include "Attacks/PlayerSpinCapAttack.h"
 
@@ -44,7 +45,7 @@ class PlayerActorHakoniwa : public PlayerActorBase , public IUseDimension {
         unsigned char padding_148[0x8]; // PlayerTrigger
         HackCap *mHackCap; // 0x148
         ActorDimensionKeeper *mDimKeeper; // 0x150
-        PlayerModelKeeper *mPlayerModelKeeper; // 0x158
+        PlayerModelHolder *mPlayerModelHolder; // 0x158
         PlayerModelChangerHakoniwa *mModelChanger; // 0x160
         PlayerAnimator *mPlayerAnimator; // 0x168 
         PlayerColliderHakoniwa *mPlayerCollider; // 0x170

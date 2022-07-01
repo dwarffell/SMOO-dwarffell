@@ -9,7 +9,8 @@ class TimeFrameCap {
 public:
     bool isFlying = false;
     sead::Vector3f position = sead::Vector3f::zero;
-    sead::Quatf rotation;
+    sead::Vector3f rotation = sead::Vector3f::zero;
+    sead::FixedSafeString<0x20> action;
 };
 
 class TimeFrame {
@@ -35,7 +36,7 @@ public:
     int debugCheckFrame = 0;
 
     int rewindFrameDelay = 0;
-    int rewindFrameDelayTarget = 8;
+    int rewindFrameDelayTarget = 0;
 
     int minTrailLength = 40;
     float minPushDistance = 20.f;

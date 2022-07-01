@@ -245,24 +245,30 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
             gTextWriter->printf("Current Animation Already This: %s\n", container.timeFrames[container.debugCheckFrame]->animation.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
             gTextWriter->printf("Animation Frame: %f\n", container.timeFrames[container.debugCheckFrame]->animationFrame);
             gTextWriter->printf("Is Cap Flying: %s\n", container.timeFrames[container.debugCheckFrame]->capFrame.isFlying ? "True" : "False");
-            gTextWriter->printf("Position X: %f\n", container.timeFrames[container.debugCheckFrame]->position.x);
-            gTextWriter->printf("Position Y: %f\n", container.timeFrames[container.debugCheckFrame]->position.y);
-            gTextWriter->printf("Position Z: %f\n", container.timeFrames[container.debugCheckFrame]->position.z);
+            gTextWriter->printf("Position X: %f\n", container.timeFrames[container.debugCheckFrame]->capFrame.position.x);
+            gTextWriter->printf("Position Y: %f\n", container.timeFrames[container.debugCheckFrame]->capFrame.position.y);
+            gTextWriter->printf("Position Z: %f\n", container.timeFrames[container.debugCheckFrame]->capFrame.position.z);
         } else {
             gTextWriter->printf("Array is empty\n");
         }
 
         // Frame scrolling
-        if (al::isPadHoldR(-1) && al::isPadTriggerRight(-1) && container.debugCheckFrame < container.timeFrames.size())
+        if (al::isPadHoldZL(-1) && al::isPadTriggerRight(-1) && container.debugCheckFrame < container.timeFrames.size())
             container.debugCheckFrame++;
-        if (al::isPadHoldR(-1) && al::isPadTriggerLeft(-1) && container.debugCheckFrame > 0)
+        if (al::isPadHoldZL(-1) && al::isPadTriggerLeft(-1) && container.debugCheckFrame > 0)
             container.debugCheckFrame--;
 
         // Frame fast jumping
-        if (al::isPadHoldR(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame < container.timeFrames.size() - 10)
+        if (al::isPadHoldZL(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame < container.timeFrames.size() - 10)
             container.debugCheckFrame += 10;
-        if (al::isPadHoldR(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame > container.timeFrames.size())
+        if (al::isPadHoldZL(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame > container.timeFrames.size())
             container.debugCheckFrame = 0;
+        
+        //Rewind speed edit
+        if (al::isPadHoldZR(-1) && al::isPadTriggerRight(-1))
+            container.rewindFrameDelayTarget++;
+        if (al::isPadHoldZR(-1) && al::isPadTriggerLeft(-1) && container.rewindFrameDelayTarget > 0)
+            container.rewindFrameDelayTarget--;
 
         renderer->begin();
 

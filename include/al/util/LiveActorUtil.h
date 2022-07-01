@@ -17,6 +17,7 @@ namespace al {
 
     void tryInitFixedModelGpuBuffer(const LiveActor*);
     void offUpdateMovementEffectAudioCollisionSensor(const LiveActor*);
+    void showModel(LiveActor *);
     void hideModel(LiveActor *);
     void hideModelIfShow(const LiveActor*);
     void showModelIfHide(const LiveActor*);

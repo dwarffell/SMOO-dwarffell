@@ -41,7 +41,8 @@ void updateTimeStates(PlayerActorHakoniwa* p1)
         if (!rs::isActiveDemo(p1) && !container.isRewinding)
             pushNewFrame();
     } else {
-        if (al::calcDistance(p1, container.timeFrames.at(container.timeFrames.size()-1)->position) > container.minPushDistance && !rs::isActiveDemo(p1) && !container.isRewinding)
+        if ((al::calcDistance(p1, container.timeFrames.at(container.timeFrames.size()-1)->position) > container.minPushDistance
+        || p1->mHackCap->isFlying()) && !rs::isActiveDemo(p1) && !container.isRewinding)
             pushNewFrame();
     }
 
@@ -53,8 +54,10 @@ void updateTimeStates(PlayerActorHakoniwa* p1)
     }
 
     // if (al::isPadTriggerUp(-1)) {
-    //     rewindFrame(p1);
-    //     endRewind(p1);
+    //     p1->mHackCap->showPuppetCap();
+    // }
+    // if (al::isPadTriggerRight(-1)) {
+    //     p1->mHackCap->hidePuppetCap();
     // }
 }
 
@@ -92,7 +95,8 @@ void pushNewFrame()
         //Cappy
         newFrame->capFrame.isFlying = p1->mHackCap->isFlying();
         newFrame->capFrame.position = al::getTrans(p1->mHackCap);
-        newFrame->capFrame.rotation = p1->mHackCap->mPoseKeeper->getQuat();
+        newFrame->capFrame.rotation = p1->mHackCap->mJointKeeper->mJointRot;
+        newFrame->capFrame.action = al::getActionName(p1->mHackCap);
     } else {
         //Capture
         newFrame->position = al::getTrans(p1->mHackKeeper->currentHackActor);
@@ -131,17 +135,37 @@ void rewindFrame(PlayerActorHakoniwa* p1)
         p1->mPlayerAnimator->setAnimFrame(container.timeFrames.back()->animationFrame);
 
         //Cappy
+        
+        //Initalize puppet cappy's state
         if(container.timeFrames.back()->capFrame.isFlying != p1->mHackCap->isFlying()){
-            if(container.timeFrames.back()->capFrame.isFlying){
+            if(container.timeFrames.back()->capFrame.isFlying){ 
                 p1->mHackCap->setupThrowStart();
-                p1->mHackCap->showPuppetCap();
             } else {
                 p1->mHackCap->startCatch("Default", true, al::getTrans(p1));
-                p1->mHackCap->hidePuppetCap();
-            }
+                p1->mHackCap->forcePutOn();
+            } 
         }
+
+        //Toggle the puppet cap's visiblity
+        if(container.timeFrames.back()->capFrame.isFlying){
+            p1->mHackCap->showPuppetCap();
+            // al::hideModel(al::getSubActor(p1, "頭"));
+        } else {
+            p1->mHackCap->hidePuppetCap();
+            // al::showModel(al::getSubActor(p1, "頭"));
+        }
+
+        //Hide and show the cappy model on Mario's head
+        al::LiveActor* headModel = al::getSubActor(p1->mPlayerModelHolder->currentModel->mLiveActor, "頭");
+        if (headModel) { 
+            if(container.timeFrames.back()->capFrame.isFlying) al::startVisAnimForAction(headModel, "CapOff"); 
+            else al::startVisAnimForAction(headModel, "CapOn");
+            // p1->makeActorDead();
+        }
+
         al::setTrans(p1->mHackCap, container.timeFrames.back()->capFrame.position);
-        al::setQuat(p1->mHackCap, container.timeFrames.back()->capFrame.rotation);
+        p1->mHackCap->mJointKeeper->mJointRot = container.timeFrames.back()->capFrame.rotation;
+        al::startAction(p1->mHackCap, container.timeFrames.back()->capFrame.action.cstr());
     } else {
         al::setTrans(p1->mHackKeeper->currentHackActor, container.timeFrames.back()->position);
         al::setVelocity(p1->mHackKeeper->currentHackActor, container.timeFrames.back()->velocity);
@@ -201,6 +225,11 @@ void endRewind(PlayerActorHakoniwa* p1)
 
     al::Scene* scene = container.stageSceneRef;
     int filterID = al::getPostProcessingFilterPresetId(scene);
+
+    //Cleanup cappy state
+    p1->mHackCap->startCatch("Default", true, al::getTrans(p1));
+    p1->mHackCap->forcePutOn();
+    p1->mHackCap->hidePuppetCap();
 
     if (!p1->mHackKeeper->currentHackActor)
         p1->endDemoPuppetable();
