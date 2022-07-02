@@ -2,6 +2,7 @@
 #include <cmath>
 #include <math.h>
 #include "al/factory/ActorFactoryEntries100.h"
+#include "gfx/seadColor.h"
 #include "server/Client.hpp"
 #include "puppets/PuppetInfo.h"
 #include "actors/PuppetActor.h"
@@ -27,6 +28,8 @@
 
 static int pInfSendTimer = 0;
 static int gameInfSendTimer = 0;
+
+static int debugCheckFrame = 0;
 
 void updatePlayerInfo(GameDataHolderAccessor holder, PlayerActorHakoniwa *p1) {
     if(pInfSendTimer >= 3) {
@@ -73,7 +76,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
     al::Scene* curScene = curSequence->curScene;
     sead::PrimitiveRenderer* renderer = sead::PrimitiveRenderer::instance();
 
-    if (curScene && isInGame && container.sceneInvactiveTime < 0 && container.timeFrames.size() > 5) {
+    if (curScene && isInGame && container.isSceneActive() && container.getTimeArraySize() > 5) {
         sead::LookAtCamera* cam = al::getLookAtCamera(curScene, 0);
         sead::Projection* projection = al::getProjectionSead(curScene, 0);
         renderer->setDrawContext(drawContext);
@@ -81,8 +84,9 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
         renderer->setProjection(*projection);
         renderer->begin();
         renderer->setModelMatrix(sead::Matrix34f::ident);
-        for (int i = 0; i < container.timeFrames.size(); i++) {
-            renderer->drawSphere4x8(container.timeFrames.at(i)->position, 6.f, calcColorFrame(container.timeFrames.at(i)->colorFrame));
+        for (int i = 0; i < container.getTimeArraySize(); i++) {
+            TimeFrame* frame = container.getTimeFrame(i);
+            renderer->drawSphere4x8(frame->position, 6.f, container.calcColorFrame(frame->colorFrame));
         }
         renderer->end();
     }
@@ -224,51 +228,56 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
             break;
         }
 
+        float curColorFrame = container.getColorFrame();
+        al::LiveActor* hack = p1->mHackKeeper->currentHackActor;
+
+        const char* captureName;
+        if(hack) captureName = p1->mHackKeeper->getCurrentHackName();
+
+        sead::Color4f curColor = container.calcColorFrame(curColorFrame);
+        TimeFrame* curFrame = container.getTimeFrame(debugCheckFrame);
+
         gTextWriter->setCursorFromTopLeft(sead::Vector2f((dispWidth / 5.f) * 3.f + 15.f, (dispHeight / 3.f) + 30.f));
         gTextWriter->setScaleFromFontHeight(20.f);
-        gTextWriter->printf("Is Rewind: %s\n", container.isRewinding ? "True" : "False");
-        gTextWriter->printf("Is Captured: %s\n", container.isCaptured ? "True" : "False");
-        gTextWriter->printf("Is 2D: %s\n", container.is2D ? "True" : "False");
+        gTextWriter->printf("Is Rewind: %s\n", container.isRewind() ? "True" : "False");
+        gTextWriter->printf("Rewind Delay: %i\n", container.getRewindDelay());
         gTextWriter->printf("Filter ID: %i\n", al::getPostProcessingFilterPresetId(curScene));
-        gTextWriter->printf("Rewind Delay: %i/%i\n", container.rewindFrameDelay, container.rewindFrameDelayTarget);
-        gTextWriter->printf("Color Frame: %f\n", container.lastRecordColorFrame);
-        gTextWriter->printf("Color R: %f\n", calcColorFrame(container.lastRecordColorFrame).r);
-        gTextWriter->printf("Color G: %f\n", calcColorFrame(container.lastRecordColorFrame).g);
-        gTextWriter->printf("Color B: %f\n", calcColorFrame(container.lastRecordColorFrame).b);
-        gTextWriter->printf("Array Size: %i\n", container.timeFrames.size());
-        gTextWriter->printf("\nFrame Data #%i:\n-----------------\n", container.debugCheckFrame);
-        if (!container.timeFrames.isEmpty()){
-            if(!container.timeFrames[container.debugCheckFrame])
-                container.debugCheckFrame = container.timeFrames.size()-1;
-            
-            gTextWriter->printf("Animation: %s\n", container.timeFrames[container.debugCheckFrame]->animation.cstr());
-            gTextWriter->printf("Current Animation Already This: %s\n", container.timeFrames[container.debugCheckFrame]->animation.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
-            gTextWriter->printf("Animation Frame: %f\n", container.timeFrames[container.debugCheckFrame]->animationFrame);
-            gTextWriter->printf("Is Cap Flying: %s\n", container.timeFrames[container.debugCheckFrame]->capFrame.isFlying ? "True" : "False");
-            gTextWriter->printf("Position X: %f\n", container.timeFrames[container.debugCheckFrame]->capFrame.position.x);
-            gTextWriter->printf("Position Y: %f\n", container.timeFrames[container.debugCheckFrame]->capFrame.position.y);
-            gTextWriter->printf("Position Z: %f\n", container.timeFrames[container.debugCheckFrame]->capFrame.position.z);
+        if(hack) gTextWriter->printf("Current Capture Name: %s\n", captureName);
+        gTextWriter->printf("Color Frame: %f\n", curColorFrame);
+        gTextWriter->printf("Color R: %f\n", curColor.r);
+        gTextWriter->printf("Color G: %f\n", curColor.g);
+        gTextWriter->printf("Color B: %f\n", curColor.b);
+        gTextWriter->printf("Array Size: %i\n", container.getTimeArraySize());
+        gTextWriter->printf("\nFrame Data #%i:\n-----------------\n", debugCheckFrame);
+        if (curFrame){
+            gTextWriter->printf("Animation: %s\n", curFrame->action.cstr());
+            gTextWriter->printf("Current Animation Already This: %s\n", curFrame->action.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
+            gTextWriter->printf("Animation Frame: %f\n", curFrame->actionFrame);
+            gTextWriter->printf("Is Cap Flying: %s\n", curFrame->capFrame.isFlying ? "True" : "False");
+            gTextWriter->printf("Position X: %f\n", curFrame->capFrame.position.x);
+            gTextWriter->printf("Position Y: %f\n", curFrame->capFrame.position.y);
+            gTextWriter->printf("Position Z: %f\n", curFrame->capFrame.position.z);
         } else {
             gTextWriter->printf("Array is empty\n");
         }
 
         // Frame scrolling
-        if (al::isPadHoldZL(-1) && al::isPadTriggerRight(-1) && container.debugCheckFrame < container.timeFrames.size())
-            container.debugCheckFrame++;
-        if (al::isPadHoldZL(-1) && al::isPadTriggerLeft(-1) && container.debugCheckFrame > 0)
-            container.debugCheckFrame--;
+        if (al::isPadHoldL(-1) && al::isPadTriggerRight(-1) && debugCheckFrame < container.getTimeArraySize())
+            debugCheckFrame++;
+        if (al::isPadHoldL(-1) && al::isPadTriggerLeft(-1) && debugCheckFrame > 0)
+            debugCheckFrame--;
 
         // Frame fast jumping
-        if (al::isPadHoldZL(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame < container.timeFrames.size() - 10)
-            container.debugCheckFrame += 10;
-        if (al::isPadHoldZL(-1) && al::isPadTriggerUp(-1) && container.debugCheckFrame > container.timeFrames.size())
-            container.debugCheckFrame = 0;
+        if (al::isPadHoldL(-1) && al::isPadTriggerUp(-1) && debugCheckFrame < container.getTimeArraySize() - 10)
+            debugCheckFrame += 10;
+        if (al::isPadHoldL(-1) && al::isPadTriggerUp(-1) && debugCheckFrame > container.getTimeArraySize())
+            debugCheckFrame = 0;
         
         //Rewind speed edit
         if (al::isPadHoldZR(-1) && al::isPadTriggerRight(-1))
-            container.rewindFrameDelayTarget++;
-        if (al::isPadHoldZR(-1) && al::isPadTriggerLeft(-1) && container.rewindFrameDelayTarget > 0)
-            container.rewindFrameDelayTarget--;
+            container.setRewindDelay(1);
+        if (al::isPadHoldZR(-1) && al::isPadTriggerLeft(-1))
+            container.setRewindDelay(-1);
 
         renderer->begin();
 
@@ -304,7 +313,7 @@ void sendShinePacket(GameDataHolderWriter thisPtr, Shine* curShine) {
 
 bool sceneKillHook(GameDataHolderAccessor value)
 {
-    getTimeContainer().sceneInvactiveTime = 25;
+    getTimeContainer().setInactiveTimer(25);
 
     return GameDataFunction::isMissEndPrevStageForSceneDead(value);
 }
@@ -325,8 +334,8 @@ void stageInitHook(al::ActorInitInfo *info, StageScene *curScene, al::PlacementI
     }
 
     Client::sendGameInfPacket(info->mActorSceneInfo.mSceneObjHolder);
-
-    emptyFrameInfo();
+    
+    getTimeContainer().setTimeFramesEmpty();
 }
 
 PlayerCostumeInfo *setPlayerModel(al::LiveActor *player, const al::ActorInitInfo &initInfo, const char *bodyModel, const char *capModel, al::AudioKeeper *keeper, bool isCloset) {
@@ -450,7 +459,7 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
     }
 
     // Time warp code added here
-    updateTimeStates(p1);
+    getTimeContainer().updateTimeStates(p1);
 
     return isFirstStep;
 

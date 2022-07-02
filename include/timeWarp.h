@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "container/seadSafeArray.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "game/StageScene/StageScene.h"
@@ -20,40 +21,68 @@ public:
     sead::Vector3f velocity = sead::Vector3f::zero;
     sead::Vector3f gravity = -1*sead::Vector3f::ey;
     sead::Quatf rotation;
-    sead::FixedSafeString<0x20> animation;
-    float animationFrame;
+    sead::FixedSafeString<0x20> action;
+    float actionFrame;
     TimeFrameCap capFrame;
 };
 
 class TimeContainer {
-public:
-    StageScene* stageSceneRef;
+private:
+    //Current State
     bool isRewinding = false;
-    bool isCaptured = false;
+    bool isCapture = false;
+    bool isCaptureInvalid = false;
     bool is2D = false;
-    bool isFirstStep = false;
-    int sceneInvactiveTime = -1;
-    int debugCheckFrame = 0;
+    int sceneInvactiveTime = -1; //Disable timewarp trails during scene transition while this frame counter is higher than -1
 
-    int rewindFrameDelay = 0;
-    int rewindFrameDelayTarget = 0;
-
-    int minTrailLength = 40;
-    float minPushDistance = 20.f;
-    float lastRecordColorFrame = 0;
+    //Timewarp Trail Array
     static const int maxFrames = 300;
     sead::PtrArray<TimeFrame> timeFrames;
+
+    //Timewarp stats/settings
+    int rewindFrameDelay = 0;
+    int rewindFrameDelayTarget = 0; //How many extra frames to stall before rewinding a frame, used for debugging
+
+    float colorFrame = 0.f; //Current color state, passed into calcColorFrame
+    float colorFrameRate = 0.03f; //Rate that the color value increases/decreases when drawing/rewinding
+
+    int minTrailLength = 40; //Minimum number of dots to rewind
+    float minPushDistance = 20.f; //Minimum distance to move before rewinding
+
+    //Private functions
+    void pushNewFrame(); //Adds new value to array
+    void rewindFrame(PlayerActorHakoniwa* p1); //Pops newest array entry off and places the player there
+    void updateHackCap(HackCap* cap, al::LiveActor* headModel);
+    void startRewind(PlayerActorHakoniwa* p1); //Inits a rewind
+    void endRewind(PlayerActorHakoniwa* p1); //Ends a rewind
+    void emptyFrameInfo(); //Wipes the whole frame array
+
+public:
+    //References
+    StageScene* stageSceneRef;
+
+    //Enter points
+    void init();
+    void updateTimeStates(PlayerActorHakoniwa* p1);
+
+    //Getters
+    TimeFrame* getTimeFrame(uint32_t index);
+    int getTimeArraySize();
+    float getColorFrame();
+    int getRewindDelay(); //Returns the target for the rewind delay, 0 = none
+
+    //Is
+    bool isSceneActive(); //Checks if the scene inactive time is -1 and draws can happen
+    bool isRewind();
+    bool isInvalidCapture(const char* curName);
+
+    //Setters
+    void setRewindDelay(int index); //Modifies the rewind delay based on the amount of the index
+    void setInactiveTimer(int time); //Sets the scene invctivity timer
+    void setTimeFramesEmpty();
+
+    //Calcs
+    sead::Color4f calcColorFrame(float colorFrame);
 };
 
 TimeContainer& getTimeContainer();
-
-void updateTimeStates(PlayerActorHakoniwa* p1);
-sead::Color4f calcColorFrame(float colorFrame);
-
-void pushNewFrame();
-void emptyFrameInfo();
-void isFramesEmpty();
-void rewindFrame(PlayerActorHakoniwa* p1);
-
-void startRewind(PlayerActorHakoniwa* p1);
-void endRewind(PlayerActorHakoniwa* p1);

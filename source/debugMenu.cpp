@@ -30,8 +30,7 @@ void setupDebugMenu(GameSystem *gSys) {
     }
 
     TimeContainer& container = getTimeContainer();
-    container.sceneInvactiveTime = 15;
-    container.timeFrames.allocBuffer(container.maxFrames, nullptr);
+    container.init();
 
     __asm("MOV W23, #0x3F800000");
     __asm("MOV W8, #0xFFFFFFFF");
