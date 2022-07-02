@@ -42,12 +42,20 @@ private:
     //Timewarp stats/settings
     int rewindFrameDelay = 0;
     int rewindFrameDelayTarget = 0; //How many extra frames to stall before rewinding a frame, used for debugging
-
-    float colorFrame = 0.f; //Current color state, passed into calcColorFrame
-    float colorFrameRate = 0.03f; //Rate that the color value increases/decreases when drawing/rewinding
-
     int minTrailLength = 40; //Minimum number of dots to rewind
     float minPushDistance = 20.f; //Minimum distance to move before rewinding
+
+    //Trail color
+    float colorFrame = 0.f; //Current color state, passed into calcColorFrame
+    float colorFrameRate = 0.05f; //Rate that the color value increases/decreases when drawing/rewinding
+    float colorFrameOffset = 0.f;
+    float colorFrameOffsetRate = 0.07f;
+    int dotBounceIndex = -1;
+
+    //Cooldown information
+    bool isCooldown = false;
+    float cooldownCharge = 0.f;
+    float cooldownRate = 0.25f;
 
     //Private functions
     void pushNewFrame(); //Adds new value to array
@@ -56,6 +64,7 @@ private:
     void startRewind(PlayerActorHakoniwa* p1); //Inits a rewind
     void endRewind(PlayerActorHakoniwa* p1); //Ends a rewind
     void emptyFrameInfo(); //Wipes the whole frame array
+    void resetCooldown(); //Restarts the cooldown
 
 public:
     //References
@@ -69,11 +78,13 @@ public:
     TimeFrame* getTimeFrame(uint32_t index);
     int getTimeArraySize();
     float getColorFrame();
+    float getCooldownTimer();
     int getRewindDelay(); //Returns the target for the rewind delay, 0 = none
 
     //Is
     bool isSceneActive(); //Checks if the scene inactive time is -1 and draws can happen
     bool isRewind();
+    bool isOnCooldown();
     bool isInvalidCapture(const char* curName);
 
     //Setters
@@ -82,7 +93,8 @@ public:
     void setTimeFramesEmpty();
 
     //Calcs
-    sead::Color4f calcColorFrame(float colorFrame);
+    sead::Color4f calcColorFrame(float colorFrame, int dotIndex); //Calculates the sead::Color4f of the colorFrame
+    sead::Vector3f calcDotTrans(sead::Vector3f position, int dotIndex);
 };
 
 TimeContainer& getTimeContainer();

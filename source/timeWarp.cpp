@@ -55,6 +55,17 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
         if(isRewinding) endRewind(p1);
     }
 
+    //Before allowing frame rewinds, check cooldown status
+    if(isCooldown){
+        cooldownCharge += cooldownRate;
+        if(cooldownCharge >= 100.f){
+            isCooldown = false;
+            dotBounceIndex = timeFrames.size();
+        }
+    }
+
+    if(dotBounceIndex >= 0) dotBounceIndex--; //Update the dot bounce index
+
     if(isCaptureInvalid) return;
 
     // If position has changed enough, push a new frame
@@ -66,8 +77,7 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
         || p1->mHackCap->isFlying()) && !rs::isActiveDemo(p1) && !isRewinding)
             pushNewFrame();
     }
-
-    if (al::isPadHoldR(-1) && !rs::isActiveDemo(p1) && (timeFrames.size() >= minTrailLength || isRewinding)) {
+    if (al::isPadHoldR(-1) && !rs::isActiveDemo(p1) && (timeFrames.size() >= minTrailLength || isRewinding) && !isCooldown) {
         if(rewindFrameDelay >= rewindFrameDelayTarget) rewindFrame(p1);
         else rewindFrameDelay++;
     } else if (isRewinding) {
@@ -94,6 +104,11 @@ float TimeContainer::getColorFrame()
     return colorFrame;
 }
 
+float TimeContainer::getCooldownTimer()
+{
+    return cooldownCharge;
+}
+
 int TimeContainer::getRewindDelay()
 {
     return rewindFrameDelayTarget;
@@ -107,6 +122,11 @@ bool TimeContainer::isSceneActive()
 bool TimeContainer::isRewind()
 {
     return isRewinding;
+}
+
+bool TimeContainer::isOnCooldown()
+{
+    return isCooldown;
 }
 
 bool TimeContainer::isInvalidCapture(const char* curName)
@@ -157,6 +177,7 @@ void TimeContainer::setTimeFramesEmpty()
 void TimeContainer::pushNewFrame()
 {
     colorFrame += colorFrameRate;
+    dotBounceIndex--;
     TimeFrame* newFrame = nullptr; 
     sead::Heap* seqHeap = sead::HeapMgr::instance()->findHeapByName("SceneHeap",0);
     if (seqHeap) {
@@ -207,11 +228,21 @@ void TimeContainer::emptyFrameInfo()
     return;
 }
 
+void TimeContainer::resetCooldown()
+{
+    isCooldown = true;
+    cooldownCharge = 0.f;
+    colorFrameOffset = 0.f;
+    return;
+}
+
 void TimeContainer::rewindFrame(PlayerActorHakoniwa* p1)
 {
     al::LiveActor* hack = p1->mHackKeeper->currentHackActor;
     al::LiveActor* headModel = al::getSubActor(p1->mPlayerModelHolder->currentModel->mLiveActor, "頭");
     rewindFrameDelay = 0;
+    colorFrame -= colorFrameRate;
+    colorFrameOffset += colorFrameOffsetRate;
 
     if (!isRewinding) startRewind(p1);
 
@@ -268,21 +299,33 @@ void TimeContainer::updateHackCap(HackCap* cap, al::LiveActor* headModel)
     return;
 }
 
-sead::Color4f TimeContainer::calcColorFrame(float colorFrame)
+sead::Color4f TimeContainer::calcColorFrame(float frame, int dotIndex)
 {
     sead::Color4f returnColor = { 0.f, 0.f, 0.f, 0.7f };
-    returnColor.r = sin(colorFrame) * 0.9f;
-    returnColor.g = sin(colorFrame + 1.f) * 0.9f;
-    returnColor.b = sin(colorFrame + 2.f) * 0.9f;
-
-    if (returnColor.r < 0)
-        returnColor.r = -returnColor.r;
-    if (returnColor.g < 0)
-        returnColor.g = -returnColor.g;
-    if (returnColor.b < 0)
-        returnColor.b = -returnColor.b;
-
+    
+    if(isCooldown){
+        returnColor.r = (100-cooldownCharge)/100;
+        returnColor.g = ((100+cooldownCharge)/100)-1;
+    } else {
+        if(dotIndex < dotBounceIndex-8){
+            returnColor.r = 0.f;
+            returnColor.g = 1.f;
+            returnColor.b = 0.f;
+        } else {
+            returnColor.r = sin((frame+colorFrameOffset));
+            returnColor.g = sin((frame+colorFrameOffset) - 2.0942f);
+            returnColor.b = sin((frame+colorFrameOffset) - 4.1884f);
+        }
+    }
     return returnColor;
+}
+
+sead::Vector3f TimeContainer::calcDotTrans(sead::Vector3f position, int dotIndex)
+{
+    int relative = dotBounceIndex-dotIndex;
+    if(relative <= 15 && relative > 0) position.y += sin(0.21*relative)*80;
+
+    return position;
 }
 
 void TimeContainer::startRewind(PlayerActorHakoniwa* p1)
@@ -294,6 +337,7 @@ void TimeContainer::startRewind(PlayerActorHakoniwa* p1)
         p1->startDemoPuppetable();
         p1->mPlayerAnimator->startAnim("Default");
     }
+
     isRewinding = true;
 
     while (filterID != 4) {
@@ -323,6 +367,7 @@ void TimeContainer::endRewind(PlayerActorHakoniwa* p1)
     }
     
     isRewinding = false;
+    resetCooldown();
 
     while (filterID != 0) {
         if (filterID > 0) {

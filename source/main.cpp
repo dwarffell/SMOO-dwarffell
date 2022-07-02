@@ -86,7 +86,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
         renderer->setModelMatrix(sead::Matrix34f::ident);
         for (int i = 0; i < container.getTimeArraySize(); i++) {
             TimeFrame* frame = container.getTimeFrame(i);
-            renderer->drawSphere4x8(frame->position, 6.f, container.calcColorFrame(frame->colorFrame));
+            renderer->drawSphere4x8(container.calcDotTrans(frame->position, i), 6.f, container.calcColorFrame(frame->colorFrame, i));
         }
         renderer->end();
     }
@@ -234,12 +234,14 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
         const char* captureName;
         if(hack) captureName = p1->mHackKeeper->getCurrentHackName();
 
-        sead::Color4f curColor = container.calcColorFrame(curColorFrame);
+        sead::Color4f curColor = container.calcColorFrame(curColorFrame, -1);
         TimeFrame* curFrame = container.getTimeFrame(debugCheckFrame);
 
         gTextWriter->setCursorFromTopLeft(sead::Vector2f((dispWidth / 5.f) * 3.f + 15.f, (dispHeight / 3.f) + 30.f));
         gTextWriter->setScaleFromFontHeight(20.f);
         gTextWriter->printf("Is Rewind: %s\n", container.isRewind() ? "True" : "False");
+        gTextWriter->printf("Is Cooldown: %s\n", container.isOnCooldown() ? "True" : "False");
+        gTextWriter->printf("Cooldown Charge: %f\n", container.getCooldownTimer());
         gTextWriter->printf("Rewind Delay: %i\n", container.getRewindDelay());
         gTextWriter->printf("Filter ID: %i\n", al::getPostProcessingFilterPresetId(curScene));
         if(hack) gTextWriter->printf("Current Capture Name: %s\n", captureName);
