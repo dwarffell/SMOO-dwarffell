@@ -62,7 +62,8 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
         if(cooldownCharge >= 100.f){
             isCooldown = false;
             dotBounceIndex = timeFrames.size()+15;
-            al::emitEffect(p1->mPlayerModelHolder->currentModel->mLiveActor, "DotReady", al::getTransPtr(p1));
+            if(!p1->mDimKeeper->is2D)
+                al::emitEffect(p1->mPlayerModelHolder->currentModel->mLiveActor, "DotReady", al::getTransPtr(p1));
         }
     }
 
@@ -267,18 +268,21 @@ void TimeContainer::rewindFrame(PlayerActorHakoniwa* p1)
         p1->mPlayerAnimator->setAnimFrame(timeFrames.back()->actionFrame);
 
         //Cappy
-        updateHackCap(p1->mHackCap, headModel);
-        al::setTrans(p1->mHackCap, timeFrames.back()->capFrame.position);
-        p1->mHackCap->mJointKeeper->mJointRot = timeFrames.back()->capFrame.rotation;
-        al::startAction(p1->mHackCap, timeFrames.back()->capFrame.action.cstr());
+        if(!p1->mDimKeeper->is2D){
+            updateHackCap(p1->mHackCap, headModel);
+            al::setTrans(p1->mHackCap, timeFrames.back()->capFrame.position);
+            p1->mHackCap->mJointKeeper->mJointRot = timeFrames.back()->capFrame.rotation;
+            al::startAction(p1->mHackCap, timeFrames.back()->capFrame.action.cstr());
+        }
     } else {
         al::setTrans(hack, timeFrames.back()->position);
         al::setVelocity(hack, timeFrames.back()->velocity);
         al::setQuat(hack, timeFrames.back()->rotation);
         al::startAction(hack, timeFrames.back()->action.cstr());
     }
-
-    al::emitEffect(p1->mPlayerModelHolder->currentModel->mLiveActor, "DotTravel", al::getTransPtr(p1));
+    
+    if(!p1->mDimKeeper->is2D)
+        al::emitEffect(p1->mPlayerModelHolder->currentModel->mLiveActor, "DotTravel", al::getTransPtr(p1));
 
     delete timeFrames.popBack();
     if (timeFrames.isEmpty())
@@ -316,13 +320,14 @@ sead::Color4f TimeContainer::calcColorFrame(float frame, int dotIndex)
     sead::Color4f returnColor = { 0.f, 0.f, 0.f, 0.7f };
     
     if(isCooldown){
-        returnColor.r = (100-cooldownCharge)/100;
+        returnColor.r = ((100+cooldownCharge)/100)-1;
         returnColor.g = ((100+cooldownCharge)/100)-1;
+        returnColor.b = ((100+cooldownCharge)/100)-1;
     } else {
         if(dotIndex < dotBounceIndex-8){
-            returnColor.r = 0.f;
+            returnColor.r = 1.f;
             returnColor.g = 1.f;
-            returnColor.b = 0.f;
+            returnColor.b = 1.f;
         } else {
             returnColor.r = sin((frame+colorFrameOffset));
             returnColor.g = sin((frame+colorFrameOffset) - 2.0942f);
