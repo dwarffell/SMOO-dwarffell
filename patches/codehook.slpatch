@@ -115,3 +115,4 @@ B59E28 B seadPrintHook // sead::system::print
 // Timewarp hooks
 
 9D0EB4 RET // Allows snapshot filters to be used during gameplay
+85C710 B triggerR

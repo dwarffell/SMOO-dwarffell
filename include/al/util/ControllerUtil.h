@@ -16,6 +16,9 @@ namespace al {
     bool isPadTriggerZL(int port);
     bool isPadTriggerZR(int port);
 
+    bool isPadTriggerMinus(int port);
+    bool isPadTriggerStart(int port);
+
     bool isPadTriggerL(int port);
     bool isPadTriggerR(int port);
 
@@ -34,6 +37,9 @@ namespace al {
 
     bool isPadHoldZL(int port);
     bool isPadHoldZR(int port);
+
+    bool isPadHoldMinus(int port);
+    bool isPadHoldStart(int port);
 
     sead::Vector2f *getLeftStick(int);
     sead::Vector2f *getRightStick(int);

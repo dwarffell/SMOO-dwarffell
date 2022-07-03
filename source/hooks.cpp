@@ -27,6 +27,7 @@
 #include "rs/util/InputUtil.h"
 #include "sead/prim/seadSafeString.h"
 #include "server/HideAndSeekMode.hpp"
+#include "timeWarp.h"
 
 bool comboBtnHook(int port) {
     if (Client::isModeActive()) { // only switch to combo if any gamemode is active
@@ -169,3 +170,5 @@ bool borderPullBackHook(WorldEndBorderKeeper* thisPtr) {
     
     return isFirstStep;
 }
+
+bool triggerR(int port) { return false; }

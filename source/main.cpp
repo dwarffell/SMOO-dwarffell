@@ -1,8 +1,11 @@
 #include "main.hpp"
 #include <cmath>
 #include <math.h>
+#include <stdint.h>
+#include "al/audio/BgmDirector.h"
 #include "al/factory/ActorFactoryEntries100.h"
 #include "gfx/seadColor.h"
+#include "math/seadMathCalcCommon.h"
 #include "server/Client.hpp"
 #include "puppets/PuppetInfo.h"
 #include "actors/PuppetActor.h"
@@ -30,6 +33,9 @@ static int pInfSendTimer = 0;
 static int gameInfSendTimer = 0;
 
 static int debugCheckFrame = 0;
+
+static bool isDisableMusic = false;
+static uint64_t framesInScene = 0;
 
 void updatePlayerInfo(GameDataHolderAccessor holder, PlayerActorHakoniwa *p1) {
     if(pInfSendTimer >= 3) {
@@ -76,7 +82,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
     al::Scene* curScene = curSequence->curScene;
     sead::PrimitiveRenderer* renderer = sead::PrimitiveRenderer::instance();
 
-    if (curScene && isInGame && container.isSceneActive() && container.getTimeArraySize() > 5) {
+    if (curScene && isInGame && container.isSceneActive() && container.getTimeArraySize() > 1) {
         sead::LookAtCamera* cam = al::getLookAtCamera(curScene, 0);
         sead::Projection* projection = al::getProjectionSead(curScene, 0);
         renderer->setDrawContext(drawContext);
@@ -86,7 +92,9 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
         renderer->setModelMatrix(sead::Matrix34f::ident);
         for (int i = 0; i < container.getTimeArraySize(); i++) {
             TimeFrame* frame = container.getTimeFrame(i);
-            renderer->drawSphere4x8(container.calcDotTrans(frame->position, i), 6.f, container.calcColorFrame(frame->colorFrame, i));
+            renderer->drawSphere4x8(container.calcDotTrans(frame->position, i),
+                sead::MathCalcCommon<int>::min((container.getTimeArraySize()-i)/2, 9),
+                container.calcColorFrame(frame->colorFrame, i));
         }
         renderer->end();
     }
@@ -338,6 +346,7 @@ void stageInitHook(al::ActorInitInfo *info, StageScene *curScene, al::PlacementI
     Client::sendGameInfPacket(info->mActorSceneInfo.mSceneObjHolder);
     
     getTimeContainer().setTimeFramesEmpty();
+    framesInScene = 0;
 }
 
 PlayerCostumeInfo *setPlayerModel(al::LiveActor *player, const al::ActorInitInfo &initInfo, const char *bodyModel, const char *capModel, al::AudioKeeper *keeper, bool isCloset) {
@@ -377,6 +386,7 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
 
     static bool isCameraActive = false;
 
+    framesInScene++;
     bool isFirstStep = al::isFirstStep(sequence);
     if(isFirstStep) al::validatePostProcessingFilter(stageScene);
 
@@ -399,8 +409,6 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
     }
 
     updatePlayerInfo(stageScene->mHolder, p1);
-
-    static bool isDisableMusic = false;
 
     if (al::isPadHoldZR(-1)) {
         if (al::isPadTriggerUp(-1)) debugMode = !debugMode;
@@ -454,17 +462,17 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
         }
     }
 
-    if (isDisableMusic) {
-        if (al::isPlayingBgm(stageScene)) {
-            al::stopAllBgm(stageScene, 0);
-        }
+    al::BgmDirector* bgmRef = al::getBgmDirector(stageScene);
+    if (isDisableMusic && framesInScene > 30) {
+        bgmRef->pauseBgmById(1, 0, true);
+    } else {
+        bgmRef->resumeBgmById(1, 0, true);
     }
 
     // Time warp code added here
-    getTimeContainer().updateTimeStates(p1);
+    if(!stageScene->isPause()) getTimeContainer().updateTimeStates(p1);
 
     return isFirstStep;
-
 }
 
 void seadPrintHook(const char *fmt, ...) 

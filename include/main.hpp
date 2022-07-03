@@ -33,6 +33,7 @@
 #include "sead/math/seadVector.h"
 #include "sead/math/seadMatrix.h"
 #include "sead/prim/seadSafeString.hpp"
+#include "sead/math/seadMathCalcCommon.h"
 #include "sead/gfx/seadCamera.h"
 #include "sead/basis/seadNew.h"
 #include "sead/gfx/seadColor.h"
