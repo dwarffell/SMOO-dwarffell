@@ -6,6 +6,7 @@
 #include "al/util/LiveActorUtil.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "gfx/seadColor.h"
+#include "math/seadVector.h"
 #include "prim/seadSafeString.h"
 #include "rs/util.hpp"
 #include <cmath>
@@ -60,11 +61,12 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
         cooldownCharge += cooldownRate;
         if(cooldownCharge >= 100.f){
             isCooldown = false;
-            dotBounceIndex = timeFrames.size();
+            dotBounceIndex = timeFrames.size()+15;
+            al::emitEffect(p1->mPlayerModelHolder->currentModel->mLiveActor, "DotReady", al::getTransPtr(p1));
         }
     }
 
-    if(dotBounceIndex >= 0) dotBounceIndex--; //Update the dot bounce index
+    updateDotState(p1);
 
     if(isCaptureInvalid) return;
 
@@ -174,6 +176,14 @@ void TimeContainer::setTimeFramesEmpty()
     return;
 }
 
+void TimeContainer::updateDotState(PlayerActorHakoniwa* p1)
+{
+    // TimeFrame* frame = getTimeFrame(dotBounceIndex);
+    // sead::Vector3f tempValuePenis = {0.f,500.f,0.f};
+    if(dotBounceIndex >= 0) dotBounceIndex--; //Update the dot bounce index
+    return;
+}
+
 void TimeContainer::pushNewFrame()
 {
     colorFrame += colorFrameRate;
@@ -267,6 +277,8 @@ void TimeContainer::rewindFrame(PlayerActorHakoniwa* p1)
         al::setQuat(hack, timeFrames.back()->rotation);
         al::startAction(hack, timeFrames.back()->action.cstr());
     }
+
+    al::emitEffect(p1->mPlayerModelHolder->currentModel->mLiveActor, "DotTravel", al::getTransPtr(p1));
 
     delete timeFrames.popBack();
     if (timeFrames.isEmpty())

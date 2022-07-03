@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "container/seadSafeArray.h"
 #include "game/Player/PlayerActorHakoniwa.h"
+#include "game/Player/PlayerModelHolder.h"
 #include "game/StageScene/StageScene.h"
 #include "gfx/seadColor.h"
 #include "prim/seadSafeString.h"
@@ -59,6 +60,7 @@ private:
 
     //Private functions
     void pushNewFrame(); //Adds new value to array
+    void updateDotState(PlayerActorHakoniwa* p1);
     void rewindFrame(PlayerActorHakoniwa* p1); //Pops newest array entry off and places the player there
     void updateHackCap(HackCap* cap, al::LiveActor* headModel);
     void startRewind(PlayerActorHakoniwa* p1); //Inits a rewind
