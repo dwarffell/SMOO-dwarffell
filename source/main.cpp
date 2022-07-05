@@ -236,40 +236,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
                 }
             }
             break;
-        case 2:
-            {
-                al::PlayerHolder *pHolder = al::getScenePlayerHolder(curScene);
-                PlayerActorHakoniwa *p1 = pHolder->tryGetPlayer(0);
-
-                if (p1->mHackKeeper && p1->mHackKeeper->currentHackActor) {
-
-                    al::LiveActor *curHack = p1->mHackKeeper->currentHackActor;
-
-                    gTextWriter->printf("Current Hack Animation: %s\n", al::getActionName(curHack));
-                    gTextWriter->printf("Current Hack Name: %s\n",
-                                        p1->mHackKeeper->getCurrentHackName());
-                    sead::Quatf captureRot = curHack->mPoseKeeper->getQuat();
-                    gTextWriter->printf("Current Hack Rot: %f %f %f %f\n", captureRot.x,
-                                        captureRot.y, captureRot.z, captureRot.w);
-                    sead::Quatf calcRot;
-                    al::calcQuat(&calcRot, curHack);
-                    gTextWriter->printf("Calc Hack Rot: %f %f %f %f\n", calcRot.x,
-                                        calcRot.y, calcRot.z, calcRot.w);
-                }else {
-                    gTextWriter->printf("Cur Action: %s\n", p1->mPlayerAnimator->mAnimFrameCtrl->getActionName());
-                    gTextWriter->printf("Cur Sub Action: %s\n", p1->mPlayerAnimator->curSubAnim.cstr());
-                    gTextWriter->printf("Is Cappy Flying? %s\n", BTOC(p1->mHackCap->isFlying()));
-                    if(p1->mHackCap->isFlying()) {
-                        gTextWriter->printf("Cappy Action: %s\n", al::getActionName(p1->mHackCap));
-                        sead::Vector3f *capTrans = al::getTransPtr(p1->mHackCap);
-                        sead::Vector3f *capRot = &p1->mHackCap->mJointKeeper->mJointRot;
-                        gTextWriter->printf("Cap Coords:\nX: %f\nY: %f\nZ: %f\n", capTrans->x, capTrans->y, capTrans->z);
-                        gTextWriter->printf("Cap Rot:\nX: %f\nY: %f\nZ: %f\n", capRot->x, capRot->y, capRot->z);
-                        gTextWriter->printf("Cap Skew: %f\n", p1->mHackCap->mJointKeeper->mSkew);
-                    }
-                }
-            }
-            break;
+        }
         default:
             break;
         }
