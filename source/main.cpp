@@ -152,18 +152,19 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
 
                 // al::LiveActor *curCapture = curPuppet->getCapture(debugCaptureIndex);
 
-                gTextWriter->printf("Puppet Index: %d\n", debugPuppetIndex);
-                gTextWriter->printf("Player Name: %s\n", curPupInfo->puppetName);
-                gTextWriter->printf("Connection Status: %s\n", curPupInfo->isConnected ? "Online" : "Offline");
-                gTextWriter->printf("Is in Same Stage: %s\n", curPupInfo->isInSameStage ? "True" : "False");
-                gTextWriter->printf("Is in Capture: %s\n", curPupInfo->isCaptured ? "True" : "False");
-                gTextWriter->printf("Puppet Stage: %s\n", curPupInfo->stageName);
-                gTextWriter->printf("Puppet Scenario: %u\n", curPupInfo->scenarioNo);
-                // gTextWriter->printf("Packet Coords:\nX: %f\nY: %f\nZ: %f\n", curPupInfo->playerPos.x, curPupInfo->playerPos.y, curPupInfo->playerPos.z);
-                //  if (curModel) {
-                //      sead::Vector3f* pupPos = al::getTrans(curModel);
-                //      gTextWriter->printf("In-Game Coords:\nX: %f\nY: %f\nZ: %f\n", pupPos->x, pupPos->y, pupPos->z);
-                //  }
+                    gTextWriter->printf("Puppet Index: %d\n", debugPuppetIndex);
+                    gTextWriter->printf("Player Name: %s\n", curPupInfo->puppetName);
+                    gTextWriter->printf("Connection Status: %s\n", curPupInfo->isConnected ? "Online" : "Offline");
+                    gTextWriter->printf("Is in Same Stage: %s\n", curPupInfo->isInSameStage ? "True" : "False");
+                    gTextWriter->printf("Is in Capture: %s\n", curPupInfo->isCaptured ? "True" : "False");
+                    gTextWriter->printf("Puppet Stage: %s\n", curPupInfo->stageName);
+                    gTextWriter->printf("Puppet Scenario: %u\n", curPupInfo->scenarioNo);
+                    gTextWriter->printf("Puppet Costume: H: %s B: %s\n", curPupInfo->costumeHead, curPupInfo->costumeBody);
+                    //gTextWriter->printf("Packet Coords:\nX: %f\nY: %f\nZ: %f\n", curPupInfo->playerPos.x, curPupInfo->playerPos.y, curPupInfo->playerPos.z);
+                    // if (curModel) {
+                    //     sead::Vector3f* pupPos = al::getTrans(curModel);
+                    //     gTextWriter->printf("In-Game Coords:\nX: %f\nY: %f\nZ: %f\n", pupPos->x, pupPos->y, pupPos->z);
+                    // }
 
                 if (curPupInfo->isCaptured) {
                     gTextWriter->printf("Current Capture: %s\n", curPupInfo->curHack);
@@ -184,7 +185,15 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
 
             if (debugPuppet && debugInfo) {
 
-                al::LiveActor* curModel = debugPuppet->getCurrentModel();
+                    al::LiveActor *curModel = debugPuppet->getCurrentModel();
+
+                    gTextWriter->printf("Is Nametag Visible: %s\n", BTOC(debugPuppet->mNameTag->isVisible()));
+                    gTextWriter->printf("Is Nametag Alive: %s\n", BTOC(debugPuppet->mNameTag->mIsAlive));
+                    gTextWriter->printf("Nametag Normalized Dist: %f\n", debugPuppet->mNameTag->mNormalizedDist);
+                    gTextWriter->printf("Nametag State: %s\n", debugPuppet->mNameTag->getCurrentState());
+                    gTextWriter->printf("Is Current Model Clipped: %s\n",
+                                        BTOC(al::isClipped(curModel)));
+                    gTextWriter->printf("Is Debug Puppet Tagged: %s\n", BTOC(debugInfo->isIt));
 
                 gTextWriter->printf("Is Nametag Visible: %s\n", BTOC(debugPuppet->mNameTag->isVisible()));
                 gTextWriter->printf("Is Nametag Alive: %s\n", BTOC(debugPuppet->mNameTag->mIsAlive));
@@ -226,7 +235,41 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
                     gTextWriter->printf("Cap Skew: %f\n", p1->mHackCap->mJointKeeper->mSkew);
                 }
             }
-        } break;
+            break;
+        case 2:
+            {
+                al::PlayerHolder *pHolder = al::getScenePlayerHolder(curScene);
+                PlayerActorHakoniwa *p1 = pHolder->tryGetPlayer(0);
+
+                if (p1->mHackKeeper && p1->mHackKeeper->currentHackActor) {
+
+                    al::LiveActor *curHack = p1->mHackKeeper->currentHackActor;
+
+                    gTextWriter->printf("Current Hack Animation: %s\n", al::getActionName(curHack));
+                    gTextWriter->printf("Current Hack Name: %s\n",
+                                        p1->mHackKeeper->getCurrentHackName());
+                    sead::Quatf captureRot = curHack->mPoseKeeper->getQuat();
+                    gTextWriter->printf("Current Hack Rot: %f %f %f %f\n", captureRot.x,
+                                        captureRot.y, captureRot.z, captureRot.w);
+                    sead::Quatf calcRot;
+                    al::calcQuat(&calcRot, curHack);
+                    gTextWriter->printf("Calc Hack Rot: %f %f %f %f\n", calcRot.x,
+                                        calcRot.y, calcRot.z, calcRot.w);
+                }else {
+                    gTextWriter->printf("Cur Action: %s\n", p1->mPlayerAnimator->mAnimFrameCtrl->getActionName());
+                    gTextWriter->printf("Cur Sub Action: %s\n", p1->mPlayerAnimator->curSubAnim.cstr());
+                    gTextWriter->printf("Is Cappy Flying? %s\n", BTOC(p1->mHackCap->isFlying()));
+                    if(p1->mHackCap->isFlying()) {
+                        gTextWriter->printf("Cappy Action: %s\n", al::getActionName(p1->mHackCap));
+                        sead::Vector3f *capTrans = al::getTransPtr(p1->mHackCap);
+                        sead::Vector3f *capRot = &p1->mHackCap->mJointKeeper->mJointRot;
+                        gTextWriter->printf("Cap Coords:\nX: %f\nY: %f\nZ: %f\n", capTrans->x, capTrans->y, capTrans->z);
+                        gTextWriter->printf("Cap Rot:\nX: %f\nY: %f\nZ: %f\n", capRot->x, capRot->y, capRot->z);
+                        gTextWriter->printf("Cap Skew: %f\n", p1->mHackCap->mJointKeeper->mSkew);
+                    }
+                }
+            }
+            break;
         default:
             break;
         }
@@ -312,7 +355,7 @@ void sendShinePacket(GameDataHolderWriter thisPtr, Shine* curShine) {
     if (!curShine->isGot()) {
         Client::sendShineCollectPacket(curShine->shineId);
     }
-    
+
     GameDataFunction::setGotShine(thisPtr, curShine->curShineInfo);
 }
 
@@ -327,7 +370,7 @@ void stageInitHook(al::ActorInitInfo *info, StageScene *curScene, al::PlacementI
 
     al::initActorInitInfo(info, curScene, placement, lytInfo, factory, sceneMsgCtrl,
                           dataHolder);
-    
+
     Client::clearArrays();
 
     Client::setSceneInfo(*info, curScene);
@@ -357,7 +400,7 @@ ulong constructHook() {  // hook for constructing anything we need to globally b
     __asm("MOV %[result], X20"
           : [result] "=r"(
               initInfo));  // Save our scenes init info to a gloabl ptr so we can access it later
-    
+
     Client::sInstance = new Client(playBufSize);
 
     return 0x20;
@@ -389,7 +432,7 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
     if (isFirstStep) {
         Client::tryRestartCurrentMode();
     }
-    
+
     isInGame = !stageScene->isPause();
 
     Client::setGameActive(!stageScene->isPause());
@@ -423,10 +466,10 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
             if(debugPuppetIndex < 0) {
                 debugPuppetIndex = playBufSize - 2;
             }
-            if (debugPuppetIndex >= playBufSize)
+            if (debugPuppetIndex >= playBufSize - 1)
                 debugPuppetIndex = 0;
         }
-        
+
     } else if (al::isPadHoldL(-1)) {
         if (al::isPadTriggerLeft(-1)) Client::toggleCurrentMode();
         if (al::isPadTriggerRight(-1)) {
@@ -470,7 +513,7 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
 
 }
 
-void seadPrintHook(const char *fmt, ...) 
+void seadPrintHook(const char *fmt, ...)
 {
     va_list args;
 	va_start(args, fmt);
