@@ -20,7 +20,7 @@ TimeContainer& getTimeContainer()
 void TimeContainer::init()
 {
     timeFrames.allocBuffer(maxFrames, nullptr);
-    sceneInvactiveTime = 15;
+    sceneInvactiveTime = 60;
     return;
 }
 
@@ -132,6 +132,14 @@ bool TimeContainer::isOnCooldown()
     return isCooldown;
 }
 
+bool TimeContainer::isRewindCappyThrow()
+{
+    if(isRewinding){
+        return timeFrames.back()->capFrame.isFlying;
+    }
+    return false;
+}
+
 bool TimeContainer::isInvalidCapture(const char* curName)
 {
     constexpr static const char* hackList[] = {
@@ -216,10 +224,12 @@ void TimeContainer::pushNewFrame()
         newFrame->actionFrame = p1->mPlayerAnimator->getAnimFrame();
 
         //Cappy
-        newFrame->capFrame.isFlying = p1->mHackCap->isFlying();
-        newFrame->capFrame.position = al::getTrans(p1->mHackCap);
-        newFrame->capFrame.rotation = p1->mHackCap->mJointKeeper->mJointRot;
-        newFrame->capFrame.action = al::getActionName(p1->mHackCap);
+        if(p1->mHackCap){
+            newFrame->capFrame.isFlying = p1->mHackCap->isFlying();
+            newFrame->capFrame.position = al::getTrans(p1->mHackCap);
+            newFrame->capFrame.rotation = p1->mHackCap->mJointKeeper->mJointRot;
+            newFrame->capFrame.action = al::getActionName(p1->mHackCap);
+        }
     } else {
         //Capture
         newFrame->position = al::getTrans(hack);

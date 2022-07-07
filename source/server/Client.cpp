@@ -33,6 +33,7 @@
 #include "server/gamemode/GameModeFactory.hpp"
 #include "server/HideAndSeekConfigMenu.hpp"
 #include "server/HideAndSeekMode.hpp"
+#include "timeWarp.h"
 
 Client* Client::sInstance;
 
@@ -577,7 +578,7 @@ void Client::sendHackCapInfPacket(const HackCap* hackCap) {
         return;
     }
     
-    bool isFlying = hackCap->isFlying();
+    bool isFlying = hackCap->isFlying() || getTimeContainer().isRewindCappyThrow();
 
     // if cap is in flying state, send packet as often as this function is called
     if (isFlying) {
@@ -585,7 +586,7 @@ void Client::sendHackCapInfPacket(const HackCap* hackCap) {
         packet.mUserID = sInstance->mUserID;
         packet.capPos = al::getTrans(hackCap);
 
-        packet.isCapVisible = hackCap->isFlying();
+        packet.isCapVisible = isFlying;
 
         packet.capQuat.x = hackCap->mJointKeeper->mJointRot.x;
         packet.capQuat.y = hackCap->mJointKeeper->mJointRot.y;

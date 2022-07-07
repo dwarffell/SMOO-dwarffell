@@ -87,6 +87,7 @@ public:
     bool isSceneActive(); //Checks if the scene inactive time is -1 and draws can happen
     bool isRewind();
     bool isOnCooldown();
+    bool isRewindCappyThrow();
     bool isInvalidCapture(const char* curName);
 
     //Setters
