@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "SocketBase.hpp"
 #include "logger.hpp"
 #include "nn/result.h"
 #include "nn/socket.h"
@@ -57,6 +58,7 @@ nn::Result SocketClient::init(const char* ip, u16 port) {
     nn::Result result;
     
     if((result = nn::socket::Connect(this->socket_log_socket, &serverAddress, sizeof(serverAddress))).isFailure()) {
+        Logger::log("Socket Connection Failed!\n");
         this->socket_errno = nn::socket::GetLastErrno();
         this->socket_log_state = SOCKET_LOG_UNAVAILABLE;
         return result;
@@ -105,12 +107,15 @@ bool SocketClient::RECV() {
 
     // read only the size of a header
     while(valread < headerSize) {
-        int result = nn::socket::Recv(this->socket_log_socket, headerBuf + valread, headerSize - valread, this->sock_flags);        
+        int result = nn::socket::Recv(this->socket_log_socket, headerBuf + valread,
+                                      headerSize - valread, this->sock_flags);
+
+        this->socket_errno = nn::socket::GetLastErrno();
+        
         if(result > 0) {
             valread += result;
         } else {
             Logger::log("Header Read Failed! Value: %d Total Read: %d\n", result, valread);
-        this->socket_errno = nn::socket::GetLastErrno();
             this->closeSocket();
             return false;
         }
@@ -135,14 +140,16 @@ bool SocketClient::RECV() {
 
                 while (valread < fullSize) {
 
-                    int result = nn::socket::Recv(this->socket_log_socket, packetBuf + valread, fullSize - valread, this->sock_flags);
+                    int result = nn::socket::Recv(this->socket_log_socket, packetBuf + valread,
+                                                  fullSize - valread, this->sock_flags);
+
+                    this->socket_errno = nn::socket::GetLastErrno();
 
                     if (result > 0) {
                         valread += result;
-                    }else {
+                    } else {
                         free(packetBuf);
                         Logger::log("Packet Read Failed! Value: %d\nPacket Size: %d\nPacket Type: %s\n", result, header->mPacketSize, packetNames[header->mType]);
-                        this->socket_errno = nn::socket::GetLastErrno();
                         this->closeSocket();
                         return false;
                     }
@@ -155,11 +162,7 @@ bool SocketClient::RECV() {
                 } else {
                     free(packetBuf);
                 }
-            } else {
-                // Logger::log("Heap Allocation Failed! Returned nullptr\n");
             }
-        } else {
-            // Logger::log("Recieved Unknown Packet Type! Size: %d\n", header->mPacketSize);
         }
         
         return true;
@@ -187,3 +190,9 @@ void SocketClient::printPacket(Packet *packet) {
     }
 }
 
+bool SocketClient::closeSocket() {
+
+    Logger::log("Closing Socket.\n");
+
+    return SocketBase::closeSocket();
+}

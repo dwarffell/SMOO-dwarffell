@@ -24,6 +24,7 @@
 
 #include "container/seadPtrArray.h"
 #include "game/Actors/Shine.h"
+#include "game/GameData/GameDataHolderAccessor.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "game/StageScene/StageScene.h"
 #include "game/Layouts/CoinCounter.h"
@@ -65,6 +66,8 @@
 
 #include <stdlib.h>
 
+#define MAXPUPINDEX 32
+
 struct UIDIndexNode {
     nn::account::Uid uid;
     int puppetIndex;
@@ -78,12 +81,12 @@ class Client {
 
         Client(int bufferSize);
 
-        void init(al::LayoutInitInfo const &initInfo);
+        void init(al::LayoutInitInfo const &initInfo, GameDataHolderAccessor holder);
 
         bool StartThreads();
         void readFunc();
         void recvFunc();
-        static void stopConnection();
+        static void restartConnection();
 
         bool isDone() { return mReadThread->isDone(); };
         static bool isSocketActive() { return sInstance ? sInstance->mSocket->isConnected() : false; };
@@ -215,7 +218,7 @@ class Client {
         void sendToStage(ChangeStagePacket* packet);
         void disconnectPlayer(PlayerDC *packet);
 
-        int findPuppetID(const nn::account::Uid& id);
+        PuppetInfo* findPuppetInfo(const nn::account::Uid& id, bool isFindAvailable);
 
         bool startConnection();
 
@@ -224,8 +227,8 @@ class Client {
         // currently, only readThread is used to recieve and update PuppetInfo, while the main game thread is used to send packets without queueing them up first, which might cause performance issues
         al::AsyncFunctorThread *mReadThread = nullptr;    // TODO: use this thread to send any queued packets
         // al::AsyncFunctorThread *mRecvThread; // TODO: use this thread to recieve packets and update PuppetInfo
-
-        sead::SafeArray<UIDIndexNode, 16> puppetPlayerID;
+        
+        sead::SafeArray<UIDIndexNode, MAXPUPINDEX> puppetPlayerID;
 
         int mConnectCount = 0;
 
@@ -233,8 +236,10 @@ class Client {
 
         sead::FixedSafeString<0x20> mUsername;
 
-        // --- Server Syncing Members ---
+        bool mIsConnectionActive = false;
 
+        // --- Server Syncing Members --- 
+        
         // array of shine IDs for checking if multiple shines have been collected in quick sucession, all moons within the players stage that match the ID will be deleted
         sead::SafeArray<int, 128> curCollectedShines;
         int collectedShineCount = 0;
@@ -278,6 +283,8 @@ class Client {
 
         sead::FixedSafeString<0x40> mStageName;
 
+        GameDataHolderAccessor mHolder;
+
         u8 mScenario = 0;
 
         // --- Mode Info ---
@@ -292,7 +299,7 @@ class Client {
 
         // --- Puppet Info ---
 
-        PuppetInfo *mPuppetInfoArr[32];
+        PuppetInfo *mPuppetInfoArr[MAXPUPINDEX];
 
         PuppetHolder *mPuppetHolder = nullptr;
 
