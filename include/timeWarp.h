@@ -71,6 +71,8 @@ private:
 public:
     //References
     StageScene* stageSceneRef;
+    PlayerOxygen* oxygen;
+    bool isPInWater = false;
 
     //Enter points
     void init();
@@ -98,6 +100,7 @@ public:
     //Calcs
     sead::Color4f calcColorFrame(float colorFrame, int dotIndex); //Calculates the sead::Color4f of the colorFrame
     sead::Vector3f calcDotTrans(sead::Vector3f position, int dotIndex);
+    float calcCooldownPercent();
 };
 
 TimeContainer& getTimeContainer();

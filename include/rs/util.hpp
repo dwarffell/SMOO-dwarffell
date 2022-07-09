@@ -76,4 +76,6 @@ namespace rs {
     void calcGroundNormalOrGravityDir(sead::Vector3f *result, al::LiveActor const *actor, IUsePlayerCollision const *col);
 
     void calcPlayerFrontDir(sead::Vector3f *result, al::LiveActor const *);
+
+    bool isPlayerInWater(al::LiveActor const*);
 }

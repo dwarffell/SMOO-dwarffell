@@ -8,13 +8,14 @@
 #include "PlayerHackKeeper.h"
 #include "PlayerCostumeInfo.h"
 #include "PlayerModelChangerHakoniwa.h"
+#include "PlayerOxygen.h"
 
 class PlayerInfo {
     public:
         PlayerInfo();
 
         PlayerModelChangerHakoniwa *pModelChanger; // 0x0
-        struct PlayerOxygen *pOxygen; // 0x8
+        PlayerOxygen *pOxygen; // 0x8
         PlayerAnimator *mPlayerAnimator; // 0x10
         struct PlayerBindKeeper *pBindKeeper; // 0x18
         struct PlayerDamageKeeper *pDamageKeeper; // 0x20

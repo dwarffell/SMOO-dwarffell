@@ -252,28 +252,39 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
 
         gTextWriter->setCursorFromTopLeft(sead::Vector2f((dispWidth / 5.f) * 3.f + 15.f, (dispHeight / 3.f) + 30.f));
         gTextWriter->setScaleFromFontHeight(20.f);
-        gTextWriter->printf("Is Rewind: %s\n", container.isRewind() ? "True" : "False");
-        gTextWriter->printf("Is Cooldown: %s\n", container.isOnCooldown() ? "True" : "False");
-        gTextWriter->printf("Cooldown Charge: %f\n", container.getCooldownTimer());
-        gTextWriter->printf("Rewind Delay: %i\n", container.getRewindDelay());
-        gTextWriter->printf("Filter ID: %i\n", al::getPostProcessingFilterPresetId(curScene));
-        if(hack) gTextWriter->printf("Current Capture Name: %s\n", captureName);
-        gTextWriter->printf("Color Frame: %f\n", curColorFrame);
-        gTextWriter->printf("Color R: %f\n", curColor.r);
-        gTextWriter->printf("Color G: %f\n", curColor.g);
-        gTextWriter->printf("Color B: %f\n", curColor.b);
-        gTextWriter->printf("Array Size: %i\n", container.getTimeArraySize());
-        gTextWriter->printf("\nFrame Data #%i:\n-----------------\n", debugCheckFrame);
-        if (curFrame){
-            gTextWriter->printf("Animation: %s\n", curFrame->action.cstr());
-            gTextWriter->printf("Current Animation Already This: %s\n", curFrame->action.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
-            gTextWriter->printf("Animation Frame: %f\n", curFrame->actionFrame);
-            gTextWriter->printf("Is Cap Flying: %s\n", curFrame->capFrame.isFlying ? "True" : "False");
-            gTextWriter->printf("Position X: %f\n", curFrame->capFrame.position.x);
-            gTextWriter->printf("Position Y: %f\n", curFrame->capFrame.position.y);
-            gTextWriter->printf("Position Z: %f\n", curFrame->capFrame.position.z);
+        if(al::isPadHoldL(-1) && container.oxygen){
+            gTextWriter->printf("Oxygen Header Data:\n");
+            gTextWriter->printf("Visual Percentage: %f\n", container.oxygen->mPercentage);
+            gTextWriter->printf("Oxygen Frames: %i\n", container.oxygen->mOxygenFrames);
+            gTextWriter->printf("Damage Frames: %i\n", container.oxygen->mDamageFrames);
+            gTextWriter->printf("Percentage Delay: %i\n", container.oxygen->mPercentageDelay);
+            gTextWriter->printf("Oxygen Target: %i\n", container.oxygen->mOxygenTarget);
+            gTextWriter->printf("Recovery Frames: %i\n", container.oxygen->mRecoveryFrames);
+            gTextWriter->printf("Damage Target: %i\n\n", container.oxygen->mDamageTarget);
         } else {
-            gTextWriter->printf("Array is empty\n");
+            gTextWriter->printf("Is Rewind: %s\n", container.isRewind() ? "True" : "False");
+            gTextWriter->printf("Is Cooldown: %s\n", container.isOnCooldown() ? "True" : "False");
+            gTextWriter->printf("Cooldown Charge: %f\n", container.getCooldownTimer());
+            gTextWriter->printf("Rewind Delay: %i\n", container.getRewindDelay());
+            gTextWriter->printf("Filter ID: %i\n", al::getPostProcessingFilterPresetId(curScene));
+            if(hack) gTextWriter->printf("Current Capture Name: %s\n", captureName);
+            gTextWriter->printf("Color Frame: %f\n", curColorFrame);
+            gTextWriter->printf("Color R: %f\n", curColor.r);
+            gTextWriter->printf("Color G: %f\n", curColor.g);
+            gTextWriter->printf("Color B: %f\n", curColor.b);
+            gTextWriter->printf("Array Size: %i\n", container.getTimeArraySize());
+            gTextWriter->printf("\nFrame Data #%i:\n-----------------\n", debugCheckFrame);
+            if (curFrame){
+                gTextWriter->printf("Animation: %s\n", curFrame->action.cstr());
+                gTextWriter->printf("Current Animation Already This: %s\n", curFrame->action.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
+                gTextWriter->printf("Animation Frame: %f\n", curFrame->actionFrame);
+                gTextWriter->printf("Is Cap Flying: %s\n", curFrame->capFrame.isFlying ? "True" : "False");
+                gTextWriter->printf("Position X: %f\n", curFrame->capFrame.position.x);
+                gTextWriter->printf("Position Y: %f\n", curFrame->capFrame.position.y);
+                gTextWriter->printf("Position Z: %f\n", curFrame->capFrame.position.z);
+            } else {
+                gTextWriter->printf("Array is empty\n");
+            }
         }
 
         // Frame scrolling

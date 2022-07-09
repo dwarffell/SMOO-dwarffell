@@ -6,8 +6,10 @@
 #include "al/util/LiveActorUtil.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "gfx/seadColor.h"
+#include "math/seadMathCalcCommon.h"
 #include "math/seadVector.h"
 #include "prim/seadSafeString.h"
+#include "game/Player/PlayerFunction.h"
 #include "rs/util.hpp"
 #include <cmath>
 
@@ -77,10 +79,10 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
             pushNewFrame();
     } else {
         if ((al::calcDistance(p1, timeFrames.at(timeFrames.size()-1)->position) > minPushDistance
-        || p1->mHackCap->isFlying()) && !rs::isActiveDemo(p1) && !isRewinding)
+        || p1->mHackCap->isFlying()) && !rs::isActiveDemo(p1) && !PlayerFunction::isPlayerDeadStatus(p1) && !isRewinding)
             pushNewFrame();
     }
-    if (al::isPadHoldR(-1) && !rs::isActiveDemo(p1) && (timeFrames.size() >= minTrailLength || isRewinding) && !isCooldown) {
+    if (al::isPadHoldR(-1) && !rs::isActiveDemo(p1) && !PlayerFunction::isPlayerDeadStatus(p1) && (timeFrames.size() >= minTrailLength || isRewinding) && !isCooldown) {
         if(rewindFrameDelay >= rewindFrameDelayTarget) rewindFrame(p1);
         else rewindFrameDelay++;
     } else if (isRewinding) {
@@ -278,7 +280,7 @@ void TimeContainer::rewindFrame(PlayerActorHakoniwa* p1)
         p1->mPlayerAnimator->setAnimFrame(timeFrames.back()->actionFrame);
 
         //Cappy
-        if(!p1->mDimKeeper->is2D){
+        if(!p1->mDimKeeper->is2D && p1->mHackCap){
             updateHackCap(p1->mHackCap, headModel);
             al::setTrans(p1->mHackCap, timeFrames.back()->capFrame.position);
             p1->mHackCap->mJointKeeper->mJointRot = timeFrames.back()->capFrame.rotation;
@@ -353,6 +355,11 @@ sead::Vector3f TimeContainer::calcDotTrans(sead::Vector3f position, int dotIndex
     if(relative <= 15 && relative > 0) position.y += sin(0.21*relative)*80;
 
     return position;
+}
+
+float TimeContainer::calcCooldownPercent()
+{
+    return sead::MathCalcCommon<float>::max(sead::MathCalcCommon<float>::min(cooldownCharge/100.f, 1.f), 0.05f);
 }
 
 void TimeContainer::startRewind(PlayerActorHakoniwa* p1)
