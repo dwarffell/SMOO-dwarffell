@@ -190,13 +190,13 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
 
                     gTextWriter->printf("Is Debug Puppet Tagged: %s\n", BTOC(debugInfo->isIt));
 
-                gTextWriter->printf("Is Nametag Visible: %s\n", BTOC(debugPuppet->mNameTag->isVisible()));
-                gTextWriter->printf("Is Nametag Alive: %s\n", BTOC(debugPuppet->mNameTag->mIsAlive));
-                gTextWriter->printf("Nametag Normalized Dist: %f\n", debugPuppet->mNameTag->mNormalizedDist);
-                gTextWriter->printf("Nametag State: %s\n", debugPuppet->mNameTag->getCurrentState());
-                gTextWriter->printf("Is Current Model Clipped: %s\n",
-                    BTOC(al::isClipped(curModel)));
-                gTextWriter->printf("Is Debug Puppet Tagged: %s\n", BTOC(debugInfo->isIt));
+                // gTextWriter->printf("Is Nametag Visible: %s\n", BTOC(debugPuppet->mNameTag->isVisible()));
+                // gTextWriter->printf("Is Nametag Alive: %s\n", BTOC(debugPuppet->mNameTag->mIsAlive));
+                // gTextWriter->printf("Nametag Normalized Dist: %f\n", debugPuppet->mNameTag->mNormalizedDist);
+                // gTextWriter->printf("Nametag State: %s\n", debugPuppet->mNameTag->getCurrentState());
+                // gTextWriter->printf("Is Current Model Clipped: %s\n",
+                //     BTOC(al::isClipped(curModel)));
+                // gTextWriter->printf("Is Debug Puppet Tagged: %s\n", BTOC(debugInfo->isIt));
             }
         } break;
         case 2: {
