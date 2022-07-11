@@ -4,6 +4,7 @@
 #include "al/util.hpp"
 #include "al/util/ControllerUtil.h"
 #include "al/util/LiveActorUtil.h"
+#include "game/GameData/GameDataFunction.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "gfx/seadColor.h"
 #include "math/seadMathCalcCommon.h"
@@ -226,11 +227,13 @@ void TimeContainer::pushNewFrame()
         newFrame->actionFrame = p1->mPlayerAnimator->getAnimFrame();
 
         //Cappy
-        if(p1->mHackCap){
-            newFrame->capFrame.isFlying = p1->mHackCap->isFlying();
-            newFrame->capFrame.position = al::getTrans(p1->mHackCap);
-            newFrame->capFrame.rotation = p1->mHackCap->mJointKeeper->mJointRot;
-            newFrame->capFrame.action = al::getActionName(p1->mHackCap);
+        if(GameDataFunction::isEnableCap(stageSceneRef)){
+            if(p1->mHackCap){
+                newFrame->capFrame.isFlying = p1->mHackCap->isFlying();
+                newFrame->capFrame.position = al::getTrans(p1->mHackCap);
+                newFrame->capFrame.rotation = p1->mHackCap->mJointKeeper->mJointRot;
+                newFrame->capFrame.action = al::getActionName(p1->mHackCap);
+            }
         }
     } else {
         //Capture
@@ -280,11 +283,13 @@ void TimeContainer::rewindFrame(PlayerActorHakoniwa* p1)
         p1->mPlayerAnimator->setAnimFrame(timeFrames.back()->actionFrame);
 
         //Cappy
-        if(!p1->mDimKeeper->is2D && p1->mHackCap){
-            updateHackCap(p1->mHackCap, headModel);
-            al::setTrans(p1->mHackCap, timeFrames.back()->capFrame.position);
-            p1->mHackCap->mJointKeeper->mJointRot = timeFrames.back()->capFrame.rotation;
-            al::startAction(p1->mHackCap, timeFrames.back()->capFrame.action.cstr());
+        if(GameDataFunction::isEnableCap(stageSceneRef)){
+            if(!p1->mDimKeeper->is2D && p1->mHackCap){
+                updateHackCap(p1->mHackCap, headModel);
+                al::setTrans(p1->mHackCap, timeFrames.back()->capFrame.position);
+                p1->mHackCap->mJointKeeper->mJointRot = timeFrames.back()->capFrame.rotation;
+                al::startAction(p1->mHackCap, timeFrames.back()->capFrame.action.cstr());
+            }
         }
     } else {
         al::setTrans(hack, timeFrames.back()->position);
