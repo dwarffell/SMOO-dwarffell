@@ -3,6 +3,7 @@
 #include <cstring>
 #include "al/actor/ActorSceneInfo.h"
 #include "al/layout/WindowConfirmWait.h"
+#include "al/util/ControllerUtil.h"
 #include "al/util/LiveActorUtil.h"
 #include "algorithms/PlayerAnims.h"
 #include "game/GameData/GameDataFunction.h"
@@ -11,6 +12,9 @@
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "game/SaveData/SaveDataAccessFunction.h"
 #include "game/StageScene/StageScene.h"
+#include "heap/seadDisposer.h"
+#include "heap/seadHeap.h"
+#include "heap/seadFrameHeap.h"
 #include "heap/seadHeapMgr.h"
 #include "helpers.hpp"
 #include "layouts/HideAndSeekIcon.h"
@@ -26,6 +30,7 @@
 #include "packets/PlayerConnect.h"
 #include "packets/PlayerDC.h"
 #include "packets/TagInf.h"
+#include "prim/seadSafeString.h"
 #include "puppets/PuppetInfo.h"
 #include "sead/basis/seadRawPrint.h"
 #include "sead/math/seadQuat.h"
@@ -35,7 +40,7 @@
 #include "server/HideAndSeekMode.hpp"
 #include "timeWarp.h"
 
-Client* Client::sInstance;
+SEAD_SINGLETON_DISPOSER_IMPL(Client)
 
 typedef void (Client::*ClientThreadFunc)(void);
 
@@ -44,21 +49,21 @@ typedef void (Client::*ClientThreadFunc)(void);
  * 
  * @param bufferSize defines the maximum amount of puppets the client can handle
  */
-Client::Client(int bufferSize) {
+Client::Client() {
+
+    mHeap = sead::FrameHeap::create(0x100000, "ClientHeap", sead::HeapMgr::instance()->getCurrentHeap(), 8, sead::Heap::cHeapDirection_Forward, false);
+
+    sead::ScopedCurrentHeapSetter heapSetter(mHeap); // every new call after this will use ClientHeap instead of SequenceHeap
+
     this->mReadThread = new al::AsyncFunctorThread("ClientReadThread", al::FunctorV0M<Client*, ClientThreadFunc>(this, &Client::readFunc), 0, 0x10000, {0});
-    // this->recvThread = new al::AsyncFunctorThread("ClientRecvThread",
-    // al::FunctorV0M<typeof(this), typeof(&Client::recvFunc)>(this, &Client::recvFunc), 0, 0x10000,
-    // {0});
 
     mKeyboard = new Keyboard(nn::swkbd::GetRequiredStringBufferSize());
 
     mSocket = new SocketClient("SocketClient");
     
-    maxPuppets = bufferSize - 1;
-
     mPuppetHolder = new PuppetHolder(maxPuppets);
 
-    for (size_t i = 0; i < bufferSize + 1; i++)
+    for (size_t i = 0; i < MAXPUPINDEX; i++)
     {
         mPuppetInfoArr[i] = new PuppetInfo();
 
@@ -66,8 +71,6 @@ Client::Client(int bufferSize) {
     }
 
     strcpy(mDebugPuppetInfo.puppetName, "PuppetDebug");
-
-    puppetPlayerID.fill({0});
 
     mConnectCount = 0;
 
@@ -79,24 +82,20 @@ Client::Client(int bufferSize) {
 
     nn::account::GetLastOpenedUser(&mUserID);
 
-    mUserID.print();
-
     nn::account::Nickname playerName;
     nn::account::GetNickname(&playerName, mUserID);
+    Logger::setLogName(playerName.name);  // set Debug logger name to player name
 
     mUsername = playerName.name;
+    
+    mUserID.print();
 
     Logger::log("Player Name: %s\n", playerName.name);
 
     Logger::log("%s Build Number: %s\n", playerName.name, TOSTRING(BUILDVERSTR));
 
-    Logger::setLogName(playerName.name);  // set Debug logger name to player name
+    mServerMode = GameMode::HIDEANDSEEK;  // temp for testing
 
-    mServerMode = GameMode::HIDEANDSEEK; // temp for testing
-
-    if(!sInstance) {
-        sInstance = this;
-    }
 }
 
 /**
@@ -106,7 +105,7 @@ Client::Client(int bufferSize) {
  */
 void Client::init(al::LayoutInitInfo const &initInfo, GameDataHolderAccessor holder) {
 
-    mConnectionWait = new al::WindowConfirmWait("ServerWaitConnect", "WindowConfirmWait", initInfo);
+    mConnectionWait = new (mHeap) al::WindowConfirmWait("ServerWaitConnect", "WindowConfirmWait", initInfo);
 
     mConnectionWait->setTxtMessage(u"Connecting to Server.");
 
@@ -115,6 +114,9 @@ void Client::init(al::LayoutInitInfo const &initInfo, GameDataHolderAccessor hol
     mHolder = holder;
 
     StartThreads();
+
+    Logger::log("Remaining Heap Size: %d\n", mHeap->getFreeSize());
+
 }
 
 /**
@@ -190,8 +192,6 @@ void Client::restartConnection() {
         Logger::log("Sucessfully Closed Socket.\n");
     }
 
-    sInstance->puppetPlayerID.fill({0,0});
-
     sInstance->mConnectCount = 0;
 
     sInstance->mIsConnectionActive = sInstance->mSocket->init(sInstance->mServerIP.cstr(), sInstance->mServerPort).isSuccess();
@@ -203,7 +203,14 @@ void Client::restartConnection() {
         PlayerConnect initPacket;
         initPacket.mUserID = sInstance->mUserID;
         strcpy(initPacket.clientName, sInstance->mUsername.cstr());
-        initPacket.conType = ConnectionTypes::RECONNECT;
+
+        if (sInstance->isFirstConnect) {
+            initPacket.conType = ConnectionTypes::INIT;
+            sInstance->isFirstConnect = false;
+        } else {
+            initPacket.conType = ConnectionTypes::RECONNECT;
+        }
+
         sInstance->mSocket->SEND(&initPacket);
 
     } else {
@@ -220,7 +227,9 @@ bool Client::startConnection() {
 
     bool isNeedSave = false;
 
-    if (mServerIP.isEmpty()) {
+    bool isOverride = al::isPadHoldZL(-1);
+
+    if (mServerIP.isEmpty() || isOverride) {
         mKeyboard->setHeaderText(u"Save File does not contain an IP!");
         mKeyboard->setSubText(u"Please set a Server IP Below.");
         mServerIP = "0.0.0.0";
@@ -228,7 +237,7 @@ bool Client::startConnection() {
         isNeedSave = true;
     }
 
-    if (!mServerPort) {
+    if (!mServerPort || isOverride) {
         mKeyboard->setHeaderText(u"Save File does not contain a port!");
         mKeyboard->setSubText(u"Please set a Server Port Below.");
         mServerPort = 1027;
@@ -278,50 +287,58 @@ bool Client::startConnection() {
 
 /**
  * @brief Opens up OS's software keyboard in order to change the currently used server IP.
- * 
+ * @returns whether or not a new IP has been defined and needs to be saved.
  */
-void Client::openKeyboardIP() {
+bool Client::openKeyboardIP() {
 
     if (!sInstance) {
         Logger::log("Static Instance is null!\n");
-        return;
+        return false;
     }
 
     // opens swkbd with the initial text set to the last saved IP
-    sInstance->mKeyboard->openKeyboard(sInstance->mServerIP.cstr(), [] (nn::swkbd::KeyboardConfig& config) {
-        config.keyboardMode = nn::swkbd::KeyboardMode::ModeNumeric;
-        config.leftOptionalSymbolKey = '.';
-        config.textMaxLength = 15;
-        config.textMinLength = 1;
-        config.isUseUtf8 = true;
-        config.inputFormMode = nn::swkbd::InputFormMode::OneLine;
-    });
+    sInstance->mKeyboard->openKeyboard(
+        sInstance->mServerIP.cstr(), [](nn::swkbd::KeyboardConfig& config) {
+            config.keyboardMode = nn::swkbd::KeyboardMode::ModeNumeric;
+            config.leftOptionalSymbolKey = '.';
+            config.textMaxLength = 15;
+            config.textMinLength = 1;
+            config.isUseUtf8 = true;
+            config.inputFormMode = nn::swkbd::InputFormMode::OneLine;
+        });
+
+    sead::FixedSafeString<0x10> prevIp = sInstance->mServerIP;
 
     while (true) {
         if (sInstance->mKeyboard->isThreadDone()) {
-            sInstance->mServerIP = sInstance->mKeyboard->getResult();
+            if(!sInstance->mKeyboard->isKeyboardCancelled())
+                sInstance->mServerIP = sInstance->mKeyboard->getResult();
             break;
         }
         nn::os::YieldThread(); // allow other threads to run
     }
+
+    sInstance->isFirstConnect = prevIp != sInstance->mServerIP;
+
+    return sInstance->isFirstConnect;
 }
 
 /**
  * @brief Opens up OS's software keyboard in order to change the currently used server port.
- * 
+ * @returns whether or not a new port has been defined and needs to be saved.
  */
-void Client::openKeyboardPort() {
+bool Client::openKeyboardPort() {
 
     if (!sInstance) {
         Logger::log("Static Instance is null!\n");
-        return;
+        return false;
     }
 
     // opens swkbd with the initial text set to the last saved port
     char buf[6];
     nn::util::SNPrintf(buf, 6, "%u", sInstance->mServerPort);
-    
-    sInstance->mKeyboard->openKeyboard(buf, [] (nn::swkbd::KeyboardConfig& config) {
+
+    sInstance->mKeyboard->openKeyboard(buf, [](nn::swkbd::KeyboardConfig& config) {
         config.keyboardMode = nn::swkbd::KeyboardMode::ModeNumeric;
         config.textMaxLength = 5;
         config.textMinLength = 2;
@@ -329,13 +346,20 @@ void Client::openKeyboardPort() {
         config.inputFormMode = nn::swkbd::InputFormMode::OneLine;
     });
 
+    int prevPort = sInstance->mServerPort;
+
     while (true) {
         if (sInstance->mKeyboard->isThreadDone()) {
-            sInstance->mServerPort = ::atoi(sInstance->mKeyboard->getResult());
+            if(!sInstance->mKeyboard->isKeyboardCancelled())
+                sInstance->mServerPort = ::atoi(sInstance->mKeyboard->getResult());
             break;
         }
         nn::os::YieldThread(); // allow other threads to run
     }
+
+    sInstance->isFirstConnect = prevPort != sInstance->mServerPort;
+
+    return sInstance->isFirstConnect;
 }
 
 /**
@@ -350,7 +374,7 @@ void Client::readFunc() {
         waitForGameInit = false;
     }
 
-    // we can use the start of readFunc to display an al::WindowConfirmWait while the server
+    // we can use the start of readFunc to display an al::WindowConfirmWait while the client
     // connects
 
     mConnectionWait->appear();
@@ -378,6 +402,7 @@ void Client::readFunc() {
 
     if (isFirstConnect) {
         initPacket.conType = ConnectionTypes::INIT;
+        isFirstConnect = false;
     } else {
         initPacket.conType = ConnectionTypes::RECONNECT;
     }
@@ -387,8 +412,6 @@ void Client::readFunc() {
     nn::os::SleepThread(nn::TimeSpan::FromNanoSeconds(500000000)); // sleep for 0.5 seconds to let connection layout fully show (probably should find a better way to do this)
 
     mConnectionWait->tryEnd();
-
-    isFirstConnect = false;
 
     while(mIsConnectionActive) {
 
@@ -409,8 +432,16 @@ void Client::readFunc() {
 
                 Logger::log("Connected!\n");
 
-                initPacket.conType = ConnectionTypes::RECONNECT;
-                mSocket->SEND(&initPacket);  // re-send init packet as reconnect packet
+                if (isFirstConnect) {
+                    initPacket.conType =
+                        ConnectionTypes::INIT;  // if we've changed the IP/Port since last connect,
+                                                // send init instead of reconnect
+                    isFirstConnect = false;
+                } else {
+                    initPacket.conType = ConnectionTypes::RECONNECT;
+                }
+
+                mSocket->SEND(&initPacket);
                 mConnectionWait->tryEnd();
                 continue;
             } else {
@@ -419,7 +450,6 @@ void Client::readFunc() {
 
             nn::os::YieldThread(); // if we're currently waiting on the socket to be initialized, wait until it is
             nn::os::SleepThread(nn::TimeSpan::FromSeconds(5));
-            
         }
 
         if(mSocket->RECV()) { // will block until a packet has been recieved, or socket disconnected
@@ -1017,7 +1047,7 @@ void Client::disconnectPlayer(PlayerDC *packet) {
 
     PuppetInfo* curInfo = findPuppetInfo(packet->mUserID, false);
 
-    if (!curInfo) {
+    if (!curInfo || !curInfo->isConnected) {
         return;
     }
     
@@ -1062,7 +1092,7 @@ PuppetInfo* Client::findPuppetInfo(const nn::account::Uid& id, bool isFindAvaila
 
     PuppetInfo *firstAvailable = nullptr;
 
-    for (size_t i = 0; i < getMaxPlayerCount(); i++) {
+    for (size_t i = 0; i < getMaxPlayerCount() - 1; i++) {
 
         PuppetInfo* curInfo = mPuppetInfoArr[i];
 
@@ -1092,7 +1122,7 @@ void Client::setStageInfo(GameDataHolderAccessor holder) {
         sInstance->mStageName = GameDataFunction::getCurrentStageName(holder);
         sInstance->mScenario = holder.mData->mGameDataFile->getScenarioNo(); //holder.mData->mGameDataFile->getMainScenarioNoCurrent();
         
-        Client::sInstance->mPuppetHolder->setStageInfo(sInstance->mStageName.cstr(), sInstance->mScenario);
+        sInstance->mPuppetHolder->setStageInfo(sInstance->mStageName.cstr(), sInstance->mScenario);
     }
 }
 
@@ -1104,8 +1134,8 @@ void Client::setStageInfo(GameDataHolderAccessor holder) {
  * @return false 
  */
 bool Client::tryAddPuppet(PuppetActor *puppet) {
-    if(Client::sInstance) {
-        return Client::sInstance->mPuppetHolder->tryRegisterPuppet(puppet);
+    if(sInstance) {
+        return sInstance->mPuppetHolder->tryRegisterPuppet(puppet);
     }else {
         return false;
     }
@@ -1119,8 +1149,8 @@ bool Client::tryAddPuppet(PuppetActor *puppet) {
  * @return false 
  */
 bool Client::tryAddDebugPuppet(PuppetActor *puppet) {
-    if(Client::sInstance) {
-        return Client::sInstance->mPuppetHolder->tryRegisterDebugPuppet(puppet);
+    if(sInstance) {
+        return sInstance->mPuppetHolder->tryRegisterDebugPuppet(puppet);
     }else {
         return false;
     }
@@ -1133,8 +1163,8 @@ bool Client::tryAddDebugPuppet(PuppetActor *puppet) {
  * @return PuppetActor* 
  */
 PuppetActor *Client::getPuppet(int idx) {
-    if(Client::sInstance) {
-        return Client::sInstance->mPuppetHolder->getPuppetActor(idx);
+    if(sInstance) {
+        return sInstance->mPuppetHolder->getPuppetActor(idx);
     }else {
         return nullptr;
     }
@@ -1146,8 +1176,8 @@ PuppetActor *Client::getPuppet(int idx) {
  * @return PuppetInfo* 
  */
 PuppetInfo *Client::getLatestInfo() {
-    if(Client::sInstance) {
-        return Client::getPuppetInfo(Client::sInstance->mPuppetHolder->getSize() - 1);
+    if(sInstance) {
+        return Client::getPuppetInfo(sInstance->mPuppetHolder->getSize() - 1);
     }else {
         return nullptr;
     }
@@ -1160,9 +1190,9 @@ PuppetInfo *Client::getLatestInfo() {
  * @return PuppetInfo* 
  */
 PuppetInfo *Client::getPuppetInfo(int idx) {
-    if(Client::sInstance) {
+    if(sInstance) {
         // unsafe get
-        PuppetInfo *curInfo = Client::sInstance->mPuppetInfoArr[idx];
+        PuppetInfo *curInfo = sInstance->mPuppetInfoArr[idx];
 
         if (!curInfo) {
             Logger::log("Attempting to Access Puppet Out of Bounds! Value: %d\n", idx);
@@ -1315,8 +1345,8 @@ void Client::clearArrays() {
  * @return PuppetInfo* 
  */
 PuppetInfo *Client::getDebugPuppetInfo() {
-    if(Client::sInstance) {
-        return &Client::sInstance->mDebugPuppetInfo;
+    if(sInstance) {
+        return &sInstance->mDebugPuppetInfo;
     }else {
         return nullptr;
     }
@@ -1328,8 +1358,8 @@ PuppetInfo *Client::getDebugPuppetInfo() {
  * @return PuppetActor* 
  */
 PuppetActor *Client::getDebugPuppet() {
-    if(Client::sInstance) {
-        return Client::sInstance->mPuppetHolder->getDebugPuppet();
+    if(sInstance) {
+        return sInstance->mPuppetHolder->getDebugPuppet();
     }else {
         return nullptr;
     }
@@ -1508,4 +1538,40 @@ GameModeConfigMenu* Client::tryCreateModeMenu() {
     default:
         return nullptr;
     }
+}
+
+
+
+void Client::showConnectError(const char16_t* msg) {
+    if (!sInstance)
+        return;
+
+    sInstance->mConnectionWait->setTxtMessageConfirm(msg);
+
+    al::hidePane(sInstance->mConnectionWait, "Page01");  // hide A button prompt
+
+    if (!sInstance->mConnectionWait->mIsAlive) {
+        sInstance->mConnectionWait->appear();
+
+        sInstance->mConnectionWait->playLoop();
+    }
+
+    al::startAction(sInstance->mConnectionWait, "Confirm", "State");
+}
+
+void Client::showConnect() {
+    if (!sInstance)
+        return;
+    
+    sInstance->mConnectionWait->appear();
+
+    sInstance->mConnectionWait->playLoop();
+    
+}
+
+void Client::hideConnect() {
+    if (!sInstance)
+        return;
+
+    sInstance->mConnectionWait->tryEnd();
 }
