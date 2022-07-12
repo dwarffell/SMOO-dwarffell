@@ -270,9 +270,9 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
             gTextWriter->printf("Array Size: %i\n", container.getTimeArraySize());
             gTextWriter->printf("\nFrame Data #%i:\n-----------------\n", debugCheckFrame);
             if (curFrame){
-                gTextWriter->printf("Animation: %s\n", curFrame->action.cstr());
-                gTextWriter->printf("Current Animation Already This: %s\n", curFrame->action.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
-                gTextWriter->printf("Animation Frame: %f\n", curFrame->actionFrame);
+                gTextWriter->printf("Animation: %s\n", curFrame->playerFrame.action.cstr());
+                gTextWriter->printf("Current Animation Already This: %s\n", curFrame->playerFrame.action.isEqual(p1->mPlayerAnimator->curAnim) ? "True" : "False");
+                gTextWriter->printf("Animation Frame: %f\n", curFrame->playerFrame.actionFrame);
                 gTextWriter->printf("Is Cap Flying: %s\n", curFrame->capFrame.isFlying ? "True" : "False");
                 gTextWriter->printf("Position X: %f\n", curFrame->capFrame.position.x);
                 gTextWriter->printf("Position Y: %f\n", curFrame->capFrame.position.y);
