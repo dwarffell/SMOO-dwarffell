@@ -1,4 +1,5 @@
 #include "game/StageScene/StageSceneStateTrailColor.hpp"
+#include "game/SaveData/SaveDataAccessFunction.h"
 #include "timeWarp.h"
 
 const char16_t* StageSceneStateTrailColor::mainMenuItems[] = {
@@ -102,6 +103,8 @@ void StageSceneStateTrailColor::exeMainMenu() {
     if (decided && mCurrentList->isDecideEnd()) {
         TimeContainer& container = getTimeContainer();
         container.setCurrentColorPattern(mCurrentList->mCurSelected);
+        
+        SaveDataAccessFunction::startSaveDataWrite(mGameDataHolder);
         al::setNerve(this, &nrvStageSceneStateTrailColorMainMenu);  // reset
     }
 }
