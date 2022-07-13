@@ -261,12 +261,14 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
             gTextWriter->printf("Is Cooldown: %s\n", container.isOnCooldown() ? "True" : "False");
             gTextWriter->printf("Cooldown Charge: %f\n", container.getCooldownTimer());
             gTextWriter->printf("Rewind Delay: %i\n", container.getRewindDelay());
-            gTextWriter->printf("Filter ID: %i\n", al::getPostProcessingFilterPresetId(curScene));
             if(hack) gTextWriter->printf("Current Capture Name: %s\n", captureName);
             gTextWriter->printf("Color Frame: %f\n", curColorFrame);
             gTextWriter->printf("Color R: %f\n", curColor.r);
             gTextWriter->printf("Color G: %f\n", curColor.g);
             gTextWriter->printf("Color B: %f\n", curColor.b);
+            gTextWriter->printf("Current Pattern Index: %u\n", container.getPatternNum());
+            gTextWriter->printf("Current Pattern Size: %u\n", container.getPatternSize());
+            gTextWriter->printf("Current Color Index: %u\n", container.getColorNum());
             gTextWriter->printf("Array Size: %i\n", container.getTimeArraySize());
             gTextWriter->printf("\nFrame Data #%i:\n-----------------\n", debugCheckFrame);
             if (curFrame){

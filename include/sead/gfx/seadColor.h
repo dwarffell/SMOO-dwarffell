@@ -23,6 +23,7 @@
 #pragma once
 
 #include <basis/seadTypes.h>
+#include "math/seadMathCalcCommon.h"
 
 namespace sead
 {
@@ -31,6 +32,7 @@ class Color4f
 public:
     Color4f() = default;
     Color4f(f32 r, f32 g, f32 b, f32 a) : r(r), g(g), b(b), a(a) {}
+    Color4f(u32 rgb) : r(sead::MathCalcCommon<float>::pow((rgb >> 16) / 255.0f, 2.2f)), g(sead::MathCalcCommon<float>::pow(((rgb >> 8) & 0xFF) / 255.0f, 2.2f)), b(sead::MathCalcCommon<float>::pow((rgb & 0xFF) / 255.0f, 2.2f)), a(1.0f) {}
 
     static Color4f lerp(const Color4f& color1, const Color4f& color2, f32 t);
 

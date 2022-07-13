@@ -21,6 +21,7 @@
 #include "game/StageScene/StageSceneStateOption.h"
 #include "game/StageScene/StageSceneStatePauseMenu.h"
 #include "game/StageScene/StageSceneStateServerConfig.hpp"
+#include "game/StageScene/StageSceneStateTrailColor.hpp"
 #include "logger.hpp"
 #include "main.hpp"
 #include "al/byaml/writer/ByamlWriter.h"
@@ -87,12 +88,15 @@ void overrideNerveHook(StageSceneStatePauseMenu* thisPtr, al::Nerve* nrvSet) {
 
     if (al::isPadHoldZL(-1)) {
         al::setNerve(thisPtr, &nrvStageSceneStatePauseMenuServerConfig);
+    } else if (al::isPadHoldZR(-1)){
+        al::setNerve(thisPtr, &nrvStageSceneStatePauseMenuTrailColor);
     } else {
         al::setNerve(thisPtr, nrvSet);
     }
 }
 
 StageSceneStateServerConfig *sceneStateServerConfig = nullptr;
+StageSceneStateTrailColor *sceneStateTrailColor = nullptr;
 
 void initStateHook(StageSceneStatePauseMenu *thisPtr, char const *stateName, al::Scene *host, al::LayoutInitInfo const &initInfo, FooterParts *footer,
                    GameDataHolder *data, bool unkBool) {
@@ -100,6 +104,7 @@ void initStateHook(StageSceneStatePauseMenu *thisPtr, char const *stateName, al:
         new StageSceneStateOption(stateName, host, initInfo, footer, data, unkBool);
 
     sceneStateServerConfig = new StageSceneStateServerConfig("ServerConfig", host, initInfo, footer, data, unkBool);
+    sceneStateTrailColor = new StageSceneStateTrailColor("TrailColor", host, initInfo, footer, data, unkBool);
 }
 
 void initNerveStateHook(StageSceneStatePauseMenu* stateParent, StageSceneStateOption* stateOption,
@@ -108,6 +113,7 @@ void initNerveStateHook(StageSceneStatePauseMenu* stateParent, StageSceneStateOp
     al::initNerveState(stateParent, stateOption, executingNerve, stateName);
 
     al::initNerveState(stateParent, sceneStateServerConfig, &nrvStageSceneStatePauseMenuServerConfig, "CustomNerveOverride");
+    al::initNerveState(stateParent, sceneStateTrailColor, &nrvStageSceneStatePauseMenuTrailColor, "TrailColorNerve");
 }
 
 // skips starting both coin counters

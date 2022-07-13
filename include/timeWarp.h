@@ -46,6 +46,27 @@ private:
     static const int maxFrames = 400; //Maximum number of dots
     sead::PtrArray<TimeFrame> timeFrames; //Full array of dot frames
 
+    static const uint colorNum = 45;
+    sead::SafeArray<sead::Color4f, colorNum> colors = {
+        sead::Color4f(0xE50000),sead::Color4f(0xff8d00),sead::Color4f(0xffee00),sead::Color4f(0x008121),sead::Color4f(0x004cff),sead::Color4f(0x760188), //Rainbow (0-5)
+        sead::Color4f(0xd62900),sead::Color4f(0xff9b55),sead::Color4f(0xffffff),sead::Color4f(0xd462a5),sead::Color4f(0xa50062), //Lesbian (6-10)
+        sead::Color4f(0x047d6b),sead::Color4f(0x5ec8d4),sead::Color4f(0xffffff),sead::Color4f(0x7cafe4),sead::Color4f(0x013070), //Gay male (11-15)
+        sead::Color4f(0xd60270),sead::Color4f(0x9b4f96),sead::Color4f(0x0038a8), //Bi (16-18)
+        sead::Color4f(0xff1b8d),sead::Color4f(0xffd900),sead::Color4f(0x1bb3ff), //Pan (19-21)
+        sead::Color4f(0xf616ba),sead::Color4f(0x01d669),sead::Color4f(0x1593f6), //Poly (22-24)
+        sead::Color4f(0x000000),sead::Color4f(0xa4a5a4),sead::Color4f(0xffffff),sead::Color4f(0x810081), //Ace (25-28)
+        sead::Color4f(0x3aa740),sead::Color4f(0xa8d47a),sead::Color4f(0x000000),sead::Color4f(0xa4a5a4),sead::Color4f(0xffffff), //Aro (29-33)
+        sead::Color4f(0x5bcffa),sead::Color4f(0xf5abb9),sead::Color4f(0xffffff),sead::Color4f(0xf5abb9), //Trans (34-37)
+        sead::Color4f(0xfff433),sead::Color4f(0xffffff),sead::Color4f(0x9b59d0),sead::Color4f(0x2d2d2d), //Enby (38-41)
+        sead::Color4f(0xffd800),sead::Color4f(0xffd800),sead::Color4f(0x7902aa) //Intersex (42-44)
+    };
+
+    uint curPattern = 0;
+    static const uint patternNum = 12;
+    sead::SafeArray<uint, patternNum> patternMarkers = {
+        0, 6, 11, 16, 19, 22, 25, 29, 34, 38, 42, 45
+    };
+
     //Timewarp stats/settings
     int rewindFrameDelay = 0; //Counter for the delay frames
     int rewindFrameDelayTarget = 0; //How many extra frames to stall before rewinding a frame, used for debugging
@@ -91,6 +112,9 @@ public:
     float getColorFrame(); //Gets the float that is used to calculate color
     float getCooldownTimer(); //Gets current 0-100 cooldown charge
     int getRewindDelay(); //Returns the target for the rewind delay, 0 = none
+    uint getPatternNum();
+    uint getColorNum();
+    uint getPatternSize();
 
     //Is
     bool isSceneActive(); //Checks if the scene inactive time is -1 and draws can happen
@@ -103,6 +127,7 @@ public:
     void setRewindDelay(int index); //Modifies the rewind delay based on the amount of the index
     void setInactiveTimer(int time); //Sets the scene invctivity timer
     void setTimeFramesEmpty(); //Deletes all time frames
+    void setCurrentColorPattern(uint pattern);
 
     //Calcs
     sead::Color4f calcColorFrame(float colorFrame, int dotIndex); //Calculates the sead::Color4f of the colorFrame

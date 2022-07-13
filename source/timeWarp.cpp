@@ -39,6 +39,10 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
     }
 
     if(dotBounceIndex >= 0) dotBounceIndex--; //Update the dot bounce index
+    if(al::isPadTriggerL(-1)){
+        curPattern++;
+        if(curPattern >= patternNum-1) curPattern = 0;
+    }
 
     //Clear history on a capture
     if(isCapture != (hack != nullptr)){
@@ -319,6 +323,23 @@ int TimeContainer::getRewindDelay()
     return rewindFrameDelayTarget;
 }
 
+uint TimeContainer::getPatternNum()
+{
+    return curPattern;
+}
+
+uint TimeContainer::getColorNum()
+{
+    uint start = patternMarkers[curPattern];
+    uint end = patternMarkers[curPattern+1];
+    return start + (sead::MathCalcCommon<float>::floor(colorFrame+colorFrameOffset) % (end-start));
+}
+
+uint TimeContainer::getPatternSize()
+{
+    return patternMarkers[curPattern+1] - patternMarkers[curPattern];
+}
+
 bool TimeContainer::isSceneActive()
 {
     return sceneInvactiveTime == -1;
@@ -387,6 +408,12 @@ void TimeContainer::setTimeFramesEmpty()
     return;
 }
 
+void TimeContainer::setCurrentColorPattern(uint pattern)
+{
+    curPattern = pattern;
+    return;
+};
+
 sead::Color4f TimeContainer::calcColorFrame(float frame, int dotIndex)
 {
     sead::Color4f returnColor = { 0.f, 0.f, 0.f, 0.7f };
@@ -401,9 +428,12 @@ sead::Color4f TimeContainer::calcColorFrame(float frame, int dotIndex)
             returnColor.g = 1.f;
             returnColor.b = 1.f;
         } else {
-            returnColor.r = sin((frame+colorFrameOffset));
-            returnColor.g = sin((frame+colorFrameOffset) - 2.0942f);
-            returnColor.b = sin((frame+colorFrameOffset) - 4.1884f);
+            // returnColor.r = sin((frame+colorFrameOffset));
+            // returnColor.g = sin((frame+colorFrameOffset) - 2.0942f);
+            // returnColor.b = sin((frame+colorFrameOffset) - 4.1884f);
+            uint start = patternMarkers[curPattern];
+            uint end = patternMarkers[curPattern+1];
+            returnColor = colors[start + (sead::MathCalcCommon<float>::floor(frame+colorFrameOffset) % (end-start))];
         }
     }
     return returnColor;

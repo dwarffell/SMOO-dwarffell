@@ -93,7 +93,7 @@ B59E28 B seadPrintHook // sead::system::print
 // Pause Menu Changes
 
 4EAEC4 B overrideNerveHook // makes any button on pause menu run a specific nerve
-4EA104 MOV W2, #5 // update state count to account for new custom state
+4EA104 MOV W2, #6 // update state count to account for new custom state
 4EA1F0 BL initNerveStateHook // inits options nerve state and server config state
 4EA174 MOV X0, X20 // moves StageSceneStatePauseMenu to first arg
 4EA17C NOP // prevents first new of StageSceneStateOption
@@ -115,7 +115,10 @@ B59E28 B seadPrintHook // sead::system::print
 // Timewarp hooks
 
 9D0EB4 RET // Allows snapshot filters to be used during gameplay
-85C710 B triggerR
+85C710 B triggerR //R bumper
+// 85C678 B triggerR //L bumper
+// 45059C mov w0, #0
+// 450610 mov w0, #0
 
 4855fc B reduceOxygenForce // Forces ring to appear even if not in water
 45ec88 B oxygenReduce // Updates the oxygen and draws timewarp recharge into ring

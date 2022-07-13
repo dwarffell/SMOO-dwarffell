@@ -6,7 +6,10 @@
 #include "prim/seadSafeString.h"
 
 struct RollPartsData {
-
+    int mRollMsgCount = 0; // 0x0
+    char16_t **mRollMsgList; // 0x8
+    int unkInt1 = 0;         // 0x10
+    bool mUnkBool = false;   // 0x14
 };
 
 class CommonVerticalList : public al::NerveExecutor {

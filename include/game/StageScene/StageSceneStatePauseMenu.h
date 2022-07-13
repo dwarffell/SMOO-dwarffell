@@ -75,6 +75,7 @@ class StageSceneStatePauseMenu : public al::HostStateBase<al::Scene> {
         void exeNotExistEmptyFile(void);
 
         void exeServerConfig(void);
+        void exeTrailColor(void);
     
         al::SimpleLayoutAppearWaitEnd *field_0x20; // 0x20
         al::SimpleLayoutAppearWaitEnd *mMenuGuide; // 0x28
@@ -117,6 +118,7 @@ namespace {
     NERVE_HEADER(StageSceneStatePauseMenu, NotExistEmptyFile)
     // custom nerves
     NERVE_HEADER(StageSceneStatePauseMenu, ServerConfig)
+    NERVE_HEADER(StageSceneStatePauseMenu, TrailColor)
 }
 
 namespace {
@@ -134,5 +136,6 @@ namespace {
     NERVE_IMPL(StageSceneStatePauseMenu, NotExistEmptyFile)
     // custom nerves
     NERVE_IMPL(StageSceneStatePauseMenu, ServerConfig)
+    NERVE_IMPL(StageSceneStatePauseMenu, TrailColor)
 }
 
