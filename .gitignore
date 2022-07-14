@@ -8,3 +8,4 @@ Custom Stage Builds/**
 *.lst
 
 compile_commands.json
+Makefile

@@ -86,6 +86,9 @@ private:
     float cooldownRate = 0.15f; //Rate the power is recharged
     float cooldownDischarge = 0.3f; //The charge is set to 60 at rewind start, slowly lower the charge by this rate
 
+    //Control binding
+    uint keybindId = 0;
+
     //Private functions
     void pushNewFrame(); //Adds new value to array
     void rewindFrame(PlayerActorHakoniwa* p1); //Pops newest array entry off and places the player there
@@ -112,6 +115,7 @@ public:
     float getColorFrame(); //Gets the float that is used to calculate color
     float getCooldownTimer(); //Gets current 0-100 cooldown charge
     int getRewindDelay(); //Returns the target for the rewind delay, 0 = none
+    uint getKeybindId();
     uint getPatternNum();
     uint getColorNum();
     uint getPatternSize();
@@ -122,12 +126,17 @@ public:
     bool isOnCooldown();
     bool isRewindCappyThrow(); //Checks if the most recent TimeFrame has cappy flying
     bool isInvalidCapture(const char* curName); //Checks if the player's current capture is on the invalid list
+    bool isKeybindBumperR();
+    bool isKeybindBumperL();
+    bool isKeybindStickL();
+    bool isHoldingRewindBind();
 
     //Setters
     void setRewindDelay(int index); //Modifies the rewind delay based on the amount of the index
     void setInactiveTimer(int time); //Sets the scene invctivity timer
     void setTimeFramesEmpty(); //Deletes all time frames
     void setCurrentColorPattern(uint pattern);
+    void setControlBinding(uint id);
 
     //Calcs
     sead::Color4f calcColorFrame(float colorFrame, int dotIndex); //Calculates the sead::Color4f of the colorFrame

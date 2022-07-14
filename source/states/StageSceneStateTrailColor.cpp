@@ -3,6 +3,10 @@
 #include "timeWarp.h"
 
 const char16_t* StageSceneStateTrailColor::mainMenuItems[] = {
+    u"Keybindings:",
+    u"Rewind DualButtonRHandheldButtonRFullKeyButtonRLeftButtonRRightButtonR",
+    u"Rewind DualButtonLHandheldButtonLFullKeyButtonLLeftButtonLRightButtonL",
+    u"Rewind ~DualStickLHandheldStickLFullKeyStickLLeftStickLRightStickL",
     u"Rainbow Flag",
     u"Lesbian Flag",
     u"Gay Male Flag",
@@ -14,6 +18,25 @@ const char16_t* StageSceneStateTrailColor::mainMenuItems[] = {
     u"Transgender Flag",
     u"Non-Binary Flag",
     u"Intersex Flag"
+};
+
+enum mainMenuValues
+{
+    NULL1,
+    KEYBINDBUMPR,
+    KEYBINDBUMPL,
+    KEYBINDSTICKL,
+    RAINBOW,
+    LESBIAN,
+    GAY,
+    BISEXUAL,
+    PANSEXUAL,
+    POLYSEXUAL,
+    ASEXUAL,
+    AROMANTIC,
+    TRANSGENDER,
+    ENBY,
+    INTERSEX
 };
 
 StageSceneStateTrailColor::StageSceneStateTrailColor(const char* name, al::Scene* scene,
@@ -35,7 +58,7 @@ StageSceneStateTrailColor::StageSceneStateTrailColor(const char* name, al::Scene
     mMainOptions = new SimpleLayoutMenu("TrialColor", "OptionSelect", initInfo, 0, false);
     mMainOptionsList = new CommonVerticalList(mMainOptions, initInfo, true);
 
-    al::setPaneString(mMainOptions, "TxtOption", u"Trail Color", 0);
+    al::setPaneString(mMainOptions, "TxtOption", u"Time Travel Settings", 0);
 
     mMainOptionsList->initDataNoResetSelected(mainMenuItemCount);
 
@@ -63,6 +86,7 @@ void StageSceneStateTrailColor::appear(void) {
 }
 
 void StageSceneStateTrailColor::kill(void) {
+    SaveDataAccessFunction::startSaveDataWrite(mGameDataHolder);
     mCurrentMenu->startEnd("End");
     al::NerveStateBase::kill();
 }
@@ -81,6 +105,9 @@ void StageSceneStateTrailColor::exeMainMenu() {
 
     mInput->update();
     mCurrentList->update();
+
+    if(mCurrentList->mCurSelected == 0 && mInput->isTriggerUiUp()) mCurrentList->jumpBottom();
+    if(mCurrentList->mCurSelected == (sizeof(mainMenuItems)/sizeof(mainMenuItems[0]))-1 && mInput->isTriggerUiDown()) mCurrentList->jumpTop();
 
     if (mInput->isTriggerUiUp() || (mInput->isHoldUiUp() && holdFrames > 20)) mCurrentList->up();
 
@@ -102,9 +129,54 @@ void StageSceneStateTrailColor::exeMainMenu() {
 
     if (decided && mCurrentList->isDecideEnd()) {
         TimeContainer& container = getTimeContainer();
-        container.setCurrentColorPattern(mCurrentList->mCurSelected);
+
+        switch(mCurrentList->mCurSelected){
+            case(mainMenuValues::NULL1):
+                break;
+            case(mainMenuValues::KEYBINDBUMPR):
+                container.setControlBinding(0);
+                break;
+            case(mainMenuValues::KEYBINDBUMPL):
+                container.setControlBinding(1);
+                break;
+            case(mainMenuValues::KEYBINDSTICKL):
+                container.setControlBinding(2);
+                break;
+            case(mainMenuValues::RAINBOW):
+                container.setCurrentColorPattern(mainMenuValues::RAINBOW);
+                break;
+            case(mainMenuValues::LESBIAN):
+                container.setCurrentColorPattern(mainMenuValues::LESBIAN);
+                break;
+            case(mainMenuValues::GAY):
+                container.setCurrentColorPattern(mainMenuValues::GAY);
+                break;
+            case(mainMenuValues::BISEXUAL):
+                container.setCurrentColorPattern(mainMenuValues::BISEXUAL);
+                break;
+            case(mainMenuValues::PANSEXUAL):
+                container.setCurrentColorPattern(mainMenuValues::PANSEXUAL);
+                break;
+            case(mainMenuValues::POLYSEXUAL):
+                container.setCurrentColorPattern(mainMenuValues::POLYSEXUAL);
+                break;
+            case(mainMenuValues::ASEXUAL):
+                container.setCurrentColorPattern(mainMenuValues::ASEXUAL);
+                break;
+            case(mainMenuValues::AROMANTIC):
+                container.setCurrentColorPattern(mainMenuValues::AROMANTIC);
+                break;
+            case(mainMenuValues::TRANSGENDER):
+                container.setCurrentColorPattern(mainMenuValues::TRANSGENDER);
+                break;
+            case(mainMenuValues::ENBY):
+                container.setCurrentColorPattern(mainMenuValues::ENBY);
+                break;
+            case(mainMenuValues::INTERSEX):
+                container.setCurrentColorPattern(mainMenuValues::INTERSEX);
+                break;
+        }
         
-        SaveDataAccessFunction::startSaveDataWrite(mGameDataHolder);
         al::setNerve(this, &nrvStageSceneStateTrailColorMainMenu);  // reset
     }
 }

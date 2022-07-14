@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <sys/types.h>
 #include "rs/util.hpp"
 #include "server/Client.hpp"
@@ -44,24 +45,19 @@ void saveWriteHook(al::ByamlWriter* saveByml) {
     const char *serverIP = Client::getCurrentIP();
     const int serverPort = Client::getCurrentPort();
     const uint trailColor = getTimeContainer().getPatternNum();
+    const uint keybindId = getTimeContainer().getKeybindId();
 
-    if (serverIP) {
-        saveByml->addString("ServerIP", serverIP);
-    } else {
-        saveByml->addString("ServerIP", "0.0.0.0");
-    }
+    if (serverIP) saveByml->addString("ServerIP", serverIP);
+    else saveByml->addString("ServerIP", "0.0.0.0");
 
-    if (serverPort) {
-        saveByml->addInt("ServerPort", serverPort);
-    } else {
-        saveByml->addInt("ServerPort", 0);
-    }
+    if (serverPort) saveByml->addInt("ServerPort", serverPort);
+    else saveByml->addInt("ServerPort", 0);
 
-    if (trailColor) {
-        saveByml->addInt("TrailColor", trailColor);
-    } else {
-        saveByml->addInt("TrailColor", 0);
-    }
+    if (trailColor) saveByml->addUInt("TrailColor", trailColor);
+    else saveByml->addUInt("TrailColor", 0);
+
+    if (keybindId) saveByml->addUInt("RewindKeybindId", keybindId);
+    else saveByml->addUInt("RewindKeybindId", 0);
 
     saveByml->pop();
 }
@@ -71,6 +67,7 @@ bool saveReadHook(int* padRumbleInt, al::ByamlIter const& saveByml, char const* 
     const char *serverIP = "";
     int serverPort = 0;
     uint trailColor = 0;
+    uint keybindId = 0;
 
     if (al::tryGetByamlString(&serverIP, saveByml, "ServerIP")) {
         Client::setLastUsedIP(serverIP);
@@ -82,6 +79,10 @@ bool saveReadHook(int* padRumbleInt, al::ByamlIter const& saveByml, char const* 
 
     if (al::tryGetByamlU32(&trailColor, saveByml, "TrailColor")) {
         getTimeContainer().setCurrentColorPattern(trailColor);
+    }
+
+    if (al::tryGetByamlU32(&keybindId, saveByml, "RewindKeybindId")) {
+        getTimeContainer().setControlBinding(keybindId);
     }
     
     return al::tryGetByamlS32(padRumbleInt, saveByml, padRumbleKey);
@@ -190,7 +191,15 @@ bool borderPullBackHook(WorldEndBorderKeeper* thisPtr) {
     return isFirstStep;
 }
 
-bool triggerR(int port) { return false; }
+bool triggerR(int port)
+{
+    return getTimeContainer().isKeybindBumperR() ? false : al::isPadTriggerR(port);
+}
+
+bool triggerL(int port)
+{
+    return getTimeContainer().isKeybindBumperL() ? false : al::isPadTriggerL(port);
+}
 
 bool reduceOxygenForce()
 {

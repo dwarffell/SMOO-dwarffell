@@ -13,6 +13,7 @@
 #include "game/Player/PlayerFunction.h"
 #include "rs/util.hpp"
 #include <cmath>
+#include <stdint.h>
 
 TimeContainer& getTimeContainer()
 {
@@ -39,10 +40,6 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
     }
 
     if(dotBounceIndex >= 0) dotBounceIndex--; //Update the dot bounce index
-    if(al::isPadTriggerL(-1)){
-        curPattern++;
-        if(curPattern >= patternNum-1) curPattern = 0;
-    }
 
     //Clear history on a capture
     if(isCapture != (hack != nullptr)){
@@ -87,7 +84,7 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
         || p1->mHackCap->isFlying()) && !rs::isActiveDemo(p1) && !PlayerFunction::isPlayerDeadStatus(p1) && !isRewinding)
             pushNewFrame();
     }
-    if (al::isPadHoldR(-1) && !rs::isActiveDemo(p1) && !PlayerFunction::isPlayerDeadStatus(p1) && (timeFrames.size() >= minTrailLength || isRewinding) && !isCooldown) {
+    if (isHoldingRewindBind() && !rs::isActiveDemo(p1) && !PlayerFunction::isPlayerDeadStatus(p1) && (timeFrames.size() >= minTrailLength || isRewinding) && !isCooldown) {
         if(rewindFrameDelay >= rewindFrameDelayTarget) rewindFrame(p1);
         else rewindFrameDelay++;
     } else if (isRewinding) {
@@ -97,8 +94,6 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
 
 void TimeContainer::pushNewFrame()
 {
-    colorFrame += colorFrameRate;
-    dotBounceIndex--;
     TimeFrame* newFrame = nullptr; 
     sead::Heap* seqHeap = sead::HeapMgr::instance()->findHeapByName("SceneHeap",0);
     if (seqHeap) {
@@ -114,8 +109,14 @@ void TimeContainer::pushNewFrame()
     al::PlayerHolder* pHolder = al::getScenePlayerHolder(stageSceneRef);
     PlayerActorHakoniwa* p1 = (PlayerActorHakoniwa*)al::tryGetPlayerActor(pHolder, 0);
     al::LiveActor* hack = p1->mHackKeeper->currentHackActor;
-    
+
+    dotBounceIndex--;
+
+    if(!timeFrames.isEmpty()){
+        colorFrame += colorFrameRate;
+    }
     newFrame->colorFrame = colorFrame;
+
     if (!hack) {
         //Mario
         newFrame->position = al::getTrans(p1);
@@ -323,6 +324,11 @@ int TimeContainer::getRewindDelay()
     return rewindFrameDelayTarget;
 }
 
+uint TimeContainer::getKeybindId()
+{
+    return keybindId;
+}
+
 uint TimeContainer::getPatternNum()
 {
     return curPattern;
@@ -387,6 +393,34 @@ bool TimeContainer::isInvalidCapture(const char* curName)
 
     return false;
 }
+bool TimeContainer::isKeybindBumperR()
+{
+    return keybindId == 0;
+}
+
+bool TimeContainer::isKeybindBumperL()
+{
+    return keybindId == 1;
+}
+
+bool TimeContainer::isKeybindStickL()
+{
+    return keybindId == 2;
+}
+
+bool TimeContainer::isHoldingRewindBind()
+{
+    switch(keybindId){
+        case 0:
+            return al::isPadHoldR(-1);
+        case 1:
+            return al::isPadHoldL(-1);
+        case 2:
+            return al::isPadHoldPressLeftStick(-1);
+        default:
+            return false;
+    }
+}
 
 void TimeContainer::setRewindDelay(int index)
 {
@@ -410,9 +444,18 @@ void TimeContainer::setTimeFramesEmpty()
 
 void TimeContainer::setCurrentColorPattern(uint pattern)
 {
-    curPattern = pattern;
+    uint offset = 4; //Amount of options in menu before the color selections
+    curPattern = pattern - offset;
     return;
 };
+
+void TimeContainer::setControlBinding(uint id)
+{
+    if(id > 2) id = 2; //Prevent setting id to value too high
+    keybindId = id;
+
+    return;
+}
 
 sead::Color4f TimeContainer::calcColorFrame(float frame, int dotIndex)
 {
