@@ -38,6 +38,7 @@
 #include "server/gamemode/GameModeManager.hpp"
 #include "server/hns/HideAndSeekConfigMenu.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
+#include "server/snh/SardineMode.hpp"
 
 SEAD_SINGLETON_DISPOSER_IMPL(Client)
 
@@ -688,24 +689,45 @@ void Client::sendTagInfPacket() {
         Logger::log("Static Instance is Null!\n");
         return;
     }
+    
+    GameMode curMode = GameModeManager::instance()->getGameMode();
+    HideAndSeekMode* hsMode;
+    HideAndSeekInfo* hsInfo;
+    SardineMode* sarMode;
+    SardineInfo* sarInfo;
 
-    HideAndSeekMode* hsMode = GameModeManager::instance()->getMode<HideAndSeekMode>();
-
-    if (!GameModeManager::instance()->isMode(GameMode::HIDEANDSEEK)) {
-        Logger::log("State is not Hide and Seek!\n");
-        return;
-    }
-
-    HideAndSeekInfo* curInfo = GameModeManager::instance()->getInfo<HideAndSeekInfo>();
+    switch(GameModeManager::instance()->getGameMode()){
+        case GameMode::HIDEANDSEEK:
+            hsMode = GameModeManager::instance()->getMode<HideAndSeekMode>();
+            hsInfo = GameModeManager::instance()->getInfo<HideAndSeekInfo>();
+            break;
+        case GameMode::SARDINE:
+            sarMode = GameModeManager::instance()->getMode<SardineMode>();
+            sarInfo = GameModeManager::instance()->getInfo<SardineInfo>();
+            break;
+        case GameMode::NONE:
+            Logger::log("Tag info packet has unknown gamemode!\n");
+            return;
+        default:
+            Logger::log("Tag info packet has unknown gamemode!\n");
+            return;
+    };
 
     TagInf packet = TagInf();
 
     packet.mUserID = sInstance->mUserID;
 
-    packet.isIt = hsMode->isPlayerIt();
+    if(curMode == GameMode::HIDEANDSEEK){
+        packet.isIt = hsMode->isPlayerIt();
+        packet.minutes = hsInfo->mHidingTime.mMinutes;
+        packet.seconds = hsInfo->mHidingTime.mSeconds;
+    }
+    else if (curMode == GameMode::SARDINE){
+        packet.isIt = sarMode->isPlayerIt();
+        packet.minutes = sarInfo->mHidingTime.mMinutes;
+        packet.seconds = sarInfo->mHidingTime.mSeconds;
+    }
 
-    packet.minutes = curInfo->mHidingTime.mMinutes;
-    packet.seconds = curInfo->mHidingTime.mSeconds;
     packet.updateType = static_cast<TagUpdateType>(TagUpdateType::STATE | TagUpdateType::TIME);
 
     sInstance->mSocket->SEND(&packet);

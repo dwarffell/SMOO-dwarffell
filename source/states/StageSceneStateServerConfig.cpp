@@ -1,31 +1,35 @@
 #include "game/StageScene/StageSceneStateServerConfig.hpp"
-#include <cstdlib>
-#include <cstring>
-#include <math.h>
 #include "al/string/StringTmp.h"
-#include "basis/seadNew.h"
-#include "game/Layouts/CommonVerticalList.h"
-#include "game/SaveData/SaveDataAccessFunction.h"
-#include "server/Client.hpp"
 #include "al/util.hpp"
 #include "al/util/NerveUtil.h"
+#include "basis/seadNew.h"
 #include "container/seadPtrArray.h"
 #include "container/seadSafeArray.h"
+#include "game/GameData/GameDataFunction.h"
+#include "game/Layouts/CommonVerticalList.h"
+#include "game/SaveData/SaveDataAccessFunction.h"
 #include "logger.hpp"
 #include "prim/seadSafeString.h"
 #include "prim/seadStringUtil.h"
 #include "rs/util/InputUtil.h"
+#include "server/Client.hpp"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/gamemode/GameModeConfigMenuFactory.hpp"
 #include "server/gamemode/GameModeFactory.hpp"
 #include "server/gamemode/GameModeManager.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
+#include "server/snh/SardineMode.hpp"
+#include <cstdlib>
+#include <cstring>
+#include <math.h>
 
 // WIP work on RollPartsData, not exactly working out atm
-const char16_t* testValues[] = {u"Test 1", u"Test 2", u"Test 3", u"Test 4", u"Test 5",
-                                u"Test 6", u"Test 7", u"Test 8", u"Test 9"};
+const char16_t* testValues[] = { u"Test 1", u"Test 2", u"Test 3", u"Test 4", u"Test 5",
+    u"Test 6", u"Test 7", u"Test 8", u"Test 9" };
 
-StageSceneStateServerConfig::StageSceneStateServerConfig(const char *name, al::Scene *scene, const al::LayoutInitInfo &initInfo, FooterParts *footerParts, GameDataHolder *dataHolder, bool) : al::HostStateBase<al::Scene>(name, scene) {
+StageSceneStateServerConfig::StageSceneStateServerConfig(const char* name, al::Scene* scene, const al::LayoutInitInfo& initInfo, FooterParts* footerParts, GameDataHolder* dataHolder, bool)
+    : al::HostStateBase<al::Scene>(name, scene)
+{
     mFooterParts = footerParts;
     mGameDataHolder = dataHolder;
 
@@ -43,8 +47,7 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(const char *name, al::S
 
     mMainOptionsList->initDataNoResetSelected(5);
 
-    sead::SafeArray<sead::WFixedSafeString<0x200>, 5>* mainMenuOptions =
-        new sead::SafeArray<sead::WFixedSafeString<0x200>, 5>();
+    sead::SafeArray<sead::WFixedSafeString<0x200>, 5>* mainMenuOptions = new sead::SafeArray<sead::WFixedSafeString<0x200>, 5>();
 
     mainMenuOptions->mBuffer[ServerConfigOption::GAMEMODECONFIG].copy(u"Gamemode Config");
     mainMenuOptions->mBuffer[ServerConfigOption::GAMEMODESWITCH].copy(u"Change Gamemode");
@@ -66,8 +69,8 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(const char *name, al::S
     //     part->mUnkBool = i == 0;
     // }
 
-    //mMainOptionsList->startLoopActionAll("Loop", "Loop");
-    
+    // mMainOptionsList->startLoopActionAll("Loop", "Loop");
+
     // mMainOptionsList->setRollPartsData(testArr);
 
     // gamemode select menu
@@ -81,8 +84,7 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(const char *name, al::S
 
     mModeSelectList->initDataNoResetSelected(modeCount);
 
-    sead::SafeArray<sead::WFixedSafeString<0x200>, modeCount>* modeSelectOptions =
-        new sead::SafeArray<sead::WFixedSafeString<0x200>, modeCount>();
+    sead::SafeArray<sead::WFixedSafeString<0x200>, modeCount>* modeSelectOptions = new sead::SafeArray<sead::WFixedSafeString<0x200>, modeCount>();
 
     for (size_t i = 0; i < modeCount; i++) {
         const char* modeName = GameModeFactory::getModeName(i);
@@ -104,34 +106,37 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(const char *name, al::S
 
         entry.mList->initDataNoResetSelected(entry.mMenu->getMenuSize());
 
-
         entry.mList->addStringData(entry.mMenu->getStringData(), "TxtContent");
     }
-
 
     mCurrentList = mMainOptionsList;
     mCurrentMenu = mMainOptions;
 }
 
-void StageSceneStateServerConfig::init() {
+void StageSceneStateServerConfig::init()
+{
     initNerve(&nrvStageSceneStateServerConfigMainMenu, 0);
 }
 
-void StageSceneStateServerConfig::appear(void) {
+void StageSceneStateServerConfig::appear(void)
+{
     mCurrentMenu->startAppear("Appear");
     al::NerveStateBase::appear();
 }
 
-void StageSceneStateServerConfig::kill(void) {
+void StageSceneStateServerConfig::kill(void)
+{
     mCurrentMenu->startEnd("End");
     al::NerveStateBase::kill();
 }
 
-al::MessageSystem* StageSceneStateServerConfig::getMessageSystem(void) const {
+al::MessageSystem* StageSceneStateServerConfig::getMessageSystem(void) const
+{
     return mMsgSystem;
 }
 
-void StageSceneStateServerConfig::exeMainMenu() {
+void StageSceneStateServerConfig::exeMainMenu()
+{
     if (al::isFirstStep(this)) {
 
         mInput->reset();
@@ -141,7 +146,6 @@ void StageSceneStateServerConfig::exeMainMenu() {
         mCurrentList->appearCursor();
 
         mIsDecideConfig = false;
-
     }
 
     mInput->update();
@@ -149,7 +153,8 @@ void StageSceneStateServerConfig::exeMainMenu() {
     mCurrentList->update();
 
     if (mInput->isTriggerUiUp()) {
-        mCurrentList->up();    }
+        mCurrentList->up();
+    }
 
     if (mInput->isTriggerUiDown()) {
         mCurrentList->down();
@@ -195,7 +200,8 @@ void StageSceneStateServerConfig::exeMainMenu() {
     }
 }
 
-void StageSceneStateServerConfig::exeOpenKeyboardIP() {
+void StageSceneStateServerConfig::exeOpenKeyboardIP()
+{
     if (al::isFirstStep(this)) {
 
         mCurrentList->deactivate();
@@ -204,17 +210,18 @@ void StageSceneStateServerConfig::exeOpenKeyboardIP() {
         Client::getKeyboard()->setSubText(u"");
 
         bool isSave = Client::openKeyboardIP(); // anything that happens after this will be ran after the keyboard closes
-        
+
         al::startHitReaction(mCurrentMenu, "リセット", 0);
 
-        if(isSave) 
+        if (isSave)
             al::setNerve(this, &nrvStageSceneStateServerConfigSaveData);
         else
             al::setNerve(this, &nrvStageSceneStateServerConfigMainMenu);
     }
 }
 
-void StageSceneStateServerConfig::exeOpenKeyboardPort() {
+void StageSceneStateServerConfig::exeOpenKeyboardPort()
+{
     if (al::isFirstStep(this)) {
 
         mCurrentList->deactivate();
@@ -225,15 +232,16 @@ void StageSceneStateServerConfig::exeOpenKeyboardPort() {
         bool isSave = Client::openKeyboardPort(); // anything that happens after this will be ran after the keyboard closes
 
         al::startHitReaction(mCurrentMenu, "リセット", 0);
-        
-        if(isSave) 
+
+        if (isSave)
             al::setNerve(this, &nrvStageSceneStateServerConfigSaveData);
         else
             al::setNerve(this, &nrvStageSceneStateServerConfigMainMenu);
     }
 }
 
-void StageSceneStateServerConfig::exeRestartServer() {
+void StageSceneStateServerConfig::exeRestartServer()
+{
     if (al::isFirstStep(this)) {
         mCurrentList->deactivate();
 
@@ -247,14 +255,15 @@ void StageSceneStateServerConfig::exeRestartServer() {
         Client::hideConnect();
 
         al::startHitReaction(mCurrentMenu, "リセット", 0);
-        
+
         al::setNerve(this, &nrvStageSceneStateServerConfigMainMenu);
     } else {
         al::setNerve(this, &nrvStageSceneStateServerConfigConnectError);
     }
 }
 
-void StageSceneStateServerConfig::exeGamemodeConfig() {
+void StageSceneStateServerConfig::exeGamemodeConfig()
+{
     if (al::isFirstStep(this)) {
         mGamemodeConfigMenu = &mGamemodeConfigMenus[GameModeManager::instance()->getGameMode()];
         mCurrentList = mGamemodeConfigMenu->mList;
@@ -271,14 +280,14 @@ void StageSceneStateServerConfig::exeGamemodeConfig() {
     }
 }
 
-void StageSceneStateServerConfig::exeGamemodeSelect() {
+void StageSceneStateServerConfig::exeGamemodeSelect()
+{
     if (al::isFirstStep(this)) {
 
         mCurrentList = mModeSelectList;
         mCurrentMenu = mModeSelect;
 
         subMenuStart();
-
     }
 
     subMenuUpdate();
@@ -290,7 +299,8 @@ void StageSceneStateServerConfig::exeGamemodeSelect() {
     }
 }
 
-void StageSceneStateServerConfig::exeConnectError() {
+void StageSceneStateServerConfig::exeConnectError()
+{
     if (al::isFirstStep(this)) {
         Client::showConnectError(u"Failed to Reconnect!");
     }
@@ -302,7 +312,8 @@ void StageSceneStateServerConfig::exeConnectError() {
     }
 }
 
-void StageSceneStateServerConfig::exeSaveData() {
+void StageSceneStateServerConfig::exeSaveData()
+{
 
     if (al::isFirstStep(this)) {
         SaveDataAccessFunction::startSaveDataWrite(mGameDataHolder);
@@ -314,7 +325,8 @@ void StageSceneStateServerConfig::exeSaveData() {
     }
 }
 
-void StageSceneStateServerConfig::endSubMenu() {
+void StageSceneStateServerConfig::endSubMenu()
+{
     mCurrentList->deactivate();
     mCurrentMenu->kill();
 
@@ -327,7 +339,8 @@ void StageSceneStateServerConfig::endSubMenu() {
     al::setNerve(this, &nrvStageSceneStateServerConfigMainMenu);
 }
 
-void StageSceneStateServerConfig::subMenuStart() {
+void StageSceneStateServerConfig::subMenuStart()
+{
     mCurrentList->deactivate();
 
     mCurrentMenu->kill();
@@ -343,7 +356,8 @@ void StageSceneStateServerConfig::subMenuStart() {
     mIsDecideConfig = false;
 }
 
-void StageSceneStateServerConfig::subMenuUpdate() {
+void StageSceneStateServerConfig::subMenuUpdate()
+{
     mInput->update();
 
     mCurrentList->update();
@@ -367,7 +381,6 @@ void StageSceneStateServerConfig::subMenuUpdate() {
         mIsDecideConfig = true;
     }
 }
-
 
 namespace {
 NERVE_IMPL(StageSceneStateServerConfig, MainMenu)

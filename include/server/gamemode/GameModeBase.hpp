@@ -10,13 +10,15 @@
 #include "game/GameData/GameDataHolder.h"
 #include "game/StageScene/StageScene.h"
 #include "layouts/HideAndSeekIcon.h"
+#include "layouts/SardineIcon.h"
 #include "prim/seadSafeString.h"
 #include "server/gamemode/GameModeConfigMenu.hpp"
 
 // enum for defining game mode types
 enum GameMode : s8 {
     NONE = -1,
-    HIDEANDSEEK
+    HIDEANDSEEK,
+    SARDINE
 };
 
 // struct containing info about the games state for use in gamemodes
