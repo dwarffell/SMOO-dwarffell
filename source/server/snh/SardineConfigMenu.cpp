@@ -20,6 +20,8 @@ const sead::WFixedSafeString<0x200>* SardineConfigMenu::getStringData()
 
     gamemodeConfigOptions->mBuffer[0].copy(u"Sardine Gravity On");
     gamemodeConfigOptions->mBuffer[1].copy(u"Sardine Gravity Off");
+    gamemodeConfigOptions->mBuffer[2].copy(u"Enable Sardine Tether (Default)");
+    gamemodeConfigOptions->mBuffer[3].copy(u"Disable Sardine Tether");
 
     return gamemodeConfigOptions->mBuffer;
 }
@@ -46,6 +48,18 @@ bool SardineConfigMenu::updateMenu(int selectIndex)
     case 1: {
         if (GameModeManager::instance()->isMode(GameMode::SARDINE)) {
             curMode->mIsUseGravity = false;
+        }
+        return true;
+    }
+    case 2: {
+        if (GameModeManager::instance()->isMode(GameMode::SARDINE)) {
+            curMode->mIsTether = true;
+        }
+        return true;
+    }
+    case 3: {
+        if (GameModeManager::instance()->isMode(GameMode::SARDINE)) {
+            curMode->mIsTether = false;
         }
         return true;
     }

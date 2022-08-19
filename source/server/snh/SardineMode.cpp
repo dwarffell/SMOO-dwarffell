@@ -166,7 +166,7 @@ void SardineMode::update()
     mModeTimer->updateTimer();
 
     // Player pulling
-    if (lowestPuppetDistance >= pullDistanceMin && mInfo->mIsIt && closestPuppetID != -1) {
+    if (lowestPuppetDistance >= pullDistanceMin && mInfo->mIsIt && closestPuppetID != -1 && mInfo->mIsTether) {
         sead::Vector3f target = Client::getPuppetInfo(closestPuppetID)->playerPos;
         sead::Vector3f* playerPos = al::getTransPtr(playerBase);
         sead::Vector3f direction = target - *playerPos;

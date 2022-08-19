@@ -13,7 +13,7 @@ GameModeManager::GameModeManager()
 {
     mHeap = sead::FrameHeap::create(0x100000, "GameModeHeap", al::getSequenceHeap(), 8,
         sead::Heap::HeapDirection::cHeapDirection_Reverse, false);
-    setMode(GameMode::SARDINE);
+    setMode(GameMode::HIDEANDSEEK);
 }
 
 void GameModeManager::begin()
