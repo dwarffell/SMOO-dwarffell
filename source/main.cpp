@@ -27,6 +27,7 @@
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
 #include "server/gamemode/GameModeManager.hpp"
+#include "tether.h"
 
 static int pInfSendTimer = 0;
 static int gameInfSendTimer = 0;
@@ -282,6 +283,13 @@ void stageInitHook(al::ActorInitInfo *info, StageScene *curScene, al::PlacementI
 
 }
 
+bool sceneKillHook(GameDataHolderAccessor value)
+{
+    getTether().setSceneKilled();
+
+    return GameDataFunction::isMissEndPrevStageForSceneDead(value);
+}
+
 PlayerCostumeInfo *setPlayerModel(al::LiveActor *player, const al::ActorInitInfo &initInfo, const char *bodyModel, const char *capModel, al::AudioKeeper *keeper, bool isCloset) {
     Client::sendCostumeInfPacket(bodyModel, capModel);
     return PlayerFunction::initMarioModelActor(player, initInfo, bodyModel, capModel, keeper, isCloset);
@@ -323,6 +331,18 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
 
     al::PlayerHolder *pHolder = al::getScenePlayerHolder(stageScene);
     PlayerActorBase* playerBase = al::tryGetPlayerActor(pHolder, 0);
+    PlayerActorHakoniwa* p1 = (PlayerActorHakoniwa*)al::tryGetPlayerActor(pHolder, 0);
+
+    bool isPause = stageScene->isPause();
+    bool isDemo = rs::isActiveDemo(playerBase);
+    bool isDead = PlayerFunction::isPlayerDeadStatus(playerBase);
+    bool isInterupted = isDead || isDemo || isPause;
+
+    if(isFirstStep && !isInterupted)
+        getTether().setSceneAlive(GameDataFunction::getCurrentStageName(stageScene), al::getTransPtr(playerBase));
+    
+    if(!isInterupted)
+        getTether().tick(stageScene, p1);
     
     bool isYukimaru = !playerBase->getPlayerInfo();
 

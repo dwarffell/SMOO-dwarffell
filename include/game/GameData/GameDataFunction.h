@@ -152,4 +152,6 @@ public:
     
     static bool isUnlockFirstSea(void);
 
+    static bool isMissEndPrevStageForSceneDead(GameDataHolderAccessor);
+
 };
