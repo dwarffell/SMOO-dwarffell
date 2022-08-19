@@ -2,6 +2,9 @@
 #include "al/async/FunctorV0M.hpp"
 #include "al/util.hpp"
 #include "al/util/ControllerUtil.h"
+#include "al/util/LiveActorUtil.h"
+#include "al/util/MathUtil.h"
+#include "game/GameData/GameDataFunction.h"
 #include "game/GameData/GameDataHolderAccessor.h"
 #include "game/Layouts/CoinCounter.h"
 #include "game/Layouts/MapMini.h"
@@ -11,6 +14,7 @@
 #include "heap/seadHeapMgr.h"
 #include "layouts/HideAndSeekIcon.h"
 #include "logger.hpp"
+#include "math/seadVector.h"
 #include "rs/util.hpp"
 #include "server/Client.hpp"
 #include "server/gamemode/GameModeBase.hpp"
@@ -120,10 +124,10 @@ void SardineMode::end()
 
 void SardineMode::update()
 {
-
     PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
-
     bool isYukimaru = !playerBase->getPlayerInfo(); // if PlayerInfo is a nullptr, that means we're dealing with the bound bowl racer
+    float lowestPuppetDistance = -1.f;
+    int closestPuppetID = -1;
 
     if (mIsFirstFrame) {
         if (mInfo->mIsUseGravityCam && mTicket)
@@ -131,7 +135,7 @@ void SardineMode::update()
         mIsFirstFrame = false;
     }
 
-    if (!mInfo->mIsIt && playerBase) {
+    if (playerBase) {
         for (size_t i = 0; i < mPuppetHolder->getSize(); i++) {
             PuppetInfo* curInfo = Client::getPuppetInfo(i);
 
@@ -141,6 +145,12 @@ void SardineMode::update()
             }
 
             float pupDist = al::calcDistance(playerBase, curInfo->playerPos);
+            bool isPupInStage = al::isEqualString(curInfo->stageName, GameDataFunction::getCurrentStageName(mCurScene->mHolder));
+            if ((pupDist < lowestPuppetDistance || lowestPuppetDistance == -1) && isPupInStage && curInfo->isIt) {
+                lowestPuppetDistance = pupDist;
+                closestPuppetID = i;
+            }
+
             if (curInfo->isConnected && curInfo->isInSameStage && curInfo->isIt && !mInfo->mIsIt && !isYukimaru && pupDist < 300.f) {
                 if (((PlayerActorHakoniwa*)playerBase)->mDimKeeper->is2DModel == curInfo->is2D && !PlayerFunction::isPlayerDeadStatus(playerBase)) {
                     mInfo->mIsIt = true;
@@ -151,8 +161,20 @@ void SardineMode::update()
                 }
             }
         }
-    } else
-        mModeTimer->updateTimer();
+    }
+
+    mModeTimer->updateTimer();
+
+    // Player pulling
+    if (lowestPuppetDistance >= pullDistanceMin && mInfo->mIsIt && closestPuppetID != -1) {
+        sead::Vector3f target = Client::getPuppetInfo(closestPuppetID)->playerPos;
+        sead::Vector3f* playerPos = al::getTransPtr(playerBase);
+        sead::Vector3f direction = target - *playerPos;
+
+        al::normalize(&direction);
+
+        playerPos->add(direction * ((al::calcDistance(playerBase, target) - pullDistanceMin) / pullPowerRate));
+    }
 
     if (mInfo->mIsUseGravity && !isYukimaru) {
         sead::Vector3f gravity;

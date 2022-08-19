@@ -42,4 +42,7 @@ private:
     SardineIcon* mModeLayout = nullptr;
     SardineInfo* mInfo = nullptr;
     al::CameraTicket* mTicket = nullptr;
+
+    float pullDistanceMin = 1000.f;
+    float pullPowerRate = 50.f;
 };
