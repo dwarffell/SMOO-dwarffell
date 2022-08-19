@@ -126,8 +126,10 @@ void SardineMode::update()
 {
     PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
     bool isYukimaru = !playerBase->getPlayerInfo(); // if PlayerInfo is a nullptr, that means we're dealing with the bound bowl racer
-    float lowestPuppetDistance = -1.f;
-    int closestPuppetID = -1;
+
+    float highPuppetDistance = -1.f;
+    int farPuppetID = -1;
+    bool isAnyIt = false;
 
     if (mIsFirstFrame) {
         if (mInfo->mIsUseGravityCam && mTicket)
@@ -146,10 +148,14 @@ void SardineMode::update()
 
             float pupDist = al::calcDistance(playerBase, curInfo->playerPos);
             bool isPupInStage = al::isEqualString(curInfo->stageName, GameDataFunction::getCurrentStageName(mCurScene->mHolder));
-            if ((pupDist < lowestPuppetDistance || lowestPuppetDistance == -1) && isPupInStage && curInfo->isIt) {
-                lowestPuppetDistance = pupDist;
-                closestPuppetID = i;
+
+            if ((pupDist > highPuppetDistance || highPuppetDistance == -1) && isPupInStage && curInfo->isIt) {
+                highPuppetDistance = pupDist;
+                farPuppetID = i;
             }
+
+            if (curInfo->isIt)
+                isAnyIt = true;
 
             if (curInfo->isConnected && curInfo->isInSameStage && curInfo->isIt && !mInfo->mIsIt && !isYukimaru && pupDist < 300.f) {
                 if (((PlayerActorHakoniwa*)playerBase)->mDimKeeper->is2DModel == curInfo->is2D && !PlayerFunction::isPlayerDeadStatus(playerBase)) {
@@ -165,9 +171,17 @@ void SardineMode::update()
 
     mModeTimer->updateTimer();
 
+    if ((PlayerFunction::isPlayerDeadStatus(playerBase) || highPuppetDistance > pullDistanceMax) && mInfo->mIsIt) {
+        mInfo->mIsIt = false;
+        mModeTimer->disableTimer();
+        mModeLayout->showSolo();
+
+        Client::sendTagInfPacket();
+    }
+
     // Player pulling
-    if (lowestPuppetDistance >= pullDistanceMin && mInfo->mIsIt && closestPuppetID != -1 && mInfo->mIsTether) {
-        sead::Vector3f target = Client::getPuppetInfo(closestPuppetID)->playerPos;
+    if (highPuppetDistance >= pullDistanceMin && mInfo->mIsIt && farPuppetID != -1 && mInfo->mIsTether) {
+        sead::Vector3f target = Client::getPuppetInfo(farPuppetID)->playerPos;
         sead::Vector3f* playerPos = al::getTransPtr(playerBase);
         sead::Vector3f direction = target - *playerPos;
 
@@ -203,15 +217,15 @@ void SardineMode::update()
     }
 
     if (al::isPadTriggerUp(-1) && !al::isPadHoldZL(-1)) {
-        mInfo->mIsIt = !mInfo->mIsIt;
-
-        mModeTimer->toggleTimer();
-
-        if (mInfo->mIsIt)
+        if (!mInfo->mIsIt && !isAnyIt) {
+            mInfo->mIsIt = true;
+            mModeTimer->enableTimer();
             mModeLayout->showPack();
-        else
+        } else {
+            mInfo->mIsIt = false;
+            mModeTimer->disableTimer();
             mModeLayout->showSolo();
-
+        }
         Client::sendTagInfPacket();
     }
 

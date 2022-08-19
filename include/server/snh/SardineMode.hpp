@@ -44,6 +44,7 @@ private:
     SardineInfo* mInfo = nullptr;
     al::CameraTicket* mTicket = nullptr;
 
+    float pullDistanceMax = 2250.f;
     float pullDistanceMin = 1000.f;
-    float pullPowerRate = 50.f;
+    float pullPowerRate = 75.f;
 };
