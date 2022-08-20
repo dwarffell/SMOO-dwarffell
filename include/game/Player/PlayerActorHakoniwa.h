@@ -31,7 +31,7 @@ class WaterSurfaceFinder;
 
 class PlayerActorHakoniwa : public PlayerActorBase , public IUseDimension {
     public: 
-        int *getPortNo(void) const;
+        int getPortNo(void) const;
         PlayerHackKeeper *getPlayerHackKeeper() const;
         void attackSensor(al::HitSensor *target, al::HitSensor *source);
         void startDemoPuppetable(void);

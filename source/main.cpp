@@ -1,9 +1,11 @@
 #include "main.hpp"
 #include <cmath>
 #include <math.h>
+#include "al/util/MathUtil.h"
 #include "game/Player/PlayerActorBase.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "game/Player/PlayerHackKeeper.h"
+#include "math/seadMathCalcCommon.h"
 #include "math/seadVector.h"
 #include "server/Client.hpp"
 #include "puppets/PuppetInfo.h"
@@ -82,6 +84,51 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
     Time::calcTime(); // this needs to be ran every frame, so running it here works
 
     if(!debugMode) {
+        al::Scene *curScene = curSequence->curScene;
+        PlayerTether& tether = getTether();
+
+        if(curScene && isInGame && tether.isSceneAlive() && tether.getSceneFrames() > 30 && tether.mIsTargetPupAlive) {
+            PlayerActorBase* playerBase = rs::getPlayerActor(curScene);
+
+            sead::LookAtCamera *cam = al::getLookAtCamera(curScene, 0);
+            sead::Projection* projection = al::getProjectionSead(curScene, 0);
+
+            sead::PrimitiveRenderer *renderer = sead::PrimitiveRenderer::instance();
+            renderer->setDrawContext(drawContext);
+            renderer->setCamera(*cam);
+            renderer->setProjection(*projection);
+
+            renderer->begin();
+            renderer->setModelMatrix(sead::Matrix34f::ident);
+
+            sead::Vector3f* p1Pos = tether.getPlayerPos();
+            sead::Vector3f* pupPos = tether.getPuppetPos();
+            sead::Vector3f direction = *pupPos - *p1Pos;
+            al::normalize(&direction);
+            
+            float playerDists = al::calcDistance(playerBase, *pupPos);
+            float dotSize = sead::MathCalcCommon<float>::min(
+                sead::MathCalcCommon<float>::max(((playerDists - tether.getPullDistanceMin()) / 50.f) *2.f, 0.f), 12.f);
+
+            tether.mBounceDotProg += tether.mBounceInc 
+                ? Time::deltaTime / (tether.mBounceDotProg + 0.5f)
+                : -(Time::deltaTime * (tether.mBounceDotProg + 0.5f));
+            if(tether.mBounceDotProg >= 1.f)
+                tether.mBounceInc = false;
+            else if(tether.mBounceDotProg <= 0.f)
+                tether.mBounceInc = true;
+
+            sead::Vector3f bouncePos = *p1Pos + ((direction * playerDists) * tether.mBounceDotProg);
+
+            if(p1Pos && pupPos && (Client::getConnectCount() + 1) >= 2) {
+                renderer->drawLine(*tether.getPlayerPos(), *tether.getPuppetPos(), {1.f, 1.f, 1.f, 0.3f});
+                renderer->drawSphere8x16(bouncePos, dotSize, {1.f, 1.f, 0.f, 0.8f});
+            }
+            // renderer->drawSphere4x8(curPuppet->getInfo()->playerPos, 20, sead::Color4f(1.f, 0.f, 0.f, 0.25f));
+
+            renderer->end();
+        }
+
         al::executeDraw(curSequence->mLytKit, "２Ｄバック（メイン画面）");
         return;
     }
@@ -244,11 +291,10 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
         }
 
         renderer->end();
-
-        isInGame = false;
     }
 
     gTextWriter->endDraw();
+    isInGame = false;
 
     al::executeDraw(curSequence->mLytKit, "２Ｄバック（メイン画面）");
 
@@ -338,8 +384,8 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
     bool isDead = PlayerFunction::isPlayerDeadStatus(playerBase);
     bool isInterupted = isDead || isDemo || isPause;
 
-    if(isFirstStep && !isInterupted)
-        getTether().setSceneAlive(GameDataFunction::getCurrentStageName(stageScene), al::getTransPtr(playerBase));
+    if(!getTether().isSceneAlive() && !isInterupted && getTether().getSceneFrames() > 15)
+        getTether().setSceneAlive(GameDataFunction::getCurrentStageName(stageScene), al::getTransPtr(playerBase), playerBase);
     
     if(!isInterupted)
         getTether().tick(stageScene, p1);

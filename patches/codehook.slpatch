@@ -1,6 +1,7 @@
 [version=100, target=main]
 //StageScene::control+18 BL stageSceneHook
 4C8DD0 BL stageInitHook // hook to the init of a stage to modify certain conditions (we also have access to SceneInitInfo)
+4CC780 BL sceneKillHook
 50F928 BL hakoniwaSequenceHook
 
 // hooks to start logger

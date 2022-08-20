@@ -1,8 +1,8 @@
 #pragma once
 
 #include "al/util.hpp"
-#include "al/util/MathUtil.h"
 #include "al/util/ControllerUtil.h"
+#include "al/util/MathUtil.h"
 #include "al/util/VectorUtil.h"
 
 #include "game/Player/PlayerActorBase.h"
@@ -34,6 +34,11 @@ private:
     int mPlayerCount = -1;
     bool mIsSceneChangeFromPuppet = false;
 
+    // Ring pull
+    bool mIsRingPull = false;
+    float mRingPullAnimFrame = 0.f;
+    float mRingVelocityMulti = 9.f;
+
     // Consts
     const float mPullPower = 1.5f;
     const float mPullPowerRate = 75.f;
@@ -43,7 +48,19 @@ public:
     void tick(StageScene* scene, PlayerActorHakoniwa* p1);
 
     void setSceneKilled();
-    void setSceneAlive(const char* stageName, sead::Vector3f* playerPos);
+    void setSceneAlive(const char* stageName, sead::Vector3f* playerPos, PlayerActorBase* player);
+
+    sead::Vector3f* getPlayerPos();
+    sead::Vector3f* getPuppetPos();
+    float getSceneFrames();
+    float getPullDistanceMin();
+
+    bool isSceneAlive();
+
+    // Visual data
+    bool mBounceInc = true;
+    float mBounceDotProg = 0.f;
+    bool mIsTargetPupAlive = true;
 };
 
 PlayerTether& getTether();
