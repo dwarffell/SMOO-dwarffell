@@ -6,87 +6,100 @@
 #include "al/util/LiveActorUtil.h"
 #include "game/GameData/GameDataFunction.h"
 #include "game/Player/PlayerActorHakoniwa.h"
+#include "game/Player/PlayerFunction.h"
 #include "gfx/seadColor.h"
 #include "math/seadMathCalcCommon.h"
 #include "math/seadVector.h"
 #include "prim/seadSafeString.h"
-#include "game/Player/PlayerFunction.h"
 #include "rs/util.hpp"
+#include "server/gamemode/GameModeTimer.hpp"
 #include <cmath>
 #include <stdint.h>
 
 TimeContainer& getTimeContainer()
 {
-    static TimeContainer i; //Returns a constant TimeContainer, can be accessed from anywhere
+    static TimeContainer i; // Returns a constant TimeContainer, can be accessed from anywhere
     return i;
 }
 
-void TimeContainer::init() //Run on game bootup
+void TimeContainer::init() // Run on game bootup
 {
-    timeFrames.allocBuffer(maxFrames, nullptr); //Required for PtrArray for function
+    timeFrames.allocBuffer(maxFrames, nullptr); // Required for PtrArray for function
     sceneInvactiveTime = 60;
     return;
 }
 
 void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
-{   
+{
     al::LiveActor* hack = p1->mHackKeeper->currentHackActor;
     bool isCur2D = p1->mDimKeeper->is2D;
-    
-     //Cancel early if the invactive time is still running
-    if(sceneInvactiveTime >= 0){
+
+    // Layout update
+    timeWarpLayout->mFill = calcCooldownPercent();
+    timeWarpLayout->mEmptyColor = calcColorFrameU8(colorFrame, getTimeArraySize());
+
+    // Cancel early if the invactive time is still running
+    if (sceneInvactiveTime >= 0) {
         sceneInvactiveTime--;
         return;
     }
 
-    if(dotBounceIndex >= 0) dotBounceIndex--; //Update the dot bounce index
+    if (dotBounceIndex >= 0)
+        dotBounceIndex--; // Update the dot bounce index
 
-    //Clear history on a capture
-    if(isCapture != (hack != nullptr)){
+    // Clear history on a capture
+    if (isCapture != (hack != nullptr)) {
         isCapture = hack != nullptr;
         isCaptureInvalid = false;
         emptyFrameInfo();
 
-        if(isRewinding) endRewind(p1);
+        if (isRewinding)
+            endRewind(p1);
 
-        //Don't update anything related to the trail on invalid captures
-        if(isCapture)
-            if(isInvalidCapture(p1->mHackKeeper->getCurrentHackName())) isCaptureInvalid = true;
+        // Don't update anything related to the trail on invalid captures
+        if (isCapture)
+            if (isInvalidCapture(p1->mHackKeeper->getCurrentHackName()))
+                isCaptureInvalid = true;
     }
 
-    //Clear history on 2D
-    if(is2D != isCur2D){
+    // Clear history on 2D
+    if (is2D != isCur2D) {
         is2D = isCur2D;
         emptyFrameInfo();
 
-        if(isRewinding) endRewind(p1);
+        if (isRewinding)
+            endRewind(p1);
     }
 
-    //Before allowing frame rewinds, check cooldown status
-    if(isCooldown){
+    // Before allowing frame rewinds, check cooldown status
+    if (isCooldown) {
         cooldownCharge += cooldownRate;
-        if(cooldownCharge >= 100.f){
+        if (cooldownCharge >= 100.f) {
             isCooldown = false;
-            dotBounceIndex = timeFrames.size()+15;
-            if(!p1->mDimKeeper->is2D)
+            dotBounceIndex = timeFrames.size() + 15;
+            if (!p1->mDimKeeper->is2D)
                 al::emitEffect(p1->mPlayerModelHolder->currentModel->mLiveActor, "DotReady", al::getTransPtr(p1));
         }
     }
 
-    if(isCaptureInvalid) return;
+    if (isCaptureInvalid)
+        return;
 
     // If position has changed enough, push a new frame
-    if (timeFrames.isEmpty()){
+    if (timeFrames.isEmpty()) {
         if (!rs::isActiveDemo(p1) && !isRewinding)
             pushNewFrame();
     } else {
-        if ((al::calcDistance(p1, timeFrames.at(timeFrames.size()-1)->position) > minPushDistance
-        || p1->mHackCap->isFlying()) && !rs::isActiveDemo(p1) && !PlayerFunction::isPlayerDeadStatus(p1) && !isRewinding)
+        if ((al::calcDistance(p1, timeFrames.at(timeFrames.size() - 1)->position) > minPushDistance
+                || p1->mHackCap->isFlying())
+            && !rs::isActiveDemo(p1) && !PlayerFunction::isPlayerDeadStatus(p1) && !isRewinding)
             pushNewFrame();
     }
     if (isHoldingRewindBind() && !rs::isActiveDemo(p1) && !PlayerFunction::isPlayerDeadStatus(p1) && (timeFrames.size() >= minTrailLength || isRewinding) && !isCooldown) {
-        if(rewindFrameDelay >= rewindFrameDelayTarget) rewindFrame(p1);
-        else rewindFrameDelay++;
+        if (rewindFrameDelay >= rewindFrameDelayTarget)
+            rewindFrame(p1);
+        else
+            rewindFrameDelay++;
     } else if (isRewinding) {
         endRewind(p1);
     }
@@ -94,8 +107,8 @@ void TimeContainer::updateTimeStates(PlayerActorHakoniwa* p1)
 
 void TimeContainer::pushNewFrame()
 {
-    TimeFrame* newFrame = nullptr; 
-    sead::Heap* seqHeap = sead::HeapMgr::instance()->findHeapByName("SceneHeap",0);
+    TimeFrame* newFrame = nullptr;
+    sead::Heap* seqHeap = sead::HeapMgr::instance()->findHeapByName("SceneHeap", 0);
     if (seqHeap) {
         newFrame = new (seqHeap) TimeFrame();
     } else {
@@ -112,13 +125,14 @@ void TimeContainer::pushNewFrame()
 
     dotBounceIndex--;
 
-    if(!timeFrames.isEmpty()){
+    if (!timeFrames.isEmpty()) {
         colorFrame += colorFrameRate;
     }
     newFrame->colorFrame = colorFrame;
+    newFrame->gameModeTimeState = curGameModeTime;
 
     if (!hack) {
-        //Mario
+        // Mario
         newFrame->position = al::getTrans(p1);
         newFrame->playerFrame.gravity = al::getGravity(p1);
         newFrame->playerFrame.velocity = al::getVelocity(p1);
@@ -126,9 +140,9 @@ void TimeContainer::pushNewFrame()
         newFrame->playerFrame.action.append(p1->mPlayerAnimator->curAnim);
         newFrame->playerFrame.actionFrame = p1->mPlayerAnimator->getAnimFrame();
 
-        //Cappy
-        if(GameDataFunction::isEnableCap(stageSceneRef)){
-            if(p1->mHackCap){
+        // Cappy
+        if (GameDataFunction::isEnableCap(stageSceneRef)) {
+            if (p1->mHackCap) {
                 newFrame->capFrame.isFlying = p1->mHackCap->isFlying();
                 newFrame->capFrame.position = al::getTrans(p1->mHackCap);
                 newFrame->capFrame.rotation = p1->mHackCap->mJointKeeper->mJointRot;
@@ -136,13 +150,13 @@ void TimeContainer::pushNewFrame()
             }
         }
     } else {
-        //Capture
+        // Capture
         newFrame->position = al::getTrans(hack);
         newFrame->playerFrame.velocity = al::getVelocity(hack);
         newFrame->playerFrame.rotation = hack->mPoseKeeper->getQuat();
         newFrame->playerFrame.action = al::getActionName(hack);
     }
-    
+
     timeFrames.pushBack(newFrame);
     return;
 }
@@ -155,11 +169,13 @@ void TimeContainer::rewindFrame(PlayerActorHakoniwa* p1)
     colorFrame -= colorFrameRate;
     colorFrameOffset += colorFrameOffsetRate;
 
-    if (!isRewinding) startRewind(p1);
-    if(cooldownCharge > 0.f) cooldownCharge -= cooldownDischarge;
+    if (!isRewinding)
+        startRewind(p1);
+    if (cooldownCharge > 0.f)
+        cooldownCharge -= cooldownDischarge;
 
     if (!hack) {
-        //Mario
+        // Mario
         al::setTrans(p1, timeFrames.back()->position);
         al::setGravity(p1, timeFrames.back()->playerFrame.gravity);
         al::setVelocity(p1, timeFrames.back()->playerFrame.velocity);
@@ -168,9 +184,9 @@ void TimeContainer::rewindFrame(PlayerActorHakoniwa* p1)
             p1->mPlayerAnimator->startAnim(timeFrames.back()->playerFrame.action);
         p1->mPlayerAnimator->setAnimFrame(timeFrames.back()->playerFrame.actionFrame);
 
-        //Cappy
-        if(GameDataFunction::isEnableCap(stageSceneRef)){
-            if(!p1->mDimKeeper->is2D && p1->mHackCap){
+        // Cappy
+        if (GameDataFunction::isEnableCap(stageSceneRef)) {
+            if (!p1->mDimKeeper->is2D && p1->mHackCap) {
                 updateHackCap(p1->mHackCap, headModel);
                 al::setTrans(p1->mHackCap, timeFrames.back()->capFrame.position);
                 p1->mHackCap->mJointKeeper->mJointRot = timeFrames.back()->capFrame.rotation;
@@ -183,8 +199,8 @@ void TimeContainer::rewindFrame(PlayerActorHakoniwa* p1)
         al::setQuat(hack, timeFrames.back()->playerFrame.rotation);
         al::startAction(hack, timeFrames.back()->playerFrame.action.cstr());
     }
-    
-    if(!p1->mDimKeeper->is2D)
+
+    if (!p1->mDimKeeper->is2D)
         al::emitEffect(p1->mPlayerModelHolder->currentModel->mLiveActor, "DotTravel", al::getTransPtr(p1));
 
     delete timeFrames.popBack();
@@ -196,25 +212,25 @@ void TimeContainer::rewindFrame(PlayerActorHakoniwa* p1)
 
 void TimeContainer::updateHackCap(HackCap* cap, al::LiveActor* headModel)
 {
-    //Initalize puppet cappy's state
-    if(timeFrames.back()->capFrame.isFlying != cap->isFlying()){
-        if(timeFrames.back()->capFrame.isFlying){ 
+    // Initalize puppet cappy's state
+    if (timeFrames.back()->capFrame.isFlying != cap->isFlying()) {
+        if (timeFrames.back()->capFrame.isFlying) {
             cap->setupThrowStart();
         } else {
             cap->startCatch("Default", true, al::getTrans(cap));
             cap->forcePutOn();
-        } 
+        }
     }
 
-    //Toggle the puppet cap's visiblity
-    if(timeFrames.back()->capFrame.isFlying){
+    // Toggle the puppet cap's visiblity
+    if (timeFrames.back()->capFrame.isFlying) {
         cap->showPuppetCap();
         al::startVisAnimForAction(headModel, "CapOff");
     } else {
         cap->hidePuppetCap();
         al::startVisAnimForAction(headModel, "CapOn");
     }
-    
+
     return;
 }
 
@@ -231,7 +247,7 @@ void TimeContainer::startRewind(PlayerActorHakoniwa* p1)
     isRewinding = true;
     cooldownCharge = 60.f;
 
-    setPostProcessingId(4); //Sets the post processing filter to black and white
+    setPostProcessingId(4); // Sets the post processing filter to black and white
 
     return;
 }
@@ -240,25 +256,25 @@ void TimeContainer::endRewind(PlayerActorHakoniwa* p1)
     al::Scene* scene = stageSceneRef;
     int filterID = al::getPostProcessingFilterPresetId(scene);
 
-    if (!p1->mHackKeeper->currentHackActor){
+    if (!p1->mHackKeeper->currentHackActor) {
         p1->endDemoPuppetable();
-        
-        //Cleanup cappy state
+
+        // Cleanup cappy state
         p1->mHackCap->startCatch("Default", true, al::getTrans(p1));
         p1->mHackCap->forcePutOn();
         p1->mHackCap->hidePuppetCap();
     }
 
-    if(GameDataFunction::isEnableCap(stageSceneRef)){
-        if(p1->mHackCap){
+    if (GameDataFunction::isEnableCap(stageSceneRef)) {
+        if (p1->mHackCap) {
             p1->mHackCap->mCapActionHistory->mIsCapJumpReady = false;
         }
     }
-    
+
     isRewinding = false;
     resetCooldown();
 
-    setPostProcessingId(0); //Disables the black and white filter
+    setPostProcessingId(0); // Disables the black and white filter
 
     return;
 }
@@ -297,10 +313,12 @@ void TimeContainer::resetCooldown()
 
 TimeFrame* TimeContainer::getTimeFrame(uint32_t index)
 {
-    if(timeFrames.isEmpty()) return nullptr;
+    if (timeFrames.isEmpty())
+        return nullptr;
 
-    //Return the index requested, or the highest frame possible if too large
-    if(index > timeFrames.size()-1) return timeFrames.at(timeFrames.size()-1);
+    // Return the index requested, or the highest frame possible if too large
+    if (index > timeFrames.size() - 1)
+        return timeFrames.at(timeFrames.size() - 1);
     return timeFrames.at(index);
 }
 
@@ -337,13 +355,18 @@ uint TimeContainer::getPatternNum()
 uint TimeContainer::getColorNum()
 {
     uint start = patternMarkers[curPattern];
-    uint end = patternMarkers[curPattern+1];
-    return start + (sead::MathCalcCommon<float>::floor(colorFrame+colorFrameOffset) % (end-start));
+    uint end = patternMarkers[curPattern + 1];
+    return start + (sead::MathCalcCommon<float>::floor(colorFrame + colorFrameOffset) % (end - start));
 }
 
 uint TimeContainer::getPatternSize()
 {
-    return patternMarkers[curPattern+1] - patternMarkers[curPattern];
+    return patternMarkers[curPattern + 1] - patternMarkers[curPattern];
+}
+
+GameTime TimeContainer::getTimeAtFrame()
+{
+    return timeFrames.back()->gameModeTimeState;
 }
 
 bool TimeContainer::isSceneActive()
@@ -363,7 +386,7 @@ bool TimeContainer::isOnCooldown()
 
 bool TimeContainer::isRewindCappyThrow()
 {
-    if(isRewinding){
+    if (isRewinding) {
         return timeFrames.back()->capFrame.isFlying;
     }
     return false;
@@ -372,15 +395,15 @@ bool TimeContainer::isRewindCappyThrow()
 bool TimeContainer::isInvalidCapture(const char* curName)
 {
     constexpr static const char* hackList[] = {
-        "ElectricWire", "TRex", "Fukankun", //Binoculars
-        "Cactus", "BazookaElectric", //Sub-area rocket
-        "JugemFishing", //Lakitu
-        "Fastener", //Zipper
-        "GotogotonLake", "GotogotonCity", //Puzzle pieces
-        "Senobi", //Uproot
-        "Tree", "RockForest", "FukuwaraiFacePartsKuribo", "Imomu", //Tropical wiggler
-        "AnagramAlphabetCharacter", "Car", "Manhole", "Tsukkun", //Pokio
-        "Statue", "StatueKoopa", "KaronWing", "Bull", //Chargin' chuck
+        "ElectricWire", "TRex", "Fukankun", // Binoculars
+        "Cactus", "BazookaElectric", // Sub-area rocket
+        "JugemFishing", // Lakitu
+        "Fastener", // Zipper
+        "GotogotonLake", "GotogotonCity", // Puzzle pieces
+        "Senobi", // Uproot
+        "Tree", "RockForest", "FukuwaraiFacePartsKuribo", "Imomu", // Tropical wiggler
+        "AnagramAlphabetCharacter", "Car", "Manhole", "Tsukkun", // Pokio
+        "Statue", "StatueKoopa", "KaronWing", "Bull", // Chargin' chuck
         "Koopa", "Yoshi"
     };
     int hackListSize = *(&hackList + 1) - hackList;
@@ -410,15 +433,15 @@ bool TimeContainer::isKeybindStickL()
 
 bool TimeContainer::isHoldingRewindBind()
 {
-    switch(keybindId){
-        case 0:
-            return al::isPadHoldR(-1);
-        case 1:
-            return al::isPadHoldL(-1);
-        case 2:
-            return al::isPadHoldPressLeftStick(-1);
-        default:
-            return false;
+    switch (keybindId) {
+    case 0:
+        return al::isPadHoldR(-1);
+    case 1:
+        return al::isPadHoldL(-1);
+    case 2:
+        return al::isPadHoldPressLeftStick(-1);
+    default:
+        return false;
     }
 }
 
@@ -426,7 +449,8 @@ void TimeContainer::setRewindDelay(int index)
 {
     rewindFrameDelayTarget += index;
 
-    if(rewindFrameDelayTarget < 0) rewindFrameDelayTarget = 0;
+    if (rewindFrameDelayTarget < 0)
+        rewindFrameDelayTarget = 0;
     return;
 }
 
@@ -444,14 +468,15 @@ void TimeContainer::setTimeFramesEmpty()
 
 void TimeContainer::setCurrentColorPattern(uint pattern)
 {
-    uint offset = 4; //Amount of options in menu before the color selections
+    uint offset = 4; // Amount of options in menu before the color selections
     curPattern = pattern - offset;
     return;
 };
 
 void TimeContainer::setControlBinding(uint id)
 {
-    if(id > 2) id = 2; //Prevent setting id to value too high
+    if (id > 2)
+        id = 2; // Prevent setting id to value too high
     keybindId = id;
 
     return;
@@ -460,13 +485,13 @@ void TimeContainer::setControlBinding(uint id)
 sead::Color4f TimeContainer::calcColorFrame(float frame, int dotIndex)
 {
     sead::Color4f returnColor = { 0.f, 0.f, 0.f, 0.7f };
-    
-    if(isCooldown){
-        returnColor.r = ((100+cooldownCharge)/100)-1;
-        returnColor.g = ((100+cooldownCharge)/100)-1;
-        returnColor.b = ((100+cooldownCharge)/100)-1;
+
+    if (isCooldown) {
+        returnColor.r = ((100 + cooldownCharge) / 100) - 1;
+        returnColor.g = ((100 + cooldownCharge) / 100) - 1;
+        returnColor.b = ((100 + cooldownCharge) / 100) - 1;
     } else {
-        if(dotIndex < dotBounceIndex-8){
+        if (dotIndex < dotBounceIndex - 8) {
             returnColor.r = 1.f;
             returnColor.g = 1.f;
             returnColor.b = 1.f;
@@ -475,22 +500,36 @@ sead::Color4f TimeContainer::calcColorFrame(float frame, int dotIndex)
             // returnColor.g = sin((frame+colorFrameOffset) - 2.0942f);
             // returnColor.b = sin((frame+colorFrameOffset) - 4.1884f);
             uint start = patternMarkers[curPattern];
-            uint end = patternMarkers[curPattern+1];
-            returnColor = colors[start + (sead::MathCalcCommon<float>::floor(frame+colorFrameOffset) % (end-start))];
+            uint end = patternMarkers[curPattern + 1];
+            returnColor = colors[start + (sead::MathCalcCommon<float>::floor(frame + colorFrameOffset) % (end - start))];
         }
     }
     return returnColor;
 }
 
+sead::Color4u8 TimeContainer::calcColorFrameU8(float frame, int dotIndex)
+{
+    sead::Color4u8 returnColor = { 0, 0, 0, 255 };
+
+    uint start = patternMarkers[curPattern];
+    uint end = patternMarkers[curPattern + 1];
+    returnColor.r = ceil(colors[start + (sead::MathCalcCommon<float>::floor(frame + colorFrameOffset) % (end - start))].r * 255);
+    returnColor.b = ceil(colors[start + (sead::MathCalcCommon<float>::floor(frame + colorFrameOffset) % (end - start))].g * 255);
+    returnColor.g = ceil(colors[start + (sead::MathCalcCommon<float>::floor(frame + colorFrameOffset) % (end - start))].b * 255);
+
+    return returnColor;
+}
+
 sead::Vector3f TimeContainer::calcDotTrans(sead::Vector3f position, int dotIndex)
 {
-    int relative = dotBounceIndex-dotIndex;
-    if(relative <= 15 && relative > 0) position.y += sin(0.21*relative)*80;
+    int relative = dotBounceIndex - dotIndex;
+    if (relative <= 15 && relative > 0)
+        position.y += sin(0.21 * relative) * 80;
 
     return position;
 }
 
 float TimeContainer::calcCooldownPercent()
 {
-    return sead::MathCalcCommon<float>::max(sead::MathCalcCommon<float>::min(cooldownCharge/100.f, 1.f), 0.05f);
+    return sead::MathCalcCommon<float>::max(sead::MathCalcCommon<float>::min(cooldownCharge / 100.f, 1.f), 0.f);
 }

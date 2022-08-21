@@ -6,7 +6,9 @@
 SMOVER ?= 100
 BUILDVER ?= 101 
 BUILDVERSTR ?= 1.0.1 
-IP ?= 10.0.0.221 # ftp server ip (usually is switch's local IP)
+IP ?= 192.168.0.8 # Put Switch IP Here (for make send)
+USER ?= amethyst # Put username here (for make send)
+PASS ?= password # put password here (for make send)
 DEBUGLOG ?= 0 # defaults to disable debug logger 
 SERVERIP ?= 0.0.0.0 # put debug logger server IP here
 ISEMU ?= 0 # set to 1 to compile for emulators
@@ -43,7 +45,7 @@ emu:
 	mv $(shell basename $(CURDIR))$(SMOVER).nso starlight_patch_$(SMOVER)/yuzu/subsdk1
 # builds and sends project to FTP server hosted on provided IP
 send: all
-	python3.8 scripts/sendPatch.py $(IP) $(PROJNAME) 
+	python3.8 scripts/sendPatch.py $(IP) $(PROJNAME) $(USER) $(PASS)
 
 log: all
 	python3.8 scripts/tcpServer.py $(SERVERIP)

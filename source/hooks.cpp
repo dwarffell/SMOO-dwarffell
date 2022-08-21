@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <sys/types.h>
+#include "game/Player/PlayerWallActionHistory.h"
 #include "rs/util.hpp"
 #include "server/Client.hpp"
 #include "al/LiveActor/LiveActor.h"
@@ -201,41 +202,8 @@ bool triggerL(int port)
     return getTimeContainer().isKeybindBumperL() ? false : al::isPadTriggerL(port);
 }
 
-bool reduceOxygenForce()
+void wallHistoryGet(PlayerWallActionHistory* history)
 {
-    TimeContainer& container = getTimeContainer();
-    StageScene* stageScene = container.stageSceneRef;
-    if(!stageScene) return false;
-
-    container.isPInWater = rs::isPlayerInWater(rs::getPlayerActor(stageScene));
-
-    //Perform usual check for if player is in water, but if not, force it on if cooldown is active
-    if(container.isPInWater) return true;
-    else return getTimeContainer().isOnCooldown();
-}
-
-void oxygenReduce(PlayerOxygen* thisPtr)
-{
-    TimeContainer& container = getTimeContainer();
-    container.oxygen = thisPtr;
-    float oxygenRingCalc;
-    
-    //If the player is in water, perform usual calculation
-    if(container.isPInWater){
-        thisPtr->mOxygenFrames++;
-        if (thisPtr->mOxygenFrames >= thisPtr->mOxygenTarget) { thisPtr->mDamageFrames++; }
-
-        oxygenRingCalc = 1.f - (static_cast<float>(thisPtr->mOxygenFrames) / static_cast<float>(thisPtr->mOxygenTarget));
-        if (oxygenRingCalc <= 0.f) oxygenRingCalc = 0.f;
-    }
-
-    //If the cooldown is running, replace the value in the ring
-    if(container.isOnCooldown()){
-        oxygenRingCalc = container.calcCooldownPercent();
-        if(thisPtr->mOxygenFrames == 0) thisPtr->mOxygenFrames = thisPtr->mPercentageDelay;
-        if(thisPtr->mOxygenFrames >= thisPtr->mOxygenTarget) thisPtr->mOxygenFrames = thisPtr->mOxygenTarget-1;
-    }
-
-    thisPtr->mPercentage = oxygenRingCalc;
-    return;
+    __asm("MOV X19, X0");
+    getTimeContainer().mPlayerWallHistory = history;
 }

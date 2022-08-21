@@ -6,7 +6,7 @@
 
 #include "al/LiveActor/LiveActor.h" // for SensorMsg
 
-#include <math/seadVector.h>
+#include <sead/math/seadVector.h>
 
 struct SaveObjInfo;
 struct HackEndParam;
@@ -31,6 +31,11 @@ namespace al
 
     sead::Vector3f *getSensorPos(al::HitSensor const *);
     sead::Vector3f* getActorTrans(al::HitSensor const*);
+
+    void setSensorRadius(al::LiveActor *, const char *, float);
+
+    void invalidateHitSensor(al::LiveActor *, const char *);
+    void validateHitSensor(al::LiveActor *, const char *);
 
     bool tryReceiveMsgPushAndAddVelocity(al::LiveActor*, al::SensorMsg const*, al::HitSensor const*,
                                          al::HitSensor const*, float);

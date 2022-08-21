@@ -117,6 +117,4 @@ B59E28 B seadPrintHook // sead::system::print
 9D0EB4 RET // Allows snapshot filters to be used during gameplay
 45059c BL triggerL //L bumper
 4505c0 B triggerR //R bumper
-
-4855fc B reduceOxygenForce // Forces ring to appear even if not in water
-45ec88 B oxygenReduce // Updates the oxygen and draws timewarp recharge into ring
+492d30 BL wallHistoryGet
