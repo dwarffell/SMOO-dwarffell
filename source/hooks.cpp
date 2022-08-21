@@ -27,6 +27,7 @@
 #include "rs/util/InputUtil.h"
 #include "sead/prim/seadSafeString.h"
 #include "server/hns/HideAndSeekMode.hpp"
+#include "game/Player/HackCap/CapFunction.h"
 
 bool comboBtnHook(int port) {
     if (GameModeManager::instance()->isActive()) { // only switch to combo if any gamemode is active
@@ -168,4 +169,125 @@ bool borderPullBackHook(WorldEndBorderKeeper* thisPtr) {
     }
     
     return isFirstStep;
+}
+
+float followDistHook() {
+    switch(curSize){
+        case NORMAL:
+            return 733.f;
+            break;
+        case SMALL:
+            return 220.f;
+            break;
+        case BIG:
+            return 1750.f;
+            break;
+            break;
+        case VERYBIG:
+            return 3750.f;
+            break;
+    }
+}
+
+const char* offsetOverideHook(al::ByamlIter const& iter, char const* key) {
+    switch(curSize){
+        case SMALL:
+             return "Y0.5m";
+            break;
+        default:
+             return al::tryGetByamlKeyStringOrNULL(iter, key);
+            break;
+            break;
+    }
+}
+
+PlayerConst* createPlayerConstHook(char const* suffix) {
+    switch(curSize){
+        case NORMAL:
+            return PlayerFunction::createMarioConst(suffix);
+            break;
+        case SMALL: {
+            PlayerConst* cons = PlayerFunction::createMarioConst(al::StringTmp<0x20>("Small%s", suffix).cstr());
+            return cons;
+            break;
+        }
+        case BIG: {
+            PlayerConst* cons = PlayerFunction::createMarioConst(al::StringTmp<0x20>("Big%s", suffix).cstr());
+            return cons;
+            break;
+        }
+        case VERYBIG: {
+            PlayerConst* cons = PlayerFunction::createMarioConst(al::StringTmp<0x20>("VeryBig%s", suffix).cstr());
+            return cons;
+            break;
+        }
+    }
+}
+
+// bool loadParamHook(float *output, al::ByamlIter const &iter, char const *key) {
+//     bool result = al::tryGetByamlF32(output, iter, key);
+//     if(isSmallMode)
+//         *output = 0.2f;
+
+//     return result;
+// }
+
+void effectHook(al::ActionEffectCtrl* effectController, char const* effectName) {
+
+    if (curSize == PlayerSize::SMALL) {
+        if(al::isEqualString(effectName, "RollingStart") || al::isEqualString(effectName, "Rolling") || al::isEqualString(effectName, "RollingStandUp") || al::isEqualString(effectName, "Jump") || al::isEqualString(effectName, "LandDownFall")|| al::isEqualString(effectName, "SpinCapStart") || al::isEqualString(effectName, "FlyingWaitR") || al::isEqualString(effectName, "StayR")|| al::isEqualString(effectName, "SpinGroundR")|| al::isEqualString(effectName, "StartSpinJumpR")|| al::isEqualString(effectName, "SpinJumpDownFallR")|| al::isEqualString(effectName, "Move")|| al::isEqualString(effectName, "Brake")) {
+            al::tryDeleteEffect(effectController->mEffectKeeper, effectName);
+            return;
+        }
+    }
+
+    effectController->startAction(effectName);
+
+}
+
+void capVelScaleHook(al::LiveActor* hackCap, sead::Vector3f const& addition) {
+    al::setVelocity(hackCap, addition * (scale * 0.8f));
+}
+
+void capReturnVelHook(HackCap *hackCap, sead::Vector3f const& addition) {
+    if (curSize == PlayerSize::SMALL || curSize == PlayerSize::VERYBIG) {
+        PlayerActorHakoniwa *pActor = (PlayerActorHakoniwa*)al::getPlayerActor(hackCap, 0);
+        CapFunction::putOnCapPlayer(hackCap, pActor->mPlayerAnimator);
+    } else {
+        al::setVelocity(hackCap, addition);
+    }
+    
+}
+
+void spinFlowerHook(al::LiveActor* actor, float velocity) {
+    al::addVelocityToGravity(actor, velocity * scale);
+}
+
+void sensorHook(al::LiveActor *actor, al::ActorInitInfo const &initInfo, char const *sensorName, uint typeEnum, float radius, ushort maxCount, sead::Vector3f const& position) {
+    sead::Vector3f newPos = sead::Vector3f(position);
+    if(position.y > 0)
+        newPos.y = position.y * scale;
+
+    al::addHitSensor(actor, initInfo, sensorName, typeEnum, radius, maxCount, newPos);
+}
+
+float fpHook() {
+    return 300.0f * scale;
+}
+
+float fpScaleHook() {
+    switch(curSize){
+        case NORMAL:
+            return 0.94f;
+            break;
+        case SMALL:
+            return 31.3f;
+            break;
+        case BIG:
+            return 0.24f;
+            break;
+            break;
+        case VERYBIG:
+            break;
+    }
 }

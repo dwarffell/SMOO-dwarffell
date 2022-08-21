@@ -85,6 +85,11 @@ void PuppetActor::init(al::ActorInitInfo const &initInfo) {
     al::validateClipping(normalModel);
     al::validateClipping(normal2DModel);
 
+    normalModel->mActorActionKeeper->mPadAndCamCtrl->mRumbleCount =
+        0;  // set rumble count to zero so that no rumble actions will run
+
+    al::setScaleAll(normalModel, 0.3f); // TEMP
+
 }
 
 void PuppetActor::initAfterPlacement() { al::LiveActor::initAfterPlacement(); }

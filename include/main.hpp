@@ -55,9 +55,16 @@ static bool isInGame = false;
 
 static bool debugMode = false;
 
-static bool isSmallMode = true;
+enum PlayerSize {
+    NORMAL,
+    SMALL,
+    BIG,
+    VERYBIG
+};
 
-static float scale = 0.3f;
+extern int curSize;
+
+extern float scale;
 
 extern float camDist;
 
