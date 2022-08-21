@@ -174,10 +174,10 @@ bool borderPullBackHook(WorldEndBorderKeeper* thisPtr) {
 float followDistHook() {
     switch(curSize){
         case NORMAL:
-            return 733.f;
+            return 893.f;
             break;
         case SMALL:
-            return 220.f;
+            return 270.f;
             break;
         case BIG:
             return 1750.f;
