@@ -38,13 +38,13 @@ private:
     bool mIsRingPull = false;
     float mRingPullAnimFrame = 0.f;
     float mRingVelocityMulti = 9.f;
-    const float mMinPullFlingDist = 800.f;
-    const float mMaxPullFlingDist = 3000.f;
+    const float mMinPullFlingDist = 1000.f;
+    const float mMaxPullFlingDist = 3200.f;
 
     // Consts
     const float mPullPower = 1.5f;
     const float mPullPowerRate = 75.f;
-    const float mPullDistanceMin = 600.f;
+    const float mPullDistanceMin = 850.f;
 
 public:
     void tick(StageScene* scene, PlayerActorHakoniwa* p1);
