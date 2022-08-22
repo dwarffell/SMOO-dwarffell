@@ -1,8 +1,10 @@
 #include "tether.h"
+#include "al/LiveActor/LiveActor.h"
 #include "al/util/LiveActorUtil.h"
 #include "al/util/MathUtil.h"
 #include "helpers.hpp"
 #include "math/seadMathCalcCommon.h"
+#include "puppets/PuppetInfo.h"
 #include "rs/util.hpp"
 
 PlayerTether& getTether()
@@ -46,13 +48,22 @@ void PlayerTether::tick(StageScene* scene, PlayerActorHakoniwa* p1)
 
     // Player pulling
     if (closePuppetDistance >= mPullDistanceMin && closePuppetIndex != -1 && mClosePup && mSceneFrames > 90 && mIsTargetPupAlive && !mIsRingPull) {
+        al::LiveActor* hack = p1->getPlayerHackKeeper()->currentHackActor;
         sead::Vector3f target = Client::getPuppetInfo(closePuppetIndex)->playerPos;
-        sead::Vector3f* playerPos = al::getTransPtr(p1);
-        sead::Vector3f direction = target - *playerPos;
 
-        al::normalize(&direction);
+        if (!hack) {
+            sead::Vector3f* playerPos = al::getTransPtr(p1);
+            sead::Vector3f direction = target - *playerPos;
+            al::normalize(&direction);
 
-        playerPos->add((direction * mPullPower) * ((al::calcDistance(p1, target) - mPullDistanceMin) / mPullPowerRate));
+            playerPos->add((direction * mPullPower) * ((al::calcDistance(p1, target) - mPullDistanceMin) / mPullPowerRate));
+        } else {
+            sead::Vector3f* hackPos = al::getTransPtr(hack);
+            sead::Vector3f direction = target - *hackPos;
+            al::normalize(&direction);
+
+            hackPos->add((direction * mPullPower) * ((al::calcDistance(hack, target) - mPullDistanceMin) / mPullPowerRate));
+        }
     }
 
     // Player warping
@@ -65,32 +76,44 @@ void PlayerTether::tick(StageScene* scene, PlayerActorHakoniwa* p1)
         }
 
     // Player Flicking
-    if (al::isPadTriggerPressLeftStick(-1) && rs::isPlayerOnGround(p1)) {
-        p1->startDemoPuppetable();
-        mIsRingPull = true;
-        mRingPullAnimFrame = 0.f;
-    } else if (!al::isPadHoldPressLeftStick(-1) && mIsRingPull) {
-        p1->endDemoPuppetable();
-        mIsRingPull = false;
-        sead::Vector3f target = Client::getPuppetInfo(closePuppetIndex)->playerPos;
+    if (closePuppetIndex != -1 && mSceneFrames > 50) {
+        if (al::isPadTriggerPressLeftStick(-1) && rs::isPlayerOnGround(p1) && !p1->getPlayerHackKeeper()->currentHackActor) {
+            p1->startDemoPuppetable();
+            mIsRingPull = true;
+            mRingPullAnimFrame = 0.f;
+        } else if ((!al::isPadHoldPressLeftStick(-1) && mIsRingPull)
+            || (al::calcDistance(p1, Client::getPuppetInfo(closePuppetIndex)->playerPos) > mMaxPullFlingDist && mIsRingPull)
+            || (!mIsTargetPupAlive && mIsRingPull)) {
 
-        sead::Vector3f& playerPos = al::getTrans(p1);
-        sead::Vector3f& playerVel = al::getVelocity(p1);
+            p1->endDemoPuppetable();
+            mIsRingPull = false;
 
-        float yDistance = target.y - playerPos.y;
-        target.y += yDistance + 1350.f;
-        sead::Vector3f direction = target - playerPos;
+            PuppetInfo* pup = Client::getPuppetInfo(closePuppetIndex);
+            if(!pup)
+                return;
 
-        al::normalize(&direction);
+            sead::Vector3f target = pup->playerPos;
+            sead::Vector3f& playerPos = al::getTrans(p1);
+            sead::Vector3f& playerVel = al::getVelocity(p1);
 
-        playerPos.y += 50.f;
-        playerVel.add((direction * mPullPower) * ((al::calcDistance(p1, target) - mPullDistanceMin) / (mPullPowerRate * 2.f)) * mRingVelocityMulti);
-    }
+            float yDistance = playerPos.y - target.y;
 
-    if (mIsRingPull) {
-        p1->mPlayerAnimator->startAnim("LandStiffen");
-        p1->mPlayerAnimator->setAnimFrame(fmod(mRingPullAnimFrame, 40.f) + 20.f);
-        mRingPullAnimFrame++;
+            if (al::calcDistance(p1, target) > mMinPullFlingDist && al::calcDistance(p1, target) < mMaxPullFlingDist && mIsTargetPupAlive) {
+                target.y += yDistance + 1350.f;
+                sead::Vector3f direction = target - playerPos;
+
+                al::normalize(&direction);
+
+                playerPos.y += 50.f;
+                playerVel.add((direction * mPullPower) * ((al::calcDistance(p1, target) - mPullDistanceMin) / (mPullPowerRate * 2.f)) * mRingVelocityMulti);
+            }
+        }
+
+        if (mIsRingPull) {
+            p1->mPlayerAnimator->startAnim("LandStiffen");
+            p1->mPlayerAnimator->setAnimFrame(fmod(mRingPullAnimFrame, 40.f) + 20.f);
+            mRingPullAnimFrame++;
+        }
     }
 }
 

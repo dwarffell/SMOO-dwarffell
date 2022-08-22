@@ -102,13 +102,18 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
             renderer->setModelMatrix(sead::Matrix34f::ident);
 
             sead::Vector3f* p1Pos = tether.getPlayerPos();
-            sead::Vector3f* pupPos = tether.getPuppetPos();
+            sead::Vector3f* pupPos = tether.getPuppetPos();\
+            if(!p1Pos || !pupPos){
+                renderer->end();
+                al::executeDraw(curSequence->mLytKit, "２Ｄバック（メイン画面）");
+                return;
+            }
             sead::Vector3f direction = *pupPos - *p1Pos;
             al::normalize(&direction);
             
             float playerDists = al::calcDistance(playerBase, *pupPos);
             float dotSize = sead::MathCalcCommon<float>::min(
-                sead::MathCalcCommon<float>::max(((playerDists - tether.getPullDistanceMin()) / 50.f) *2.f, 0.f), 12.f);
+                sead::MathCalcCommon<float>::max(((playerDists - tether.getPullDistanceMin()) / 80.f) *3.f, 0.f), 24.f);
 
             tether.mBounceDotProg += tether.mBounceInc 
                 ? Time::deltaTime / (tether.mBounceDotProg + 0.5f)
@@ -122,7 +127,7 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
 
             if(p1Pos && pupPos && (Client::getConnectCount() + 1) >= 2) {
                 renderer->drawLine(*tether.getPlayerPos(), *tether.getPuppetPos(), {1.f, 1.f, 1.f, 0.3f});
-                renderer->drawSphere8x16(bouncePos, dotSize, {1.f, 1.f, 0.f, 0.8f});
+                renderer->drawSphere8x16(bouncePos, dotSize, {1.f, 1.f - (playerDists / 2500.f), 0.f, 0.9f});
             }
             // renderer->drawSphere4x8(curPuppet->getInfo()->playerPos, 20, sead::Color4f(1.f, 0.f, 0.f, 0.25f));
 

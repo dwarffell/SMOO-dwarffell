@@ -38,6 +38,8 @@ private:
     bool mIsRingPull = false;
     float mRingPullAnimFrame = 0.f;
     float mRingVelocityMulti = 9.f;
+    const float mMinPullFlingDist = 800.f;
+    const float mMaxPullFlingDist = 3000.f;
 
     // Consts
     const float mPullPower = 1.5f;
