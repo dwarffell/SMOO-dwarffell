@@ -110,6 +110,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
     gTextWriter->printf("nn::socket::GetLastErrno: 0x%x\n", Client::instance()->mSocket->socket_errno);
     gTextWriter->printf("Packet Queue Length: %d\n", Client::instance()->mSocket->mPacketQueue.size());
     gTextWriter->printf("Total Connected Players: %d\n", Client::getConnectCount() + 1);
+    gTextWriter->printf("Gamemode Heap: %d/%d\n", GameModeManager::instance()->getHeap()->getFreeSize(), GameModeManager::instance()->getHeap()->getSize());
 
     al::Scene* curScene = curSequence->curScene;
 

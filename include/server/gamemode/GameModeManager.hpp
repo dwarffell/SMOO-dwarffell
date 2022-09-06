@@ -29,6 +29,7 @@ public:
     T* createModeInfo();
 
     sead::Heap* getHeap() { return mHeap; }
+    static sead::Heap* getSceneHeap() { return al::getSceneHeap(); }
     void toggleActive();
     void setActive(bool active) { mActive = active; }
     void setPaused(bool paused);

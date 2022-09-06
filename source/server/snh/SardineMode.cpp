@@ -48,6 +48,7 @@ void SardineMode::init(const GameModeInitInfo& info)
     else
         Logger::log("No gamemode info found\n");
     if (curGameInfo && curGameInfo->mMode == mMode) {
+        sead::ScopedCurrentHeapSetter heapSetter(GameModeManager::getSceneHeap());
         mInfo = (SardineInfo*)curGameInfo;
         mModeTimer = new GameModeTimer(mInfo->mHidingTime);
         Logger::log("Reinitialized timer with time %d:%.2d\n", mInfo->mHidingTime.mMinutes, mInfo->mHidingTime.mSeconds);
@@ -59,6 +60,7 @@ void SardineMode::init(const GameModeInitInfo& info)
 
         mModeTimer = new GameModeTimer();
     }
+    sead::ScopedCurrentHeapSetter heapSetterr(GameModeManager::getSceneHeap());
 
     mModeLayout = new SardineIcon("SardineIcon", *info.mLayoutInitInfo);
 

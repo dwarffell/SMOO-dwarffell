@@ -37,6 +37,7 @@ void HideAndSeekMode::init(const GameModeInitInfo& info) {
     if (curGameInfo) Logger::log("Gamemode info found: %s %s\n", GameModeFactory::getModeString(curGameInfo->mMode), GameModeFactory::getModeString(info.mMode));
     else Logger::log("No gamemode info found\n");
     if (curGameInfo && curGameInfo->mMode == mMode) {
+        sead::ScopedCurrentHeapSetter heapSetter(GameModeManager::getSceneHeap());
         mInfo = (HideAndSeekInfo*)curGameInfo;
         mModeTimer = new GameModeTimer(mInfo->mHidingTime);
         Logger::log("Reinitialized timer with time %d:%.2d\n", mInfo->mHidingTime.mMinutes, mInfo->mHidingTime.mSeconds);
@@ -47,6 +48,7 @@ void HideAndSeekMode::init(const GameModeInitInfo& info) {
         
         mModeTimer = new GameModeTimer();
     }
+    sead::ScopedCurrentHeapSetter heapSetterr(GameModeManager::getSceneHeap());
 
     mModeLayout = new HideAndSeekIcon("HideAndSeekIcon", *info.mLayoutInitInfo);
 
@@ -83,6 +85,8 @@ void HideAndSeekMode::begin() {
     if (playGuideLyt->mIsAlive)
         playGuideLyt->end();
 
+    mInvulnTime = 0.f;
+
     GameModeBase::begin();
 }
 
@@ -105,6 +109,8 @@ void HideAndSeekMode::end() {
         compass->appearSlideIn();
     if (!playGuideLyt->mIsAlive)
         playGuideLyt->appear();
+
+    mInvulnTime = 0.f;
 
     GameModeBase::end();
 }

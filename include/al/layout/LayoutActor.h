@@ -83,5 +83,5 @@ class LayoutActor : public al::IUseHioNode, public al::IUseNerve, public al::IUs
 };
 }  // namespace al
 
-// static_assert(sizeof(al::LayoutActor) == 0x130);
+static_assert(sizeof(al::LayoutActor) == 0x130);
 

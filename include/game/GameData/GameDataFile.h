@@ -229,7 +229,7 @@ class GameDataFile
         void getPlayerHitPointData(void);
         void getLastUpdateTime(void);
         void getPlayTimeTotal(void);
-        void getMainScenarioNo(int);
+        int getMainScenarioNo(int) const;
         void getCollectedBgmMaxNum(void);
         int getScenarioNo(void) const;
         void getMiniGameName(int);
@@ -349,7 +349,7 @@ class GameDataFile
         void *qword5E8;
         void *qword5F0;
         u16 word5F8;
-        bool byte5FA;
+        bool mIsEnableCap;
         void *qword600;
         int dword608;
         bool byte60C;

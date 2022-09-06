@@ -30,6 +30,8 @@ void GameModeManager::end()
         sead::ScopedCurrentHeapSetter heapSetter(mHeap);
         mCurModeBase->end();
     }
+
+    
 }
 
 void GameModeManager::toggleActive()
