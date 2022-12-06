@@ -3,6 +3,7 @@
 #include "al/async/FunctorV0M.hpp"
 #include "al/util.hpp"
 #include "al/util/ControllerUtil.h"
+#include "al/util/LiveActorUtil.h"
 #include "game/GameData/GameDataHolderAccessor.h"
 #include "game/Layouts/CoinCounter.h"
 #include "game/Layouts/MapMini.h"
@@ -44,6 +45,9 @@ void FreezeTagMode::init(const GameModeInitInfo& info) {
     mModeLayout = new HideAndSeekIcon("HideAndSeekIcon", *info.mLayoutInitInfo);
     mModeLayout->showSeeking();
 
+    //Create main player's ice block
+    mMainPlayerIceBlock = new FreezePlayerBlock("MainPlayerBlock");
+    mMainPlayerIceBlock->init(*info.mActorInitInfo);
 }
 
 void FreezeTagMode::begin() {
@@ -107,6 +111,18 @@ void FreezeTagMode::update() {
 
     if (mIsFirstFrame) {
         mIsFirstFrame = false;
+    }
+
+    if(mInfo->mIsPlayerFreeze) {
+        if(!al::isAlive(mMainPlayerIceBlock))
+            mMainPlayerIceBlock->makeActorAlive();
+        
+        //Lock block onto player
+        al::setTrans(mMainPlayerIceBlock, al::getTrans(playerBase));
+
+    } else {
+        if(al::isAlive(mMainPlayerIceBlock))
+            mMainPlayerIceBlock->makeActorDead();
     }
 
     if (!mInfo->mIsPlayerRunner) {
@@ -174,5 +190,10 @@ void FreezeTagMode::update() {
         }
 
         Client::sendTagInfPacket();
+    }
+
+    if (al::isPadTriggerUp(-1) && al::isPadHoldX(-1))
+    {
+        mInfo->mIsPlayerFreeze = !mInfo->mIsPlayerFreeze;
     }
 }

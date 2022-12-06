@@ -1,6 +1,7 @@
 #pragma once
 
 #include "al/camera/CameraTicket.h"
+#include "server/freeze/FreezePlayerBlock.h"
 #include "server/freeze/FreezeTagScore.hpp"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/gamemode/GameModeConfigMenu.hpp"
@@ -38,4 +39,6 @@ private:
     HideAndSeekIcon* mModeLayout = nullptr;
     FreezeTagInfo* mInfo = nullptr;
     al::CameraTicket* mTicket = nullptr;
+
+    FreezePlayerBlock* mMainPlayerIceBlock;
 };

@@ -47,4 +47,7 @@ struct PuppetInfo {
     bool isIt = false;
     u8 seconds = 0;
     u16 minutes = 0;
+    // Freeze Tag Gamemode Info
+    bool isFreezeTagRunner = true;
+    bool isFreezeTagFreeze = true;
 };

@@ -26,6 +26,7 @@ enum GameMode : s8 {
 struct GameModeInitInfo {
     GameModeInitInfo(al::ActorInitInfo* info, al::Scene* scene)
     {
+        mActorInitInfo = info;
         mLayoutInitInfo = info->mLayoutInitInfo;
         mPlayerHolder = info->mActorSceneInfo.mPlayerHolder;
         mSceneObjHolder = info->mActorSceneInfo.mSceneObjHolder;
@@ -38,6 +39,7 @@ struct GameModeInitInfo {
         mPuppetHolder = pupHolder;
     }
 
+    al::ActorInitInfo* mActorInitInfo;
     al::LayoutInitInfo* mLayoutInitInfo;
     al::PlayerHolder* mPlayerHolder;
     al::SceneObjHolder* mSceneObjHolder;

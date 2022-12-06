@@ -17,6 +17,7 @@
 #include "actors/PuppetActor.h"
 #include "math/seadQuat.h"
 #include "math/seadVector.h"
+#include "server/freeze/FreezeTagMode.hpp"
 #include "server/gamemode/GameModeManager.hpp"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
@@ -89,6 +90,10 @@ void PuppetActor::init(al::ActorInitInfo const &initInfo) {
     al::validateClipping(normalModel);
     al::validateClipping(normal2DModel);
 
+    if(GameModeManager::instance()->isMode(GameMode::FREEZETAG)) {
+        mFreezeTagIceBlock = new FreezePlayerBlock("PuppetIceBlock");
+        mFreezeTagIceBlock->init(initInfo);
+    }
 }
 
 void PuppetActor::initAfterPlacement() { al::LiveActor::initAfterPlacement(); }
@@ -102,6 +107,16 @@ void PuppetActor::initOnline(PuppetInfo *pupInfo) {
 
 void PuppetActor::movement() {
     al::LiveActor::movement();
+
+    if(mFreezeTagIceBlock) {
+        if(mInfo->isFreezeTagFreeze && mInfo->isConnected && mInfo->isInSameStage && !al::isAlive(mFreezeTagIceBlock))
+            mFreezeTagIceBlock->makeActorAlive();
+        
+        if((!mInfo->isFreezeTagFreeze || !mInfo->isConnected || !mInfo->isInSameStage) && al::isAlive(mFreezeTagIceBlock))
+            mFreezeTagIceBlock->makeActorDead();
+        
+        al::setTrans(mFreezeTagIceBlock, mInfo->playerPos);
+    }
 }
 
 void PuppetActor::calcAnim() {
@@ -249,6 +264,9 @@ void PuppetActor::makeActorDead() {
     }
 
     mPuppetCap->makeActorDead();
+
+    if(mFreezeTagIceBlock)
+        mFreezeTagIceBlock->makeActorDead();
     
     al::LiveActor::makeActorDead();
 }
