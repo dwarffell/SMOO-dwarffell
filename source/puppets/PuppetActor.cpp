@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstddef>
 #include "al/model/PartsModel.h"
+#include "al/util/NerveUtil.h"
 #include "al/util/SensorUtil.h"
 #include "game/Player/PlayerCostumeFunction.h"
 #include "game/Player/PlayerCostumeInfo.h"
@@ -110,10 +111,13 @@ void PuppetActor::movement() {
 
     if(mFreezeTagIceBlock) {
         if(mInfo->isFreezeTagFreeze && mInfo->isConnected && mInfo->isInSameStage && !al::isAlive(mFreezeTagIceBlock))
-            mFreezeTagIceBlock->makeActorAlive();
+            mFreezeTagIceBlock->appear();
         
-        if((!mInfo->isFreezeTagFreeze || !mInfo->isConnected || !mInfo->isInSameStage) && al::isAlive(mFreezeTagIceBlock))
-            mFreezeTagIceBlock->makeActorDead();
+        if((!mInfo->isFreezeTagFreeze || !mInfo->isConnected || !mInfo->isInSameStage) && al::isAlive(mFreezeTagIceBlock)
+            && !al::isNerve(mFreezeTagIceBlock, &nrvFreezePlayerBlockDisappear))
+        {
+            mFreezeTagIceBlock->end();
+        }
         
         al::setTrans(mFreezeTagIceBlock, mInfo->playerPos);
     }

@@ -10,10 +10,15 @@
 #include "server/hns/HideAndSeekConfigMenu.hpp"
 #include <math.h>
 
+enum FreezeState {
+    ALIVE = 0,
+    FREEZE = 1
+};
+
 struct FreezeTagInfo : GameModeInfoBase {
     FreezeTagInfo() { mMode = GameMode::FREEZETAG; }
     bool mIsPlayerRunner = false;
-    bool mIsPlayerFreeze = false;
+    FreezeState mIsPlayerFreeze = FreezeState::ALIVE;
     FreezeTagScore mPlayerTagScore;
 };
 
@@ -30,7 +35,7 @@ public:
     bool isPlayerRunner() const { return mInfo->mIsPlayerRunner; };
     bool isPlayerFreeze() const { return mInfo->mIsPlayerFreeze; };
 
-    void setPlayerRunnerState(bool state) { mInfo->mIsPlayerRunner = state; }
+    bool trySetPlayerRunnerState(FreezeState state);
 
     void setCameraTicket(al::CameraTicket* ticket) { mTicket = ticket; }
 

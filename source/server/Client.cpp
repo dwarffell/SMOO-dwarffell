@@ -5,6 +5,8 @@
 #include "heap/seadHeapMgr.h"
 #include "logger.hpp"
 #include "packets/Packet.h"
+#include "server/freeze/FreezeTagMode.hpp"
+#include "server/gamemode/GameModeBase.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
 #include "server/snh/SardineMode.hpp"
 
@@ -647,6 +649,37 @@ void Client::sendTagInfPacket() {
 /**
  * @brief 
  * 
+ */
+void Client::sendFreezeInfPacket() {
+
+    if (!sInstance) {
+        Logger::log("Static Instance is Null!\n");
+        return;
+    }
+    
+    GameMode curMode = GameModeManager::instance()->getGameMode();
+    if(curMode != GameMode::FREEZETAG) {
+        Logger::log("Attempting to send FreezeInf packet while not in Freeze Tag mode!\n");
+        return;
+    }
+
+    FreezeTagMode* frMode = GameModeManager::instance()->getMode<FreezeTagMode>();
+    FreezeTagInfo* frInfo = GameModeManager::instance()->getInfo<FreezeTagInfo>();;
+
+    FreezeInf *packet = new FreezeInf();
+
+    packet->mUserID = sInstance->mUserID;
+
+    packet->isRunner = frInfo->mIsPlayerRunner;
+    packet->isFreeze = frInfo->mIsPlayerFreeze;
+    packet->score = frInfo->mPlayerTagScore.mScore;
+
+    sInstance->mSocket->queuePacket(packet);
+}
+
+/**
+ * @brief 
+ * 
  * @param body 
  * @param cap 
  */
@@ -909,53 +942,86 @@ void Client::updateGameInfo(GameInf *packet) {
  * @param packet 
  */
 void Client::updateTagInfo(TagInf *packet) {
-    
-    // if the packet is for our player, edit info for our player
-    if (packet->mUserID == mUserID && GameModeManager::instance()->isMode(GameMode::HIDEANDSEEK)) {
+    GameMode mode = GameModeManager::instance()->getGameMode();
 
-        HideAndSeekMode* mMode = GameModeManager::instance()->getMode<HideAndSeekMode>();
-        HideAndSeekInfo* curInfo = GameModeManager::instance()->getInfo<HideAndSeekInfo>();
+    if(mode == GameMode::HIDEANDSEEK || mode == GameMode::SARDINE) {
+        // if the packet is for our player, edit info for our player
+        if (packet->mUserID == mUserID && GameModeManager::instance()->isMode(GameMode::HIDEANDSEEK)) {
 
-        if (packet->updateType & TagUpdateType::STATE) {
-            mMode->setPlayerTagState(packet->isIt);
+            HideAndSeekMode* mMode = GameModeManager::instance()->getMode<HideAndSeekMode>();
+            HideAndSeekInfo* curInfo = GameModeManager::instance()->getInfo<HideAndSeekInfo>();
+
+            if (packet->updateType & TagUpdateType::STATE) {
+                mMode->setPlayerTagState(packet->isIt);
+            }
+
+            if (packet->updateType & TagUpdateType::TIME) {
+                curInfo->mHidingTime.mSeconds = packet->seconds;
+                curInfo->mHidingTime.mMinutes = packet->minutes;
+            }
+
+            return;
+
         }
 
-        if (packet->updateType & TagUpdateType::TIME) {
-            curInfo->mHidingTime.mSeconds = packet->seconds;
-            curInfo->mHidingTime.mMinutes = packet->minutes;
+        if (packet->mUserID == mUserID && GameModeManager::instance()->isMode(GameMode::SARDINE)) {
+
+            SardineMode* mMode = GameModeManager::instance()->getMode<SardineMode>();
+            SardineInfo* curInfo = GameModeManager::instance()->getInfo<SardineInfo>();
+
+            if (packet->updateType & TagUpdateType::STATE) {
+                mMode->setPlayerTagState(packet->isIt);
+            }
+
+            if (packet->updateType & TagUpdateType::TIME) {
+                curInfo->mHidingTime.mSeconds = packet->seconds;
+                curInfo->mHidingTime.mMinutes = packet->minutes;
+            }
+
+            return;
+
         }
 
-        return;
+        PuppetInfo* curInfo = findPuppetInfo(packet->mUserID, false);
 
+        if (!curInfo) {
+            return;
+        }
+
+        curInfo->isIt = packet->isIt;
+        curInfo->seconds = packet->seconds;
+        curInfo->minutes = packet->minutes;
     }
 
-    if (packet->mUserID == mUserID && GameModeManager::instance()->isMode(GameMode::SARDINE)) {
+    if(mode == GameMode::FREEZETAG) {
+        FreezeInf* freezePak = (FreezeInf*)packet;
+        
+        // if the packet is for our player, edit info for our player
+        if (packet->mUserID == mUserID && GameModeManager::instance()->isMode(GameMode::FREEZETAG)) {
 
-        SardineMode* mMode = GameModeManager::instance()->getMode<SardineMode>();
-        SardineInfo* curInfo = GameModeManager::instance()->getInfo<SardineInfo>();
+            FreezeTagMode* mMode = GameModeManager::instance()->getMode<FreezeTagMode>();
+            FreezeTagInfo* curInfo = GameModeManager::instance()->getInfo<FreezeTagInfo>();
+            
+            curInfo->mIsPlayerRunner = freezePak->isRunner;
 
-        if (packet->updateType & TagUpdateType::STATE) {
-            mMode->setPlayerTagState(packet->isIt);
+            if(freezePak->isFreeze && !freezePak->isRunner)
+                mMode->trySetPlayerRunnerState(FreezeState::FREEZE);
+            else
+                mMode->trySetPlayerRunnerState(FreezeState::ALIVE);
+
+            return;
+
         }
 
-        if (packet->updateType & TagUpdateType::TIME) {
-            curInfo->mHidingTime.mSeconds = packet->seconds;
-            curInfo->mHidingTime.mMinutes = packet->minutes;
-        }
+        PuppetInfo* curInfo = findPuppetInfo(packet->mUserID, false);
 
-        return;
+        if (!curInfo)
+            return;
 
+        curInfo->isFreezeTagFreeze = freezePak->isFreeze;
+        curInfo->isFreezeTagRunner = freezePak->isRunner;
+        curInfo->freezeTagScore = freezePak->score;
     }
-
-    PuppetInfo* curInfo = findPuppetInfo(packet->mUserID, false);
-
-    if (!curInfo) {
-        return;
-    }
-
-    curInfo->isIt = packet->isIt;
-    curInfo->seconds = packet->seconds;
-    curInfo->minutes = packet->minutes;
 }
 
 /**

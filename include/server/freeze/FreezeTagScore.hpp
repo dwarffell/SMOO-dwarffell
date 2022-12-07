@@ -1,5 +1,7 @@
 #pragma once
 
+#include "server/Client.hpp"
+
 struct FreezeTagScore {
     // Score info
     float mScore = 0.f;
@@ -14,6 +16,7 @@ struct FreezeTagScore {
     {
         mScore += add;
         mRoundScore += add;
+        Client::sendFreezeInfPacket();
     };
 
     // Events

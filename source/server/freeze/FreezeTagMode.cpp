@@ -1,12 +1,15 @@
 #include "server/freeze/FreezeTagMode.hpp"
 #include <cmath>
+#include "actors/PuppetActor.h"
 #include "al/async/FunctorV0M.hpp"
 #include "al/util.hpp"
 #include "al/util/ControllerUtil.h"
 #include "al/util/LiveActorUtil.h"
+#include "al/util/NerveUtil.h"
 #include "game/GameData/GameDataHolderAccessor.h"
 #include "game/Layouts/CoinCounter.h"
 #include "game/Layouts/MapMini.h"
+#include "game/Player/HackCap.h"
 #include "game/Player/PlayerActorBase.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "heap/seadHeapMgr.h"
@@ -113,16 +116,17 @@ void FreezeTagMode::update() {
         mIsFirstFrame = false;
     }
 
+    //Main player's ice block state controller
     if(mInfo->mIsPlayerFreeze) {
         if(!al::isAlive(mMainPlayerIceBlock))
-            mMainPlayerIceBlock->makeActorAlive();
+            mMainPlayerIceBlock->appear();
         
         //Lock block onto player
         al::setTrans(mMainPlayerIceBlock, al::getTrans(playerBase));
 
     } else {
-        if(al::isAlive(mMainPlayerIceBlock))
-            mMainPlayerIceBlock->makeActorDead();
+        if(al::isAlive(mMainPlayerIceBlock) && !al::isNerve(mMainPlayerIceBlock, &nrvFreezePlayerBlockDisappear))
+            mMainPlayerIceBlock->end();
     }
 
     if (!mInfo->mIsPlayerRunner) {
@@ -178,7 +182,7 @@ void FreezeTagMode::update() {
         }
     }
 
-    if (al::isPadTriggerUp(-1) && !al::isPadHoldZL(-1))
+    if (al::isPadTriggerRight(-1) && !al::isPadHoldZL(-1) && !al::isPadHoldX(-1) && !al::isPadHoldY(-1))
     {
         mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
 
@@ -189,11 +193,50 @@ void FreezeTagMode::update() {
             mModeLayout->showSeeking();
         }
 
-        Client::sendTagInfPacket();
+        Client::sendFreezeInfPacket();
+    }
+
+    if(al::isPadHoldR(-1)) {
+        PuppetActor* pup = Client::getPuppet(0);
+        Logger::log("Pup 0 freeze: %s\n", BTOC(pup->getInfo()->isFreezeTagFreeze));
+        Logger::log("Pup 0 runner: %s\n", BTOC(pup->getInfo()->isFreezeTagRunner));
+        Logger::log("Pup 0 score: %f\n", pup->getInfo()->freezeTagScore);
     }
 
     if (al::isPadTriggerUp(-1) && al::isPadHoldX(-1))
-    {
-        mInfo->mIsPlayerFreeze = !mInfo->mIsPlayerFreeze;
+        trySetPlayerRunnerState(FreezeState::ALIVE);
+    if (al::isPadTriggerUp(-1) && al::isPadHoldY(-1))
+        trySetPlayerRunnerState(FreezeState::FREEZE);
+    if (al::isPadTriggerUp(-1) && al::isPadHoldA(-1)) {
+        mInfo->mPlayerTagScore.eventScoreDebug();
     }
+}
+
+bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
+{
+    PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
+    bool isYukimaru = !playerBase->getPlayerInfo();
+
+    if(mInfo->mIsPlayerFreeze == newState || isYukimaru)
+        return false;
+    
+    PlayerActorHakoniwa* player = (PlayerActorHakoniwa*)playerBase;
+    HackCap* hackCap = player->mHackCap;
+    
+    if(newState == FreezeState::ALIVE) {
+        mInfo->mIsPlayerFreeze = FreezeState::ALIVE;
+        playerBase->endDemoPuppetable();
+    } else {
+        mInfo->mIsPlayerFreeze = FreezeState::FREEZE;
+        playerBase->startDemoPuppetable();
+        
+        player->mPlayerAnimator->endSubAnim();
+        player->mPlayerAnimator->startAnim("DeadIce");
+        
+        hackCap->forcePutOn();
+    }
+
+    Client::sendFreezeInfPacket();
+
+    return true;
 }
