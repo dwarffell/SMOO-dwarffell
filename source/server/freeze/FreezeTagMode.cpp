@@ -69,7 +69,7 @@ void FreezeTagMode::begin() {
     MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
     al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
 
-    mInvulnTime = 0;
+    mInvulnTime = 0.f;
 
     if(coinCounter->mIsAlive)
         coinCounter->tryEnd();
@@ -79,6 +79,9 @@ void FreezeTagMode::begin() {
         compass->end();
     if (playGuideLyt->mIsAlive)
         playGuideLyt->end();
+
+    //Update other players on your freeze tag state when starting
+    Client::sendFreezeInfPacket();
 
     GameModeBase::begin();
 }
@@ -92,7 +95,7 @@ void FreezeTagMode::end() {
     MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
     al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
 
-    mInvulnTime = 0.0f;
+    mInvulnTime = 0.f;
 
     if(!coinCounter->mIsAlive)
         coinCounter->tryStart();
@@ -107,11 +110,10 @@ void FreezeTagMode::end() {
 }
 
 void FreezeTagMode::update() {
-
     PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
-
     bool isYukimaru = !playerBase->getPlayerInfo(); // if PlayerInfo is a nullptr, that means we're dealing with the bound bowl racer
 
+    // First frame stuff, remove this?
     if (mIsFirstFrame) {
         mIsFirstFrame = false;
     }
@@ -129,78 +131,39 @@ void FreezeTagMode::update() {
             mMainPlayerIceBlock->end();
     }
 
-    if (!mInfo->mIsPlayerRunner) {
-        if (mInvulnTime >= 5) {  
+    // Runner team frame checks
+    if (mInfo->mIsPlayerRunner) {
+        if (mInvulnTime >= 3 && !isYukimaru) {
+            bool isPDead = PlayerFunction::isPlayerDeadStatus(playerBase);
+            bool isP2D = ((PlayerActorHakoniwa*)playerBase)->mDimKeeper->is2D;
 
-            // if (playerBase) {
-            //     for (size_t i = 0; i < mPuppetHolder->getSize(); i++)
-            //     {
-            //         PuppetInfo *curInfo = Client::getPuppetInfo(i);
+            for (size_t i = 0; i < mPuppetHolder->getSize(); i++) {
+                PuppetInfo *curInfo = Client::getPuppetInfo(i);
+                float pupDist = al::calcDistance(playerBase, curInfo->playerPos);
 
-            //         if (!curInfo) {
-            //             Logger::log("Checking %d, hit bounds %d-%d\n", i, mPuppetHolder->getSize(), Client::getMaxPlayerCount());
-            //             break;
-            //         }
+                if(!curInfo->isConnected)
+                    continue;
 
-            //         if(curInfo->isConnected && curInfo->isInSameStage && curInfo->isIt) { 
+                //Check for freeze
+                if (!mInfo->mIsPlayerFreeze && pupDist < 200.f && isP2D == curInfo->is2D && !isPDead && !curInfo->isFreezeTagRunner)
+                    trySetPlayerRunnerState(FreezeState::FREEZE);
 
-            //             float pupDist = al::calcDistance(playerBase, curInfo->playerPos); // TODO: remove distance calculations and use hit sensors to determine this
-
-            //             if (!isYukimaru) {
-            //                 if(pupDist < 200.f && ((PlayerActorHakoniwa*)playerBase)->mDimKeeper->is2DModel == curInfo->is2D) {
-            //                     if(!PlayerFunction::isPlayerDeadStatus(playerBase)) {
-                                    
-            //                         GameDataFunction::killPlayer(GameDataHolderAccessor(this));
-            //                         playerBase->startDemoPuppetable();
-            //                         al::setVelocityZero(playerBase);
-            //                         rs::faceToCamera(playerBase);
-            //                         ((PlayerActorHakoniwa*)playerBase)->mPlayerAnimator->endSubAnim();
-            //                         ((PlayerActorHakoniwa*)playerBase)->mPlayerAnimator->startAnimDead();
-
-            //                         mInfo->mIsPlayerIt = true;
-            //                         mModeTimer->disableTimer();
-            //                         mModeLayout->showSeeking();
-                                    
-            //                         Client::sendTagInfPacket();
-            //                     }
-            //                 } else if (PlayerFunction::isPlayerDeadStatus(playerBase)) {
-
-            //                     mInfo->mIsPlayerIt = true;
-            //                     mModeTimer->disableTimer();
-            //                     mModeLayout->showSeeking();
-
-            //                     Client::sendTagInfPacket();
-                                
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-            
-        }else {
+                //Check for unfreeze
+                if (mInfo->mIsPlayerFreeze && pupDist < 150.f && isP2D == curInfo->is2D && !isPDead && curInfo->isFreezeTagRunner && !curInfo->isFreezeTagFreeze)
+                    trySetPlayerRunnerState(FreezeState::ALIVE);
+            }
+        } else {
             mInvulnTime += Time::deltaTime;
         }
     }
 
-    if (al::isPadTriggerRight(-1) && !al::isPadHoldZL(-1) && !al::isPadHoldX(-1) && !al::isPadHoldY(-1))
-    {
+    if (al::isPadTriggerRight(-1) && !al::isPadHoldZL(-1) && !al::isPadHoldX(-1) && !al::isPadHoldY(-1)) {
         mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
 
-        if(!mInfo->mIsPlayerRunner) {
+        if(!mInfo->mIsPlayerRunner)
             mInvulnTime = 0;
-            mModeLayout->showHiding();
-        } else {
-            mModeLayout->showSeeking();
-        }
 
         Client::sendFreezeInfPacket();
-    }
-
-    if(al::isPadHoldR(-1)) {
-        PuppetActor* pup = Client::getPuppet(0);
-        Logger::log("Pup 0 freeze: %s\n", BTOC(pup->getInfo()->isFreezeTagFreeze));
-        Logger::log("Pup 0 runner: %s\n", BTOC(pup->getInfo()->isFreezeTagRunner));
-        Logger::log("Pup 0 score: %f\n", pup->getInfo()->freezeTagScore);
     }
 
     if (al::isPadTriggerUp(-1) && al::isPadHoldX(-1))
@@ -226,6 +189,8 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
     if(newState == FreezeState::ALIVE) {
         mInfo->mIsPlayerFreeze = FreezeState::ALIVE;
         playerBase->endDemoPuppetable();
+        mInvulnTime = 0.f;
+
     } else {
         mInfo->mIsPlayerFreeze = FreezeState::FREEZE;
         playerBase->startDemoPuppetable();

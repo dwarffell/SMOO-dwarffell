@@ -31,6 +31,7 @@
 #include "layouts/HideAndSeekIcon.h"
 #include "logger.hpp"
 #include "rs/util.hpp"
+#include "server/freeze/FreezeTagMode.hpp"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
 #include "server/gamemode/GameModeManager.hpp"
@@ -123,6 +124,12 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
     
     gTextWriter->printf("Send Queue Count: %d/%d\n", Client::instance()->mSocket->getSendCount(), Client::instance()->mSocket->getSendMaxCount());
     gTextWriter->printf("Recv Queue Count: %d/%d\n", Client::instance()->mSocket->getRecvCount(), Client::instance()->mSocket->getRecvMaxCount());
+    
+    if(GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG)) {
+        FreezeTagInfo* inf = GameModeManager::instance()->getInfo<FreezeTagInfo>();
+        gTextWriter->printf("Is Runner: %s\n", BTOC(inf->mIsPlayerRunner));
+        gTextWriter->printf("Is Freeze: %s\n", BTOC(inf->mIsPlayerFreeze));
+    }
 
     al::Scene *curScene = curSequence->curScene;
 
@@ -170,6 +177,7 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
                         gTextWriter->printf("Puppet Stage: %s\n", curPupInfo->stageName);
                         gTextWriter->printf("Puppet Scenario: %u\n", curPupInfo->scenarioNo);
                         gTextWriter->printf("Puppet Costume: H: %s B: %s\n", curPupInfo->costumeHead, curPupInfo->costumeBody);
+                        gTextWriter->printf("Puppet Team/Freeze State: %s/%s\n", BTOC(curPupInfo->isFreezeTagRunner), BTOC(curPupInfo->isFreezeTagFreeze));
                         //gTextWriter->printf("Packet Coords:\nX: %f\nY: %f\nZ: %f\n", curPupInfo->playerPos.x, curPupInfo->playerPos.y, curPupInfo->playerPos.z);
                         // if (curModel) {
                         //     sead::Vector3f* pupPos = al::getTrans(curModel);
