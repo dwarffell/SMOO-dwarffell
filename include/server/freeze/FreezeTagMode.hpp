@@ -1,6 +1,7 @@
 #pragma once
 
 #include "al/camera/CameraTicket.h"
+#include "layouts/FreezeTagIcon.h"
 #include "server/freeze/FreezePlayerBlock.h"
 #include "server/freeze/FreezeTagScore.hpp"
 #include "server/gamemode/GameModeBase.hpp"
@@ -17,7 +18,7 @@ enum FreezeState {
 
 struct FreezeTagInfo : GameModeInfoBase {
     FreezeTagInfo() { mMode = GameMode::FREEZETAG; }
-    bool mIsPlayerRunner = false;
+    bool mIsPlayerRunner = true;
     FreezeState mIsPlayerFreeze = FreezeState::ALIVE;
     FreezeTagScore mPlayerTagScore;
 };
@@ -41,7 +42,7 @@ public:
 
 private:
     float mInvulnTime = 0.0f;
-    HideAndSeekIcon* mModeLayout = nullptr;
+    FreezeTagIcon* mModeLayout = nullptr;
     FreezeTagInfo* mInfo = nullptr;
     al::CameraTicket* mTicket = nullptr;
 

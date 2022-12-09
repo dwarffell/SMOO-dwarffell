@@ -13,7 +13,7 @@
 #include "game/Player/PlayerActorBase.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 #include "heap/seadHeapMgr.h"
-#include "layouts/HideAndSeekIcon.h"
+#include "layouts/FreezeTagIcon.h"
 #include "logger.hpp"
 #include "rs/util.hpp"
 #include "server/gamemode/GameModeBase.hpp"
@@ -45,8 +45,7 @@ void FreezeTagMode::init(const GameModeInitInfo& info) {
         mInfo = GameModeManager::instance()->createModeInfo<FreezeTagInfo>();
     }
 
-    mModeLayout = new HideAndSeekIcon("HideAndSeekIcon", *info.mLayoutInitInfo);
-    mModeLayout->showSeeking();
+    mModeLayout = new FreezeTagIcon("FreezeTagIcon", *info.mLayoutInitInfo);
 
     //Create main player's ice block
     mMainPlayerIceBlock = new FreezePlayerBlock("MainPlayerBlock");
@@ -59,9 +58,9 @@ void FreezeTagMode::begin() {
     mIsFirstFrame = true;
 
     if (!mInfo->mIsPlayerRunner) {
-        mModeLayout->showHiding();
+        // mModeLayout->showHiding();
     } else {
-        mModeLayout->showSeeking();
+        // mModeLayout->showSeeking();
     }
 
     CoinCounter *coinCollect = mCurScene->mSceneLayout->mCoinCollectLyt;

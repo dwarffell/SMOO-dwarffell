@@ -7,5 +7,6 @@ Crash Reports/**
 Custom Stage Builds/**
 *.lst
 *.disabled
+hudassets/
 
 compile_commands.json
