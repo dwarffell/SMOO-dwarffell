@@ -1,6 +1,7 @@
 #include "layouts/FreezeTagIcon.h"
 #include "al/string/StringTmp.h"
 #include "al/util.hpp"
+#include "al/util/MathUtil.h"
 #include "logger.hpp"
 #include "main.hpp"
 #include "math/seadVector.h"
@@ -70,12 +71,12 @@ void FreezeTagIcon::calcTeamSizes()
             mChaserPlayerCount++;
     }
 
-    if(mRunnerPlayerCount > mMaxRunners) {
+    if (mRunnerPlayerCount > mMaxRunners) {
         Logger::log("Runner player count warning!");
         mRunnerPlayerCount = mMaxRunners;
     }
 
-    if(mChaserPlayerCount > mMaxChasers) {
+    if (mChaserPlayerCount > mMaxChasers) {
         Logger::log("Chaser player count warning!");
         mChaserPlayerCount = mMaxChasers;
     }
@@ -135,14 +136,24 @@ void FreezeTagIcon::updateRunnerFreezeIcon()
     int skippedCount = 0; // When scanning through puppet list, increment this to keep the target pane correct
 
     // Spin frozen symbol
-    for (int i = 0; i < mMaxRunners; i++) {
+    for (int i = 0; i < mRunnerPlayerCount; i++) {
         char paneBuf[0x20] = { 0 };
         sead::BufferedSafeStringBase<char> paneName = sead::BufferedSafeStringBase<char>(paneBuf, 0x20);
         paneName.appendWithFormat("PicRunner%iFreeze", i);
 
-        Logger::log("Index %i Pane %s\n", i, paneName.cstr());
-
         al::setPaneLocalRotate(this, paneName.cstr(), { 0.f, 0.f, mRunnerFreezeIconAngle + (i * 13.5f) });
+
+        if (mInfo->mIsPlayerRunner && i == 0) {
+            float targetSize = mInfo->mIsPlayerFreeze ? 1.f : 0.f;
+            mInfo->mFreezeIconSize = al::lerpValue(mInfo->mFreezeIconSize, targetSize, 0.05f);
+            al::setPaneLocalScale(this, paneName.cstr(), { mInfo->mFreezeIconSize, mInfo->mFreezeIconSize });
+        } else {
+            PuppetInfo* curInfo = mInfo->mRunnerPlayers.at(i - mInfo->mIsPlayerRunner);
+
+            float targetSize = curInfo->isFreezeTagFreeze ? 1.f : 0.f;
+            curInfo->freezeIconSize = al::lerpValue(curInfo->freezeIconSize, targetSize, 0.05f);
+            al::setPaneLocalScale(this, paneName.cstr(), { curInfo->freezeIconSize, curInfo->freezeIconSize });
+        }
     }
 }
 
@@ -173,18 +184,19 @@ void FreezeTagIcon::exeWait()
 
     updateRunnerFreezeIcon();
 
-    al::setPaneStringFormat(this, "TxtDebug", "IsRunner: %s\nRunnerCount: %i\nChaserCount: %i\nMaxRunner: %i\nMaxChaser: %i\n", BTOC(mInfo->mIsPlayerRunner), mRunnerPlayerCount, mChaserPlayerCount, mMaxRunners, mMaxChasers);
+    sead::Vector2f iconSize = al::getPaneLocalScale(this, "PicRunner0Freeze");
+    al::setPaneStringFormat(this, "TxtDebug", "IsRunner: %s\nRunnerCount: %i\nChaserCount: %i\nMaxRunner: %i\nMaxChaser: %i\nIconSize: %.02f/%.02f", BTOC(mInfo->mIsPlayerRunner), mRunnerPlayerCount, mChaserPlayerCount, mMaxRunners, mMaxChasers, iconSize.x, iconSize.y);
 
-    if (mInfo->mIsPlayerFreeze)
-        al::showPane(this, "PicRunner0Freeze");
-    else
-        al::hidePane(this, "PicRunner0Freeze");
+    // if (mInfo->mIsPlayerFreeze)
+    //     al::showPane(this, "PicRunner0Freeze");
+    // else
+    //     al::hidePane(this, "PicRunner0Freeze");
 
-    PuppetInfo* testPuppet = Client::instance()->getPuppetInfo(0);
-    if (testPuppet->isFreezeTagFreeze)
-        al::showPane(this, "PicRunner1Freeze");
-    else
-        al::hidePane(this, "PicRunner1Freeze");
+    // PuppetInfo* testPuppet = Client::instance()->getPuppetInfo(0);
+    // if (testPuppet->isFreezeTagFreeze)
+    //     al::showPane(this, "PicRunner1Freeze");
+    // else
+    //     al::hidePane(this, "PicRunner1Freeze");
 
     if (playerCount > 0) {
 

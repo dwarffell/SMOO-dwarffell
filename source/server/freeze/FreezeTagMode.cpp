@@ -45,6 +45,9 @@ void FreezeTagMode::init(const GameModeInitInfo& info) {
         mInfo = GameModeManager::instance()->createModeInfo<FreezeTagInfo>();
     }
 
+    mInfo->mRunnerPlayers.allocBuffer(0x10, al::getSceneHeap());
+    mInfo->mChaserPlayers.allocBuffer(0x10, al::getSceneHeap());
+
     mModeLayout = new FreezeTagIcon("FreezeTagIcon", *info.mLayoutInitInfo);
 
     //Create main player's ice block
@@ -117,17 +120,38 @@ void FreezeTagMode::update() {
         mIsFirstFrame = false;
     }
 
-    //Main player's ice block state controller
+    //Main player's ice block state and post processing
     if(mInfo->mIsPlayerFreeze) {
-        if(!al::isAlive(mMainPlayerIceBlock))
+        if(!al::isAlive(mMainPlayerIceBlock)) {
             mMainPlayerIceBlock->appear();
+            al::validatePostProcessingFilter(mCurScene);
+            int effectIndex = al::getPostProcessingFilterPresetId(mCurScene);
+            while(effectIndex != 1) {
+                al::incrementPostProcessingFilterPreset(mCurScene);
+                effectIndex = (effectIndex + 1) % 18;
+            }
+        }
         
         //Lock block onto player
         al::setTrans(mMainPlayerIceBlock, al::getTrans(playerBase));
 
     } else {
-        if(al::isAlive(mMainPlayerIceBlock) && !al::isNerve(mMainPlayerIceBlock, &nrvFreezePlayerBlockDisappear))
+        if(al::isAlive(mMainPlayerIceBlock) && !al::isNerve(mMainPlayerIceBlock, &nrvFreezePlayerBlockDisappear)) {
             mMainPlayerIceBlock->end();
+            al::invalidatePostProcessingFilter(mCurScene);
+        }
+    }
+
+    //Create list of runner and chaser player indexs
+    mInfo->mRunnerPlayers.clear();
+    mInfo->mChaserPlayers.clear();
+
+    for(int i = 0; i < mPuppetHolder->getSize(); i++) {
+        PuppetInfo *curInfo = Client::getPuppetInfo(i);
+        if(curInfo->isFreezeTagRunner)
+            mInfo->mRunnerPlayers.pushBack(curInfo);
+        else
+            mInfo->mChaserPlayers.pushBack(curInfo);
     }
 
     // Runner team frame checks

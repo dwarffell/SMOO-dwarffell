@@ -51,4 +51,5 @@ struct PuppetInfo {
     float freezeTagScore = 0.f;
     bool isFreezeTagRunner = true;
     bool isFreezeTagFreeze = false;
+    float freezeIconSize = 0.f;
 };

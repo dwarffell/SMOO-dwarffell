@@ -68,7 +68,7 @@ B59E28 B seadPrintHook // sead::system::print
     MOV X0, #0
     RET
 
-// Remap Snapshot to !L + Down
+// Remap Snapshot to !L + Down, disables snapshot mode in freeze tag
 577014 B comboBtnHook
 
 // Capture Syncing

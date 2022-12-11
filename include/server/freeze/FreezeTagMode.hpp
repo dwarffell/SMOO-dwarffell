@@ -1,6 +1,8 @@
 #pragma once
 
 #include "al/camera/CameraTicket.h"
+#include "container/seadPtrArray.h"
+#include "container/seadSafeArray.h"
 #include "layouts/FreezeTagIcon.h"
 #include "server/freeze/FreezePlayerBlock.h"
 #include "server/freeze/FreezeTagScore.hpp"
@@ -19,8 +21,12 @@ enum FreezeState {
 struct FreezeTagInfo : GameModeInfoBase {
     FreezeTagInfo() { mMode = GameMode::FREEZETAG; }
     bool mIsPlayerRunner = true;
+    float mFreezeIconSize = 0.f;
     FreezeState mIsPlayerFreeze = FreezeState::ALIVE;
     FreezeTagScore mPlayerTagScore;
+
+    sead::PtrArray<PuppetInfo> mRunnerPlayers;
+    sead::PtrArray<PuppetInfo> mChaserPlayers;
 };
 
 class FreezeTagMode : public GameModeBase {
@@ -44,7 +50,8 @@ private:
     float mInvulnTime = 0.0f;
     FreezeTagIcon* mModeLayout = nullptr;
     FreezeTagInfo* mInfo = nullptr;
-    al::CameraTicket* mTicket = nullptr;
 
+    al::CameraTicket* mTicket = nullptr;
+    
     FreezePlayerBlock* mMainPlayerIceBlock;
 };

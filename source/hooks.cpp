@@ -26,6 +26,9 @@
 #include "server/hns/HideAndSeekMode.hpp"
 
 bool comboBtnHook(int port) {
+    if(GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return false;
+
     if (GameModeManager::instance()->isActive()) { // only switch to combo if any gamemode is active
         return !al::isPadHoldL(port) && al::isPadTriggerDown(port);
     } else {
