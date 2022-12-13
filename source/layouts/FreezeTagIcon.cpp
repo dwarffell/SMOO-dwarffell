@@ -29,6 +29,13 @@ FreezeTagIcon::FreezeTagIcon(const char* name, const al::LayoutInitInfo& initInf
         mRunnerSlots.pushBack(newSlot);
     }
 
+    mChaserSlots.tryAllocBuffer(mMaxChasers, al::getSceneHeap());
+    for (int i = 0; i < mMaxChasers; i++) {
+        FreezeTagChaserSlot* newSlot = new (al::getSceneHeap()) FreezeTagChaserSlot("ChaserSlot", initInfo);
+        newSlot->init(i);
+        mChaserSlots.pushBack(newSlot);
+    }
+
     initNerve(&nrvFreezeTagIconEnd, 0);
     kill();
 }
@@ -41,6 +48,9 @@ void FreezeTagIcon::appear()
     for (int i = 0; i < mMaxRunners; i++)
         mRunnerSlots.at(i)->tryStart();
 
+    for (int i = 0; i < mMaxChasers; i++)
+        mChaserSlots.at(i)->tryStart();
+
     al::LayoutActor::appear();
 }
 
@@ -50,6 +60,9 @@ bool FreezeTagIcon::tryEnd()
         al::setNerve(this, &nrvFreezeTagIconEnd);
         for (int i = 0; i < mMaxRunners; i++)
             mRunnerSlots.at(i)->tryEnd();
+
+        for (int i = 0; i < mMaxChasers; i++)
+            mChaserSlots.at(i)->tryEnd();
 
         return true;
     }

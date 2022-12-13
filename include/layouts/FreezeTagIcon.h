@@ -5,6 +5,7 @@
 #include "al/util/NerveUtil.h"
 
 #include "layouts/FreezeTagRunnerSlot.h"
+#include "layouts/FreezeTagChaserSlot.h"
 
 #include "container/seadPtrArray.h"
 #include "logger.hpp"
@@ -28,9 +29,10 @@ private:
     struct FreezeTagInfo* mInfo;
 
     sead::PtrArray<FreezeTagRunnerSlot> mRunnerSlots;
+    sead::PtrArray<FreezeTagChaserSlot> mChaserSlots;
 
-    const int mMaxRunners = 9;
-    const int mMaxChasers = 1;
+    const int mMaxRunners = 5;
+    const int mMaxChasers = 2;
 
     bool mIsRunner = true;
     bool mIsOverlayShowing = false;
