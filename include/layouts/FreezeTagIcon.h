@@ -4,6 +4,9 @@
 #include "al/layout/LayoutInitInfo.h"
 #include "al/util/NerveUtil.h"
 
+#include "layouts/FreezeTagRunnerSlot.h"
+
+#include "container/seadPtrArray.h"
 #include "logger.hpp"
 
 // TODO: kill layout if going through loading zone or paused
@@ -17,10 +20,6 @@ public:
     bool tryStart();
     bool tryEnd();
 
-    void calcTeamSizes();
-    void updatePlayerNames();
-    void updateRunnerFreezeIcon();
-
     void exeAppear();
     void exeWait();
     void exeEnd();
@@ -28,14 +27,16 @@ public:
 private:
     struct FreezeTagInfo* mInfo;
 
-    const int mMaxRunners = 2;
+    sead::PtrArray<FreezeTagRunnerSlot> mRunnerSlots;
+
+    const int mMaxRunners = 9;
     const int mMaxChasers = 1;
-    int mRunnerPlayerCount = -1;
-    int mChaserPlayerCount = -1;
 
     bool mIsRunner = true;
+    bool mIsOverlayShowing = false;
 
     float mRunnerFreezeIconAngle = 0.f;
+    float mFreezeOverlayHeight = 415.f;
 };
 
 namespace {

@@ -48,7 +48,11 @@ void FreezeTagMode::init(const GameModeInitInfo& info) {
     mInfo->mRunnerPlayers.allocBuffer(0x10, al::getSceneHeap());
     mInfo->mChaserPlayers.allocBuffer(0x10, al::getSceneHeap());
 
+    Logger::log("Scene Heap Free Size: %f/%f\n", al::getSceneHeap()->getFreeSize() * 0.001f, al::getSceneHeap()->getSize() * 0.001f);
+
     mModeLayout = new FreezeTagIcon("FreezeTagIcon", *info.mLayoutInitInfo);
+    
+    Logger::log("Scene Heap Free Size: %f/%f\n", al::getSceneHeap()->getFreeSize() * 0.001f, al::getSceneHeap()->getSize() * 0.001f);
 
     //Create main player's ice block
     mMainPlayerIceBlock = new FreezePlayerBlock("MainPlayerBlock");
@@ -70,6 +74,7 @@ void FreezeTagMode::begin() {
     CoinCounter* coinCounter = mCurScene->mSceneLayout->mCoinCountLyt;
     MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
     al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
+    CounterLifeCtrl *lifeCtrl = mCurScene->mSceneLayout->mHealthLyt;
 
     mInvulnTime = 0.f;
 
@@ -81,6 +86,8 @@ void FreezeTagMode::begin() {
         compass->end();
     if (playGuideLyt->mIsAlive)
         playGuideLyt->end();
+    if (lifeCtrl->mIsAlive)
+        lifeCtrl->kill();
 
     //Update other players on your freeze tag state when starting
     Client::sendFreezeInfPacket();
@@ -96,6 +103,7 @@ void FreezeTagMode::end() {
     CoinCounter* coinCounter = mCurScene->mSceneLayout->mCoinCountLyt;
     MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
     al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
+    CounterLifeCtrl *lifeCtrl = mCurScene->mSceneLayout->mHealthLyt;
 
     mInvulnTime = 0.f;
 
@@ -107,6 +115,8 @@ void FreezeTagMode::end() {
         compass->appearSlideIn();
     if (!playGuideLyt->mIsAlive)
         playGuideLyt->appear();
+    if (lifeCtrl->mIsAlive)
+        lifeCtrl->appear();
 
     GameModeBase::end();
 }
@@ -148,6 +158,9 @@ void FreezeTagMode::update() {
 
     for(int i = 0; i < mPuppetHolder->getSize(); i++) {
         PuppetInfo *curInfo = Client::getPuppetInfo(i);
+        if(!curInfo->isConnected)
+            continue;
+            
         if(curInfo->isFreezeTagRunner)
             mInfo->mRunnerPlayers.pushBack(curInfo);
         else
