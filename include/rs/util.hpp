@@ -42,6 +42,8 @@ namespace rs {
 
     void get2DAreaPos(sead::Vector3<f32> *, al::AreaObj const *);
 
+    bool isInvalidChangeStage(al::LiveActor const*);
+
     bool isInChangeStageArea(PlayerActorHakoniwa const*, sead::Vector3f const *);
 
     bool isPlayerOnGround(const al::LiveActor *);

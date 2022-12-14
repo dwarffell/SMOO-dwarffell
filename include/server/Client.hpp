@@ -131,6 +131,8 @@ class Client {
 
         static PuppetActor* getDebugPuppet();
 
+        static const StageScene* getCurrentScene() { return sInstance->mCurStageScene; }
+
         static sead::Heap *getClientHeap() { return sInstance ? sInstance->mHeap : nullptr; }
 
         static int getMaxPlayerCount() { return sInstance ? sInstance->maxPuppets + 1 : 10;}
