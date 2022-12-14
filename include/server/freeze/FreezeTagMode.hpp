@@ -3,6 +3,7 @@
 #include "al/camera/CameraTicket.h"
 #include "container/seadPtrArray.h"
 #include "container/seadSafeArray.h"
+#include "game/Player/PlayerActorBase.h"
 #include "layouts/FreezeTagIcon.h"
 #include "server/freeze/FreezePlayerBlock.h"
 #include "server/freeze/FreezeTagScore.hpp"
@@ -39,6 +40,8 @@ public:
     virtual void update() override;
     virtual void end() override;
 
+    void updateSpectateCam(PlayerActorBase* playerBase);
+
     bool isPlayerRunner() const { return mInfo->mIsPlayerRunner; };
     bool isPlayerFreeze() const { return mInfo->mIsPlayerFreeze; };
 
@@ -52,6 +55,8 @@ private:
     FreezeTagInfo* mInfo = nullptr;
 
     al::CameraTicket* mTicket = nullptr;
+    int mPrevSpectateIndex = -2;
+    int mSpectateIndex = -1;
     
     FreezePlayerBlock* mMainPlayerIceBlock;
 };

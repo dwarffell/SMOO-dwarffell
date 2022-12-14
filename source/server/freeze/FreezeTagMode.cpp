@@ -3,9 +3,11 @@
 #include "actors/PuppetActor.h"
 #include "al/async/FunctorV0M.hpp"
 #include "al/util.hpp"
+#include "al/util/CameraUtil.h"
 #include "al/util/ControllerUtil.h"
 #include "al/util/LiveActorUtil.h"
 #include "al/util/NerveUtil.h"
+#include "cameras/CameraPoserActorSpectate.h"
 #include "game/GameData/GameDataHolderAccessor.h"
 #include "game/Layouts/CoinCounter.h"
 #include "game/Layouts/MapMini.h"
@@ -22,6 +24,7 @@
 #include <heap/seadHeap.h>
 #include "server/gamemode/GameModeManager.hpp"
 #include "server/gamemode/GameModeFactory.hpp"
+#include "rs/util/InputUtil.h"
 
 #include "basis/seadNew.h"
 #include "server/freeze/FreezeTagConfigMenu.hpp"
@@ -193,15 +196,15 @@ void FreezeTagMode::update() {
         }
     }
 
-    if (al::isPadTriggerRight(-1) && !al::isPadHoldZL(-1) && !al::isPadHoldX(-1) && !al::isPadHoldY(-1)) {
+    //Change teams
+    if (al::isPadTriggerRight(-1) && !al::isPadHoldZL(-1) && !al::isPadHoldX(-1) && !al::isPadHoldY(-1) && !mInfo->mIsPlayerFreeze) {
         mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
-
-        if(!mInfo->mIsPlayerRunner)
-            mInvulnTime = 0;
+        mInvulnTime = 0.f;
 
         Client::sendFreezeInfPacket();
     }
 
+    //Debug freeze buttons
     if (al::isPadTriggerUp(-1) && al::isPadHoldX(-1))
         trySetPlayerRunnerState(FreezeState::ALIVE);
     if (al::isPadTriggerUp(-1) && al::isPadHoldY(-1))
@@ -209,6 +212,15 @@ void FreezeTagMode::update() {
     if (al::isPadTriggerUp(-1) && al::isPadHoldA(-1)) {
         mInfo->mPlayerTagScore.eventScoreDebug();
     }
+
+    //Spectate camera
+    if(mTicket->mIsActive && mInfo->mIsPlayerFreeze)
+        updateSpectateCam(playerBase);
+    
+    if(!mTicket->mIsActive && mInfo->mIsPlayerFreeze)
+        al::startCamera(mCurScene, mTicket, -1);
+    if(mTicket->mIsActive && !mInfo->mIsPlayerFreeze)
+        al::endCamera(mCurScene, mTicket, 0, false);
 }
 
 bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
@@ -221,23 +233,88 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
     
     PlayerActorHakoniwa* player = (PlayerActorHakoniwa*)playerBase;
     HackCap* hackCap = player->mHackCap;
+
+    mInvulnTime = 0.f;
     
     if(newState == FreezeState::ALIVE) {
         mInfo->mIsPlayerFreeze = FreezeState::ALIVE;
         playerBase->endDemoPuppetable();
-        mInvulnTime = 0.f;
-
     } else {
         mInfo->mIsPlayerFreeze = FreezeState::FREEZE;
         playerBase->startDemoPuppetable();
-        
         player->mPlayerAnimator->endSubAnim();
         player->mPlayerAnimator->startAnim("DeadIce");
-        
+
         hackCap->forcePutOn();
+
+        mSpectateIndex = -1;
     }
 
     Client::sendFreezeInfPacket();
 
     return true;
+}
+
+void FreezeTagMode::updateSpectateCam(PlayerActorBase* playerBase)
+{
+    //If the specate camera ticket is active, get the camera poser
+    al::CameraPoser* curPoser;
+    al::CameraDirector* director = mCurScene->getCameraDirector();
+
+    if (director) {
+        al::CameraPoseUpdater* updater = director->getPoseUpdater(0);
+        if (updater && updater->mTicket) {
+            curPoser = updater->mTicket->mPoser;
+        }
+    }
+    
+    //Verify 100% that this poser is the actor spectator
+    if (al::isEqualString(curPoser->getName(), "CameraPoserActorSpectate")) {
+        cc::CameraPoserActorSpectate* spectatePoser = (cc::CameraPoserActorSpectate*)curPoser;
+        spectatePoser->setPlayer(playerBase);
+
+        //Increase or decrease spectate index, followed by clamping it
+        int indexDirection = 0;
+        if(al::isPadTriggerRight(-1)) indexDirection = 1; //Move index right
+        if(al::isPadTriggerLeft(-1)) indexDirection = -1; //Move index left
+
+        //Force index to increase if your current target changes stages
+        if(mSpectateIndex != -1)
+            if(!mInfo->mRunnerPlayers.at(mSpectateIndex)->isInSameStage)
+                indexDirection = 1; //Move index right
+
+        //Loop over indexs until you find a sutible one in the same stage
+        bool isFinalIndex = false;
+        while(!isFinalIndex) {
+            mSpectateIndex += indexDirection;
+
+            // Start by clamping the index
+            if(mSpectateIndex < -1) mSpectateIndex = mInfo->mRunnerPlayers.size() - 1;
+            if(mSpectateIndex >= mInfo->mRunnerPlayers.size()) mSpectateIndex = -1;
+
+            // If not in same stage, skip
+            if(mSpectateIndex != -1) {
+                if(mInfo->mRunnerPlayers.at(mSpectateIndex)->isInSameStage)
+                    isFinalIndex = true;
+            } else {
+                isFinalIndex = true;
+            }
+
+        }
+        
+        //If no index change is happening, end here
+        if(mPrevSpectateIndex == mSpectateIndex)
+            return;
+
+        //Apply index to target actor and HUD
+        if(mSpectateIndex == -1) {
+            spectatePoser->setTargetActor(al::getTransPtr(playerBase));
+            mModeLayout->setSpectateString("Spectate");
+        } else {
+            spectatePoser->setTargetActor(&mInfo->mRunnerPlayers.at(mSpectateIndex)->playerPos);
+            mModeLayout->setSpectateString(mInfo->mRunnerPlayers.at(mSpectateIndex)->puppetName);
+        }
+
+        mPrevSpectateIndex = mSpectateIndex;
+    }
 }

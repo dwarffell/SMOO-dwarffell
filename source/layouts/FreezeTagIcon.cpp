@@ -92,11 +92,30 @@ void FreezeTagIcon::exeWait()
         al::startAction(this, "Wait", 0);
     }
 
+    // Set all overlay positons
+    setFreezeOverlayHeight();
+    setSpectateOverlayHeight();
+
+    // Spectate UI
+    if (mInfo->mIsPlayerFreeze && mSpectateName)
+        al::setPaneStringFormat(this, "TxtSpectateTarget", "%s", mSpectateName);
+}
+
+void FreezeTagIcon::setFreezeOverlayHeight()
+{
     // Show or hide the frozen UI overlay
     float targetHeight = mInfo->mIsPlayerFreeze ? 360.f : 415.f;
     mFreezeOverlayHeight = al::lerpValue(mFreezeOverlayHeight, targetHeight, 0.08f);
     al::setPaneLocalTrans(this, "PicFreezeOverlayTop", { 0.f, mFreezeOverlayHeight, 0.f });
     al::setPaneLocalTrans(this, "PicFreezeOverlayBot", { 0.f, -mFreezeOverlayHeight, 0.f });
+}
+
+void FreezeTagIcon::setSpectateOverlayHeight()
+{
+    // Show or hide the spectator UI
+    float targetHeight = mInfo->mIsPlayerFreeze && mInfo->mRunnerPlayers.size() > 0 ? -250.f : -400.f;
+    mSpectateOverlayHeight = al::lerpValue(mSpectateOverlayHeight, targetHeight, 0.04f);
+    al::setPaneLocalTrans(this, "Spectate", { 0.f, mSpectateOverlayHeight, 0.f });
 }
 
 void FreezeTagIcon::exeEnd()

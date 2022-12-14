@@ -4,8 +4,8 @@
 #include "al/layout/LayoutInitInfo.h"
 #include "al/util/NerveUtil.h"
 
-#include "layouts/FreezeTagRunnerSlot.h"
 #include "layouts/FreezeTagChaserSlot.h"
+#include "layouts/FreezeTagRunnerSlot.h"
 
 #include "container/seadPtrArray.h"
 #include "logger.hpp"
@@ -17,6 +17,10 @@ public:
     FreezeTagIcon(const char* name, const al::LayoutInitInfo& initInfo);
 
     void appear() override;
+
+    void setSpectateString(const char* spec) { mSpectateName = spec; }
+    void setFreezeOverlayHeight();
+    void setSpectateOverlayHeight();
 
     bool tryStart();
     bool tryEnd();
@@ -36,9 +40,11 @@ private:
 
     bool mIsRunner = true;
     bool mIsOverlayShowing = false;
+    const char* mSpectateName;
 
     float mRunnerFreezeIconAngle = 0.f;
     float mFreezeOverlayHeight = 415.f;
+    float mSpectateOverlayHeight = -400.f;
 };
 
 namespace {

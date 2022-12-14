@@ -23,6 +23,7 @@
 #include "math/seadVector.h"
 #include "rs/util/InputUtil.h"
 #include "sead/prim/seadSafeString.h"
+#include "server/freeze/FreezeTagMode.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
 
 bool comboBtnHook(int port) {
@@ -153,6 +154,20 @@ al::PlayerHolder* createTicketHook(StageScene* curScene) {
                 HideAndSeekMode* mode = GameModeManager::instance()->getMode<HideAndSeekMode>();
 
                 mode->setCameraTicket(gravityCamera);
+            }
+        }
+    }
+
+    if (GameModeManager::instance()->isMode(GameMode::FREEZETAG)) {
+        al::CameraDirector* director = curScene->getCameraDirector();
+        if (director) {
+            if (director->mFactory) {
+                al::CameraTicket* spectateCamera = director->createCameraFromFactory(
+                    "CameraPoserActorSpectate", nullptr, 0, 5, sead::Matrix34f::ident);
+
+                FreezeTagMode* mode = GameModeManager::instance()->getMode<FreezeTagMode>();
+
+                mode->setCameraTicket(spectateCamera);
             }
         }
     }
