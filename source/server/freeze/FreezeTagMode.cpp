@@ -259,6 +259,15 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
     return true;
 }
 
+bool FreezeTagMode::tryStartRecoveryEvent(bool isMakeFrozen, bool isSubtractScore)
+{
+    //Temp code for now, will start a whole cinematic thingy, will likely need to grab sequence's WipeHolder
+    PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
+    al::setTransY(playerBase, al::getTrans(playerBase).y + 1000.f);
+
+    return true;
+}
+
 void FreezeTagMode::updateSpectateCam(PlayerActorBase* playerBase)
 {
     //If the specate camera ticket is active, get the camera poser
@@ -282,10 +291,14 @@ void FreezeTagMode::updateSpectateCam(PlayerActorBase* playerBase)
         if(al::isPadTriggerRight(-1)) indexDirection = 1; //Move index right
         if(al::isPadTriggerLeft(-1)) indexDirection = -1; //Move index left
 
-        //Force index to increase if your current target changes stages
+        //Force index to decrease if your current target changes stages
         if(mSpectateIndex != -1)
             if(!mInfo->mRunnerPlayers.at(mSpectateIndex)->isInSameStage)
-                indexDirection = 1; //Move index right
+                indexDirection = -1; //Move index left
+        
+        //Force index to decrease if your current index is higher than runner player count
+        if(mSpectateIndex >= mInfo->mRunnerPlayers.size())
+            indexDirection = -1;
 
         //Loop over indexs until you find a sutible one in the same stage
         bool isFinalIndex = false;

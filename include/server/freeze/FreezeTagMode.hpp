@@ -40,13 +40,13 @@ public:
     virtual void update() override;
     virtual void end() override;
 
-    void updateSpectateCam(PlayerActorBase* playerBase);
-
     bool isPlayerRunner() const { return mInfo->mIsPlayerRunner; };
     bool isPlayerFreeze() const { return mInfo->mIsPlayerFreeze; };
 
     bool trySetPlayerRunnerState(FreezeState state);
+    bool tryStartRecoveryEvent(bool isMakeFrozen, bool isSubtractScore);
 
+    void updateSpectateCam(PlayerActorBase* playerBase);
     void setCameraTicket(al::CameraTicket* ticket) { mTicket = ticket; }
 
 private:

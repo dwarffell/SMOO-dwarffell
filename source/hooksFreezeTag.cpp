@@ -3,7 +3,9 @@
 #include "al/util/SensorUtil.h"
 #include "game/Player/PlayerActorBase.h"
 #include "game/Player/PlayerActorHakoniwa.h"
+
 #include "server/Client.hpp"
+#include "server/freeze/FreezeTagMode.hpp"
 #include "server/gamemode/GameModeManager.hpp"
 
 #include "al/nerve/Nerve.h"
@@ -25,21 +27,36 @@ bool freezeDisableMsgDisregard(al::SensorMsg const* msg)
     return al::isMsgPlayerDisregard(msg);
 }
 
-bool freezeDisableLoadZone(al::LiveActor const* actor)
+bool freezeDeathArea(al::LiveActor const* player)
 {
-    if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG)) {
-        PlayerActorBase* playerBase = rs::getPlayerActor(Client::instance()->getCurrentScene());
-        bool isYukimaru = !playerBase->getPlayerInfo();
-        bool isPlayerInArea = al::isInAreaObj(playerBase, "ChangeStageArea");
-
-        if (!isYukimaru && actor == playerBase && isPlayerInArea) {
-            Logger::log("Attempting player recovery from load zone\n");
-            PlayerActorHakoniwa* player = (PlayerActorHakoniwa*)playerBase;
-            // player->mPlayerRecoverySafetyPoint->noticeDangerousPoint(al::getTrans(player), false);
-        }
-
-        return true;
+    //If player isn't actively playing freeze tag, perform normal functionality
+    if (!GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return al::isInDeathArea(player);
+    
+    //If player is in a death area but in Freeze Tag mode, start a recovery event
+    if(al::isInAreaObj(player, "DeathArea")) {
+        FreezeTagMode* mode = GameModeManager::instance()->getMode<FreezeTagMode>();
+        mode->tryStartRecoveryEvent(false, false);
     }
 
-    return rs::isInvalidChangeStage(actor);
+    return false;
 }
+
+// bool freezeDisableLoadZone(al::LiveActor const* actor)
+// {
+//     if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG)) {
+//         PlayerActorBase* playerBase = rs::getPlayerActor(Client::instance()->getCurrentScene());
+//         bool isYukimaru = !playerBase->getPlayerInfo();
+//         bool isPlayerInArea = al::isInAreaObj(playerBase, "ChangeStageArea");
+
+//         if (!isYukimaru && actor == playerBase && isPlayerInArea) {
+//             Logger::log("Attempting player recovery from load zone\n");
+//             PlayerActorHakoniwa* player = (PlayerActorHakoniwa*)playerBase;
+//             // player->mPlayerRecoverySafetyPoint->noticeDangerousPoint(al::getTrans(player), false);
+//         }
+
+//         return true;
+//     }
+
+//     return rs::isInvalidChangeStage(actor);
+// }
