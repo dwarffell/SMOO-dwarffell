@@ -24,6 +24,7 @@ public:
 
     void setFreezeAngle();
     void setSlotName(const char* name) { al::setPaneStringFormat(this, "TxtRunnerName", "%s", name); };
+    void setSlotScore(int score) { al::setPaneStringFormat(this, "TxtRunnerScore", "%04i", score); };
 
     void exeAppear();
     void exeWait();

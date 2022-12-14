@@ -170,6 +170,10 @@ void FreezeTagMode::update() {
             mInfo->mChaserPlayers.pushBack(curInfo);
     }
 
+    //Verify you are never frozen on chaser team
+    if(!mInfo->mIsPlayerRunner && mInfo->mIsPlayerFreeze)
+        trySetPlayerRunnerState(FreezeState::ALIVE);
+
     // Runner team frame checks
     if (mInfo->mIsPlayerRunner) {
         if (mInvulnTime >= 3 && !isYukimaru) {
@@ -205,9 +209,9 @@ void FreezeTagMode::update() {
     }
 
     //Debug freeze buttons
-    if (al::isPadTriggerUp(-1) && al::isPadHoldX(-1))
+    if (al::isPadTriggerUp(-1) && al::isPadHoldX(-1) && mInfo->mIsPlayerRunner)
         trySetPlayerRunnerState(FreezeState::ALIVE);
-    if (al::isPadTriggerUp(-1) && al::isPadHoldY(-1))
+    if (al::isPadTriggerUp(-1) && al::isPadHoldY(-1) && mInfo->mIsPlayerRunner)
         trySetPlayerRunnerState(FreezeState::FREEZE);
     if (al::isPadTriggerUp(-1) && al::isPadHoldA(-1)) {
         mInfo->mPlayerTagScore.eventScoreDebug();

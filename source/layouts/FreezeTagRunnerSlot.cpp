@@ -96,11 +96,13 @@ void FreezeTagRunnerSlot::exeWait()
     // Update name info in this slot
     if (mIsPlayer) {
         setSlotName(Client::instance()->getClientName());
+        setSlotScore(mInfo->mPlayerTagScore.mScore);
     } else {
         if (mRunnerIndex >= mInfo->mRunnerPlayers.size() + mInfo->mIsPlayerRunner)
             return;
 
         setSlotName(mInfo->mRunnerPlayers.at(mRunnerIndex - mInfo->mIsPlayerRunner)->puppetName);
+        setSlotScore(mInfo->mRunnerPlayers.at(mRunnerIndex - mInfo->mIsPlayerRunner)->freezeTagScore);
     }
 }
 
