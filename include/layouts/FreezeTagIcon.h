@@ -35,8 +35,8 @@ private:
     sead::PtrArray<FreezeTagRunnerSlot> mRunnerSlots;
     sead::PtrArray<FreezeTagChaserSlot> mChaserSlots;
 
-    const int mMaxRunners = 5;
-    const int mMaxChasers = 2;
+    const int mMaxRunners = 3;
+    const int mMaxChasers = 1;
 
     bool mIsRunner = true;
     bool mIsOverlayShowing = false;

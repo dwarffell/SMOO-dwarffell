@@ -80,6 +80,8 @@ void FreezeTagMode::begin() {
     CounterLifeCtrl *lifeCtrl = mCurScene->mSceneLayout->mHealthLyt;
 
     mInvulnTime = 0.f;
+    mSpectateIndex = -1;
+    mPrevSpectateIndex = -2;
 
     if(coinCounter->mIsAlive)
         coinCounter->tryEnd();
@@ -120,6 +122,19 @@ void FreezeTagMode::end() {
         playGuideLyt->appear();
     if (lifeCtrl->mIsAlive)
         lifeCtrl->appear();
+    
+    if(!GameModeManager::instance()->isPaused()) {
+        if(mInfo->mIsPlayerFreeze)
+            trySetPlayerRunnerState(FreezeState::ALIVE);
+        
+        if(mTicket->mIsActive)
+            al::endCamera(mCurScene, mTicket, 0, false);
+        
+        if(al::isAlive(mMainPlayerIceBlock) && !al::isNerve(mMainPlayerIceBlock, &nrvFreezePlayerBlockDisappear)) {
+            mMainPlayerIceBlock->end();
+            al::invalidatePostProcessingFilter(mCurScene);
+        }
+    }
 
     GameModeBase::end();
 }

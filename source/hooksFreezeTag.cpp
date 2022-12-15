@@ -4,6 +4,7 @@
 #include "game/Player/PlayerActorBase.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 
+#include "rs/util/InputUtil.h"
 #include "server/Client.hpp"
 #include "server/freeze/FreezeTagMode.hpp"
 #include "server/gamemode/GameModeManager.hpp"
@@ -25,6 +26,14 @@ bool freezeDisableMsgDisregard(al::SensorMsg const* msg)
         return true;
 
     return al::isMsgPlayerDisregard(msg);
+}
+
+bool freezeDisableBazooka(IUsePlayerHack *param_1)
+{
+    if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return false;
+
+    return rs::isHoldHackJump(param_1);
 }
 
 bool freezeDisableLoadZone(al::LiveActor const* actor)
