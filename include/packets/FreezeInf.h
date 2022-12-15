@@ -8,5 +8,5 @@ struct PACKED FreezeInf : Packet {
     TagUpdateType updateType;
     bool1 isRunner = false;
     bool1 isFreeze = false;
-    int score;
+    uint16_t score;
 };

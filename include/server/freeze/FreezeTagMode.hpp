@@ -4,7 +4,9 @@
 #include "container/seadPtrArray.h"
 #include "container/seadSafeArray.h"
 #include "game/Player/PlayerActorBase.h"
+#include "game/StageScene/StageScene.h"
 #include "layouts/FreezeTagIcon.h"
+#include "math/seadVector.h"
 #include "server/freeze/FreezePlayerBlock.h"
 #include "server/freeze/FreezeTagScore.hpp"
 #include "server/gamemode/GameModeBase.hpp"
@@ -43,20 +45,30 @@ public:
     bool isPlayerRunner() const { return mInfo->mIsPlayerRunner; };
     bool isPlayerFreeze() const { return mInfo->mIsPlayerFreeze; };
 
+    void setWipeHolder(al::WipeHolder* wipe) { mWipeHolder = wipe; };
+    bool tryStartRecoveryEvent(bool isMakeFrozen, bool isResetScore);
+    bool tryEndRecoveryEvent();
+
     bool trySetPlayerRunnerState(FreezeState state);
-    bool tryStartRecoveryEvent(bool isMakeFrozen, bool isSubtractScore);
 
     void updateSpectateCam(PlayerActorBase* playerBase);
     void setCameraTicket(al::CameraTicket* ticket) { mTicket = ticket; }
 
 private:
-    float mInvulnTime = 0.0f;
+    // Recovery event info
+    int mRecoveryEventFrames = 0;
+    const int mRecoveryEventLength = 60; // Length of recovery event in frames
+    sead::Vector3f mRecoverySafetyPoint = sead::Vector3f::zero;
+
     FreezeTagIcon* mModeLayout = nullptr;
     FreezeTagInfo* mInfo = nullptr;
+    FreezePlayerBlock* mMainPlayerIceBlock = nullptr;
+    al::WipeHolder* mWipeHolder = nullptr; // Pointer set by setWipeHolder on first step of hakoniwaSequence hook
 
+    float mInvulnTime = 0.0f;
+
+    // Spectate camera ticket and target information
     al::CameraTicket* mTicket = nullptr;
     int mPrevSpectateIndex = -2;
     int mSpectateIndex = -1;
-    
-    FreezePlayerBlock* mMainPlayerIceBlock;
 };

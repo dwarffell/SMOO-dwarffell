@@ -439,6 +439,9 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
         }
     }
 
+    if(isFirstStep && GameModeManager::instance()->isMode(GameMode::FREEZETAG))
+        GameModeManager::instance()->getMode<FreezeTagMode>()->setWipeHolder(sequence->mWipeHolder);
+
     return isFirstStep;
 
 }

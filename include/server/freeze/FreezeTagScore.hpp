@@ -1,10 +1,11 @@
 #pragma once
 
+#include <stdint.h>
 #include "server/Client.hpp"
 
 struct FreezeTagScore {
     // Score info
-    int mScore = 0;
+    uint16_t mScore = 0;
 
     /* Functions */
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include "algorithms/PlayerAnims.h"
 #include "packets/Packet.h"
 
@@ -48,7 +49,7 @@ struct PuppetInfo {
     u8 seconds = 0;
     u16 minutes = 0;
     // Freeze Tag Gamemode Info
-    int freezeTagScore = 0;
+    uint16_t freezeTagScore = 0;
     bool isFreezeTagRunner = true;
     bool isFreezeTagFreeze = false;
     float freezeIconSize = 0.f;

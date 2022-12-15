@@ -201,11 +201,18 @@ void FreezeTagMode::update() {
     }
 
     //Change teams
-    if (al::isPadTriggerRight(-1) && !al::isPadHoldZL(-1) && !al::isPadHoldX(-1) && !al::isPadHoldY(-1) && !mInfo->mIsPlayerFreeze) {
+    if (al::isPadTriggerRight(-1) && !al::isPadHoldZL(-1) && !al::isPadHoldX(-1) && !al::isPadHoldY(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0) {
         mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
         mInvulnTime = 0.f;
 
         Client::sendFreezeInfPacket();
+    }
+
+    //Update recovery event timer
+    if(mRecoveryEventFrames > 0) {
+        mRecoveryEventFrames--;
+        if(mRecoveryEventFrames == 0)
+            tryEndRecoveryEvent();
     }
 
     //Debug freeze buttons
@@ -232,7 +239,7 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
     PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
     bool isYukimaru = !playerBase->getPlayerInfo();
 
-    if(mInfo->mIsPlayerFreeze == newState || isYukimaru)
+    if(mInfo->mIsPlayerFreeze == newState || isYukimaru || !mInfo->mIsPlayerRunner)
         return false;
     
     PlayerActorHakoniwa* player = (PlayerActorHakoniwa*)playerBase;
@@ -259,11 +266,38 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
     return true;
 }
 
-bool FreezeTagMode::tryStartRecoveryEvent(bool isMakeFrozen, bool isSubtractScore)
+bool FreezeTagMode::tryStartRecoveryEvent(bool isMakeFrozen, bool isResetScore)
 {
-    //Temp code for now, will start a whole cinematic thingy, will likely need to grab sequence's WipeHolder
     PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
-    al::setTransY(playerBase, al::getTrans(playerBase).y + 1000.f);
+    bool isYukimaru = !playerBase->getPlayerInfo();
+
+    if(mRecoveryEventFrames > 0 || !mWipeHolder || isYukimaru)
+        return false; //Something isn't applicable here, return fail
+    
+    Logger::log("Starting recovery event\n");
+    
+    PlayerActorHakoniwa* player = (PlayerActorHakoniwa*)playerBase;
+    
+    mRecoveryEventFrames = mRecoveryEventLength / 2;
+    mWipeHolder->startClose("FadeBlack", mRecoveryEventLength / 4);
+
+    Logger::log("Fade started\n");
+
+    mRecoverySafetyPoint = player->mPlayerRecoverySafetyPoint->mSafetyPointPos;
+
+    return true;
+}
+
+bool FreezeTagMode::tryEndRecoveryEvent()
+{
+    if(!mWipeHolder)
+        return false; //Recovery event is already started, return fail
+    
+    PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
+    al::setTrans(playerBase, mRecoverySafetyPoint);
+    
+    mWipeHolder->startOpen(mRecoveryEventLength / 2);
+    trySetPlayerRunnerState(FreezeState::FREEZE);
 
     return true;
 }

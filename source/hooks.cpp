@@ -26,6 +26,14 @@
 #include "server/freeze/FreezeTagMode.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
 
+bool checkpointPatch()
+{
+    if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return false;
+    
+    return true;
+}
+
 bool comboBtnHook(int port) {
     if(GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
         return false;

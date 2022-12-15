@@ -602,6 +602,8 @@ void Client::sendTagInfPacket() {
         Logger::log("Static Instance is Null!\n");
         return;
     }
+
+    sead::ScopedCurrentHeapSetter setter(sInstance->mHeap);
     
     GameMode curMode = GameModeManager::instance()->getGameMode();
     HideAndSeekMode* hsMode;
@@ -656,6 +658,8 @@ void Client::sendFreezeInfPacket() {
         Logger::log("Static Instance is Null!\n");
         return;
     }
+
+    sead::ScopedCurrentHeapSetter setter(sInstance->mHeap);
     
     GameMode curMode = GameModeManager::instance()->getGameMode();
     if(curMode != GameMode::FREEZETAG) {
