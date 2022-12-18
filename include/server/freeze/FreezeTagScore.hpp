@@ -1,20 +1,23 @@
 #pragma once
 
-#include <stdint.h>
+#include "layouts/FreezeTagIcon.h"
 #include "server/Client.hpp"
+#include <stdint.h>
 
-struct FreezeTagScore {
-    // Score info
+class FreezeTagScore {
+public:
     uint16_t mScore = 0;
+    uint16_t mPrevScore = 0;
 
-    /* Functions */
+    void setTargetLayout(FreezeTagIcon* icon) { mIcon = icon; };
 
-    void addScore(float add)
-    {
-        mScore += add;
-        Client::sendFreezeInfPacket();
-    };
+    void addScore(int add, const char* description);
 
     // Events
-    void eventScoreDebug() { addScore(1); };
+    void eventScoreDebug() { addScore(1, "Debugging!"); };
+    void eventScoreUnfreeze() { addScore(5, "TeamUnfrozen!"); };
+    void eventScoreFreeze() { addScore(10, "Got em!"); };
+
+private:
+    FreezeTagIcon* mIcon;
 };

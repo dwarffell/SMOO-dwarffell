@@ -1021,6 +1021,10 @@ void Client::updateTagInfo(TagInf *packet) {
 
         if (!curInfo)
             return;
+        
+        FreezeTagMode* mMode = GameModeManager::instance()->getMode<FreezeTagMode>();
+        
+        mMode->tryScoreEvent(freezePak, curInfo);
 
         curInfo->isFreezeTagFreeze = freezePak->isFreeze;
         curInfo->isFreezeTagRunner = freezePak->isRunner;

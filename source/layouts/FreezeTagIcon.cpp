@@ -96,9 +96,43 @@ void FreezeTagIcon::exeWait()
     setFreezeOverlayHeight();
     setSpectateOverlayHeight();
 
+    // Update score event info
+    if (mScoreEventIsQueued) {
+        mScoreEventIsQueued = false;
+        al::setPaneStringFormat(this, "TxtScoreNum", "%i", mScoreEventValue);
+        al::setPaneStringFormat(this, "TxtScoreDesc", "%s", mScoreEventDesc);
+    }
+
+    if (mScoreEventTime >= 0.f) {
+        mScoreEventTime += Time::deltaTime;
+
+        // Calculate score event pane's position
+        sead::Vector3f targetPos = mScoreEventTime < 3.f ? sead::Vector3f(0.f, 280.f, 0.f) : sead::Vector3f(-650.f, 420.f, 0.f);
+        if (!mInfo->mIsPlayerRunner)
+            targetPos.x *= -1.f;
+
+        al::lerpVec(&mScoreEventPos, mScoreEventPos, targetPos, 0.05f);
+        al::setPaneLocalTrans(this, "ScoreEvent", mScoreEventPos);
+
+        // Calculate score event pane's scale
+        float targetScale = mScoreEventTime < 3.f ? 1.0f : 0.f;
+        mScoreEventScale = al::lerpValue(mScoreEventScale, targetScale, 0.05f);
+        al::setPaneLocalScale(this, "ScoreEvent", { mScoreEventScale, mScoreEventScale });
+    }
+
     // Spectate UI
     if (mInfo->mIsPlayerFreeze && mSpectateName)
         al::setPaneStringFormat(this, "TxtSpectateTarget", "%s", mSpectateName);
+}
+
+void FreezeTagIcon::queueScoreEvent(int eventValue, const char* eventDesc)
+{
+    mScoreEventTime = 0.f;
+    mScoreEventIsQueued = true;
+    mScoreEventValue = eventValue;
+    mScoreEventDesc = eventDesc;
+    mScoreEventPos = sead::Vector3f(0.f, 280.f, 0.f);
+    mScoreEventScale = 1.35f;
 }
 
 void FreezeTagIcon::setFreezeOverlayHeight()

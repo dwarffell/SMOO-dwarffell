@@ -23,6 +23,7 @@ public:
     void hideSlot();
 
     void setSlotName(const char* name) { al::setPaneStringFormat(this, "TxtChaserName", "%s", name); };
+    void setSlotScore(int score) { al::setPaneStringFormat(this, "TxtChaserScore", "%04u", score); };
 
     void exeAppear();
     void exeWait();

@@ -9,6 +9,7 @@
 
 #include "container/seadPtrArray.h"
 #include "logger.hpp"
+#include "math/seadVector.h"
 
 // TODO: kill layout if going through loading zone or paused
 
@@ -22,6 +23,8 @@ public:
     void setFreezeOverlayHeight();
     void setSpectateOverlayHeight();
 
+    void queueScoreEvent(int eventValue, const char* eventDesc);
+
     bool tryStart();
     bool tryEnd();
 
@@ -32,16 +35,27 @@ public:
 private:
     struct FreezeTagInfo* mInfo;
 
+    // Runner and chaser display info
     sead::PtrArray<FreezeTagRunnerSlot> mRunnerSlots;
     sead::PtrArray<FreezeTagChaserSlot> mChaserSlots;
-
     const int mMaxRunners = 3;
     const int mMaxChasers = 1;
 
+    //Spectate and genera; infp
     bool mIsRunner = true;
     bool mIsOverlayShowing = false;
     const char* mSpectateName;
 
+    //Score event tracker
+    bool mScoreEventIsQueued = false;
+    int mScoreEventValue = 0;
+    const char* mScoreEventDesc = nullptr;
+
+    float mScoreEventTime = -1.f; //Every time a score event starts, this timer is set to zero, increase over time to control anim
+    sead::Vector3f mScoreEventPos = sead::Vector3f::zero;
+    float mScoreEventScale = 0.f;
+
+    //UI positioning and angle calculations
     float mRunnerFreezeIconAngle = 0.f;
     float mFreezeOverlayHeight = 415.f;
     float mSpectateOverlayHeight = -400.f;

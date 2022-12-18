@@ -18,6 +18,7 @@
 #include "layouts/FreezeTagIcon.h"
 #include "logger.hpp"
 #include "rs/util.hpp"
+#include "server/freeze/FreezeTagScore.hpp"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/Client.hpp"
 #include "server/gamemode/GameModeTimer.hpp"
@@ -54,6 +55,7 @@ void FreezeTagMode::init(const GameModeInitInfo& info) {
     Logger::log("Scene Heap Free Size: %f/%f\n", al::getSceneHeap()->getFreeSize() * 0.001f, al::getSceneHeap()->getSize() * 0.001f);
 
     mModeLayout = new FreezeTagIcon("FreezeTagIcon", *info.mLayoutInitInfo);
+    mInfo->mPlayerTagScore.setTargetLayout(mModeLayout);
     
     Logger::log("Scene Heap Free Size: %f/%f\n", al::getSceneHeap()->getFreeSize() * 0.001f, al::getSceneHeap()->getSize() * 0.001f);
 
@@ -67,32 +69,19 @@ void FreezeTagMode::begin() {
 
     mIsFirstFrame = true;
 
-    if (!mInfo->mIsPlayerRunner) {
-        // mModeLayout->showHiding();
-    } else {
-        // mModeLayout->showSeeking();
-    }
-
-    CoinCounter *coinCollect = mCurScene->mSceneLayout->mCoinCollectLyt;
-    CoinCounter* coinCounter = mCurScene->mSceneLayout->mCoinCountLyt;
     MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
     al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
-    CounterLifeCtrl *lifeCtrl = mCurScene->mSceneLayout->mHealthLyt;
 
     mInvulnTime = 0.f;
     mSpectateIndex = -1;
     mPrevSpectateIndex = -2;
 
-    if(coinCounter->mIsAlive)
-        coinCounter->tryEnd();
-    if(coinCollect->mIsAlive)
-        coinCollect->tryEnd();
     if (compass->mIsAlive)
         compass->end();
     if (playGuideLyt->mIsAlive)
         playGuideLyt->end();
-    if (lifeCtrl->mIsAlive)
-        lifeCtrl->kill();
+
+    mCurScene->mSceneLayout->end();
 
     //Update other players on your freeze tag state when starting
     Client::sendFreezeInfPacket();
@@ -104,24 +93,17 @@ void FreezeTagMode::end() {
 
     mModeLayout->tryEnd();
 
-    CoinCounter *coinCollect = mCurScene->mSceneLayout->mCoinCollectLyt;
-    CoinCounter* coinCounter = mCurScene->mSceneLayout->mCoinCountLyt;
     MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
     al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
-    CounterLifeCtrl *lifeCtrl = mCurScene->mSceneLayout->mHealthLyt;
 
     mInvulnTime = 0.f;
 
-    if(!coinCounter->mIsAlive)
-        coinCounter->tryStart();
-    if(!coinCollect->mIsAlive)
-        coinCollect->tryStart();
     if (!compass->mIsAlive)
         compass->appearSlideIn();
     if (!playGuideLyt->mIsAlive)
         playGuideLyt->appear();
-    if (lifeCtrl->mIsAlive)
-        lifeCtrl->appear();
+    
+    mCurScene->mSceneLayout->start();
     
     if(!GameModeManager::instance()->isPaused()) {
         if(mInfo->mIsPlayerFreeze)
@@ -147,6 +129,10 @@ void FreezeTagMode::update() {
     if (mIsFirstFrame) {
         mIsFirstFrame = false;
     }
+
+    //Verify standard hud is hidden
+    if(!mCurScene->mSceneLayout->isEnd())
+        mCurScene->mSceneLayout->end();
 
     //Main player's ice block state and post processing
     if(mInfo->mIsPlayerFreeze) {
@@ -207,8 +193,10 @@ void FreezeTagMode::update() {
                     trySetPlayerRunnerState(FreezeState::FREEZE);
 
                 //Check for unfreeze
-                if (mInfo->mIsPlayerFreeze && pupDist < 150.f && isP2D == curInfo->is2D && !isPDead && curInfo->isFreezeTagRunner && !curInfo->isFreezeTagFreeze)
+                if (mInvulnTime >= 3.75f &&  mInfo->mIsPlayerFreeze && pupDist < 150.f && isP2D == curInfo->is2D
+                && !isPDead && curInfo->isFreezeTagRunner && !curInfo->isFreezeTagFreeze) {
                     trySetPlayerRunnerState(FreezeState::ALIVE);
+                }
             }
         } else {
             mInvulnTime += Time::deltaTime;
@@ -229,6 +217,13 @@ void FreezeTagMode::update() {
         if(mRecoveryEventFrames == 0)
             tryEndRecoveryEvent();
     }
+
+    //Update other players if your score changes
+    FreezeTagScore* score = &mInfo->mPlayerTagScore;
+    if(score->mScore != score->mPrevScore) {
+        score->mPrevScore = score->mScore;
+        Client::sendFreezeInfPacket();
+    };
 
     //Debug freeze buttons
     if (al::isPadTriggerUp(-1) && al::isPadHoldX(-1) && mInfo->mIsPlayerRunner)
@@ -301,6 +296,28 @@ bool FreezeTagMode::tryStartRecoveryEvent(bool isMakeFrozen, bool isResetScore)
     mRecoverySafetyPoint = player->mPlayerRecoverySafetyPoint->mSafetyPointPos;
 
     return true;
+}
+
+void FreezeTagMode::tryScoreEvent(FreezeInf* incomingPacket, PuppetInfo* sourcePuppet)
+{
+    if(!mCurScene || !GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return;
+
+    // Get the distance of the incoming player
+    float puppetDistance = al::calcDistance(rs::getPlayerActor(mCurScene), sourcePuppet->playerPos);
+    bool isInRange = puppetDistance < 375.f; // Only apply this score event if player is less than this many units away
+
+    if(isInRange) {
+        //Check for unfreeze score event
+        if((mInfo->mIsPlayerRunner && !mInfo->mIsPlayerFreeze) && (sourcePuppet->isFreezeTagFreeze && !incomingPacket->isFreeze)) {
+            mInfo->mPlayerTagScore.eventScoreUnfreeze();
+        }
+
+        //Check for freeze score event
+        if((!mInfo->mIsPlayerRunner) && (!sourcePuppet->isFreezeTagFreeze && incomingPacket->isFreeze)) {
+            mInfo->mPlayerTagScore.eventScoreFreeze();
+        }
+    }
 }
 
 bool FreezeTagMode::tryEndRecoveryEvent()

@@ -7,6 +7,8 @@
 #include "game/StageScene/StageScene.h"
 #include "layouts/FreezeTagIcon.h"
 #include "math/seadVector.h"
+#include "packets/FreezeInf.h"
+#include "puppets/PuppetInfo.h"
 #include "server/freeze/FreezePlayerBlock.h"
 #include "server/freeze/FreezeTagScore.hpp"
 #include "server/gamemode/GameModeBase.hpp"
@@ -50,6 +52,8 @@ public:
     bool tryEndRecoveryEvent();
 
     bool trySetPlayerRunnerState(FreezeState state);
+
+    void tryScoreEvent(FreezeInf* incomingPacket, PuppetInfo* sourcePuppet);
 
     void updateSpectateCam(PlayerActorBase* playerBase);
     void setCameraTicket(al::CameraTicket* ticket) { mTicket = ticket; }
