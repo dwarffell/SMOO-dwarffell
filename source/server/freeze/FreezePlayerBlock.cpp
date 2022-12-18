@@ -20,6 +20,8 @@ void FreezePlayerBlock::init(al::ActorInitInfo const& info)
 
     al::invalidateClipping(this);
 
+    al::setDitherAnimSphereRadius(this, 0.f);
+
     makeActorDead();
 }
 
@@ -62,6 +64,9 @@ void FreezePlayerBlock::exeAppear()
         al::setScaleAll(this, 1.f);
     }
 
+    mDitheringOffset = -420.f; // Resets the dithering offset to slightly beyond the fully opaque value
+    al::setDitherAnimSphereRadius(this, 0.f);
+
     if (al::isActionEnd(this))
         al::setNerve(this, &nrvFreezePlayerBlockWait);
 }
@@ -70,6 +75,25 @@ void FreezePlayerBlock::exeWait()
 {
     if (al::isFirstStep(this))
         al::startAction(this, "Wait");
+
+    // Start by updating the lerp on the dithering offset
+    mDitheringOffset = al::lerpValue(mDitheringOffset, -65.f, 0.02f);
+
+    // Update dithering based on current camera info
+    al::CameraPoser* curPoser;
+    al::CameraDirector* director = mSceneInfo->mCameraDirector;
+
+    // Verify the scene info has a camera director, then set the poser
+    if (director) {
+        al::CameraPoseUpdater* updater = director->getPoseUpdater(0);
+        if (updater && updater->mTicket)
+            curPoser = updater->mTicket->mPoser;
+    }
+
+    if (curPoser) { // Actually update the dithering stuff here
+        float dist = al::calcDistance(this, curPoser->mPosition);
+        al::setDitherAnimSphereRadius(this, dist + mDitheringOffset);
+    }
 }
 
 void FreezePlayerBlock::exeDisappear()

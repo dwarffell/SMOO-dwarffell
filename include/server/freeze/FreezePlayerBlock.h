@@ -1,6 +1,7 @@
 #pragma once
 
 #include "al/LiveActor/LiveActor.h"
+#include "al/scene/Scene.h"
 #include "al/util.hpp"
 #include "al/sensor/SensorMsg.h"
 #include "al/util/NerveUtil.h"
@@ -26,6 +27,8 @@ public:
     void exeWait();
     void exeDisappear();
     void exeDead();
+
+    float mDitheringOffset = -150.f; // -150 is fully opaque, 0 is fully dithered, -80 is good looking
 };
 
 namespace

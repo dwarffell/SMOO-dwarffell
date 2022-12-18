@@ -236,13 +236,13 @@ void FreezeTagMode::update() {
     }
 
     //Spectate camera
-    if(mTicket->mIsActive && mInfo->mIsPlayerFreeze)
-        updateSpectateCam(playerBase);
-    
     if(!mTicket->mIsActive && mInfo->mIsPlayerFreeze)
         al::startCamera(mCurScene, mTicket, -1);
     if(mTicket->mIsActive && !mInfo->mIsPlayerFreeze)
         al::endCamera(mCurScene, mTicket, 0, false);
+    
+    if(mTicket->mIsActive && mInfo->mIsPlayerFreeze)
+        updateSpectateCam(playerBase);
 }
 
 bool FreezeTagMode::isPlayerLastSurvivor(PuppetInfo* changingPuppet)

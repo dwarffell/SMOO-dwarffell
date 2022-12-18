@@ -35,6 +35,9 @@ void CameraPoserActorSpectate::start(al::CameraStartInfo const&)
         mTargetTrans = *mTargetActorPos;
     else
         mTargetTrans = sead::Vector3f(0.f, 0.f, 0.f);
+    
+    if(mPlayer && !mTargetActorPos)
+        mTargetTrans = *al::getTransPtr(mPlayer);
 
     sead::Vector3f faceDir;
     sead::Vector3f targetFront;
@@ -65,6 +68,9 @@ void CameraPoserActorSpectate::movement()
         al::lerpVec(&mTargetTrans, mTargetTrans - sead::Vector3f(0.f, 100.f, 0.f), *mTargetActorPos, 0.08f);
     else
         mTargetTrans = sead::Vector3f(0.f, 0.f, 0.f);
+    
+    if(mPlayer && !mTargetActorPos)
+        mTargetTrans = *al::getTransPtr(mPlayer);
 
     mTargetTrans.y += mYOffset;
 
