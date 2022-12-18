@@ -26,7 +26,7 @@ FreezeTagRunnerSlot::FreezeTagRunnerSlot(const char* name, const al::LayoutInitI
 void FreezeTagRunnerSlot::init(int index)
 {
     // Place slot based on index and hide
-    al::setPaneLocalTrans(this, "RunnerSlot", { -580.f, 272.f - (index * 55.f), 0.f });
+    al::setPaneLocalTrans(this, "RunnerSlot", { -580.f, 270.f - (index * 55.f), 0.f });
     al::hidePane(this, "RunnerSlot");
 
     // Set temporary name string
