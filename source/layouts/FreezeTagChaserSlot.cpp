@@ -26,7 +26,7 @@ FreezeTagChaserSlot::FreezeTagChaserSlot(const char* name, const al::LayoutInitI
 void FreezeTagChaserSlot::init(int index)
 {
     // Place slot based on index and hide
-    al::setPaneLocalTrans(this, "ChaserSlot", { 580.f, 310.f - (index * 55.f), 0.f });
+    al::setPaneLocalTrans(this, "ChaserSlot", { 580.f, 272.f - (index * 55.f), 0.f });
     al::hidePane(this, "ChaserSlot");
 
     // Set temporary name string
