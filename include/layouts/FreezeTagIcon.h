@@ -38,8 +38,8 @@ private:
     // Runner and chaser display info
     sead::PtrArray<FreezeTagRunnerSlot> mRunnerSlots;
     sead::PtrArray<FreezeTagChaserSlot> mChaserSlots;
-    const int mMaxRunners = 3;
-    const int mMaxChasers = 1;
+    const int mMaxRunners = 9;
+    const int mMaxChasers = 9;
 
     //Spectate and genera; infp
     bool mIsRunner = true;
