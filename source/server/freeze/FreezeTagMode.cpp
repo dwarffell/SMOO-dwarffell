@@ -17,6 +17,7 @@
 #include "heap/seadHeapMgr.h"
 #include "layouts/FreezeTagIcon.h"
 #include "logger.hpp"
+#include "puppets/PuppetInfo.h"
 #include "rs/util.hpp"
 #include "server/freeze/FreezeTagScore.hpp"
 #include "server/gamemode/GameModeBase.hpp"
@@ -174,6 +175,8 @@ void FreezeTagMode::update() {
     //Verify you are never frozen on chaser team
     if(!mInfo->mIsPlayerRunner && mInfo->mIsPlayerFreeze)
         trySetPlayerRunnerState(FreezeState::ALIVE);
+    
+    mInvulnTime += Time::deltaTime;
 
     // Runner team frame checks
     if (mInfo->mIsPlayerRunner) {
@@ -193,13 +196,11 @@ void FreezeTagMode::update() {
                     trySetPlayerRunnerState(FreezeState::FREEZE);
 
                 //Check for unfreeze
-                if (mInvulnTime >= 3.75f &&  mInfo->mIsPlayerFreeze && pupDist < 150.f && isP2D == curInfo->is2D
+                if (mInvulnTime >= 3.75f && mInfo->mIsPlayerFreeze && pupDist < 150.f && isP2D == curInfo->is2D
                 && !isPDead && curInfo->isFreezeTagRunner && !curInfo->isFreezeTagFreeze) {
                     trySetPlayerRunnerState(FreezeState::ALIVE);
                 }
             }
-        } else {
-            mInvulnTime += Time::deltaTime;
         }
     }
 
@@ -242,6 +243,27 @@ void FreezeTagMode::update() {
         al::startCamera(mCurScene, mTicket, -1);
     if(mTicket->mIsActive && !mInfo->mIsPlayerFreeze)
         al::endCamera(mCurScene, mTicket, 0, false);
+}
+
+bool FreezeTagMode::isPlayerLastSurvivor(PuppetInfo* changingPuppet)
+{
+    Logger::log("Runner Size: %i\n", mInfo->mRunnerPlayers.size());
+    if(!mInfo->mIsPlayerRunner)
+        return false; // If player is on the chaser team, just return false instantly
+    
+    if(mInfo->mRunnerPlayers.size() == 0)
+        return false; // If there's no other player on the runner team, last survivor stuff is disabled
+    
+    for(int i = 0; i < mInfo->mRunnerPlayers.size(); i++) {
+        PuppetInfo* inf = mInfo->mRunnerPlayers.at(i);
+        if(changingPuppet == inf)
+            continue; // If the puppet getting updated is the one currently being checked, skip this one
+
+        if(!inf->isFreezeTagFreeze)
+            return false; // Found another non-frozen player, not last survivor
+    }
+
+    return true; //Last survivor check passed!
 }
 
 bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
@@ -318,6 +340,11 @@ void FreezeTagMode::tryScoreEvent(FreezeInf* incomingPacket, PuppetInfo* sourceP
             mInfo->mPlayerTagScore.eventScoreFreeze();
         }
     }
+
+    if(mInfo->mIsPlayerRunner && !mInfo->mIsPlayerFreeze && !sourcePuppet->isFreezeTagFreeze
+    && incomingPacket->isFreeze && isPlayerLastSurvivor(sourcePuppet)) {
+        mInfo->mPlayerTagScore.eventScoreLastSurvivor();
+    }
 }
 
 bool FreezeTagMode::tryEndRecoveryEvent()
@@ -357,14 +384,14 @@ void FreezeTagMode::updateSpectateCam(PlayerActorBase* playerBase)
         if(al::isPadTriggerRight(-1)) indexDirection = 1; //Move index right
         if(al::isPadTriggerLeft(-1)) indexDirection = -1; //Move index left
 
-        //Force index to decrease if your current target changes stages
-        if(mSpectateIndex != -1)
-            if(!mInfo->mRunnerPlayers.at(mSpectateIndex)->isInSameStage)
-                indexDirection = -1; //Move index left
-        
         //Force index to decrease if your current index is higher than runner player count
         if(mSpectateIndex >= mInfo->mRunnerPlayers.size())
             indexDirection = -1;
+
+        //Force index to decrease if your current target changes stages
+        if(mSpectateIndex != -1 && indexDirection == 0)
+            if(!mInfo->mRunnerPlayers.at(mSpectateIndex)->isInSameStage)
+                indexDirection = -1; //Move index left
 
         //Loop over indexs until you find a sutible one in the same stage
         bool isFinalIndex = false;

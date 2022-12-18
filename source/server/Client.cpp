@@ -7,6 +7,7 @@
 #include "packets/Packet.h"
 #include "server/freeze/FreezeTagMode.hpp"
 #include "server/gamemode/GameModeBase.hpp"
+#include "server/gamemode/GameModeManager.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
 #include "server/snh/SardineMode.hpp"
 
@@ -1021,9 +1022,16 @@ void Client::updateTagInfo(TagInf *packet) {
 
         if (!curInfo)
             return;
+
+        if(!GameModeManager::instance()->isActive()) {
+            curInfo->isFreezeTagFreeze = freezePak->isFreeze;
+            curInfo->isFreezeTagRunner = freezePak->isRunner;
+            curInfo->freezeTagScore = freezePak->score;
+            return;
+        }
         
         FreezeTagMode* mMode = GameModeManager::instance()->getMode<FreezeTagMode>();
-        
+
         mMode->tryScoreEvent(freezePak, curInfo);
 
         curInfo->isFreezeTagFreeze = freezePak->isFreeze;

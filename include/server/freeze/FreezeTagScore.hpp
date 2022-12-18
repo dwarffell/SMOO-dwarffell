@@ -15,8 +15,9 @@ public:
 
     // Events
     void eventScoreDebug() { addScore(1, "Debugging!"); };
-    void eventScoreUnfreeze() { addScore(5, "TeamUnfrozen!"); };
-    void eventScoreFreeze() { addScore(10, "Got em!"); };
+    void eventScoreUnfreeze() { addScore(3, "Rescued"); };
+    void eventScoreFreeze() { addScore(1, "Caught"); };
+    void eventScoreLastSurvivor() { addScore(10, "Last Survivor"); };
 
 private:
     FreezeTagIcon* mIcon;

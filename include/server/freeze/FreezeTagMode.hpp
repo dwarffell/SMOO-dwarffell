@@ -46,6 +46,7 @@ public:
 
     bool isPlayerRunner() const { return mInfo->mIsPlayerRunner; };
     bool isPlayerFreeze() const { return mInfo->mIsPlayerFreeze; };
+    bool isPlayerLastSurvivor(PuppetInfo* changingPuppet);
 
     void setWipeHolder(al::WipeHolder* wipe) { mWipeHolder = wipe; };
     bool tryStartRecoveryEvent(bool isMakeFrozen, bool isResetScore);
