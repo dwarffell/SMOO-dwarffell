@@ -81,7 +81,7 @@ void FreezeTagMode::begin() {
     if (playGuideLyt->mIsAlive)
         playGuideLyt->end();
 
-    // mCurScene->mSceneLayout->end();
+    mCurScene->mSceneLayout->end();
 
     //Update other players on your freeze tag state when starting
     Client::sendFreezeInfPacket();
@@ -126,8 +126,8 @@ void FreezeTagMode::update() {
         return;
 
     //Verify standard hud is hidden
-    // if(!mCurScene->mSceneLayout->isEnd())
-    //     mCurScene->mSceneLayout->end();
+    if(!mCurScene->mSceneLayout->isEnd())
+        mCurScene->mSceneLayout->end();
 
     //Main player's ice block state and post processing
     if(mInfo->mIsPlayerFreeze) {
@@ -387,8 +387,6 @@ bool FreezeTagMode::tryStartRecoveryEvent(bool isEndgame)
     if(mRecoveryEventFrames > 0 || !mWipeHolder)
         return false; //Something isn't applicable here, return fail
     
-    Logger::log("Starting recovery event\n");
-    
     mRecoveryEventFrames = (mRecoveryEventLength / 2) * (isEndgame + 1);
     mWipeHolder->startClose("FadeBlack", (mRecoveryEventLength / 4) * (isEndgame + 1));
 
@@ -396,6 +394,8 @@ bool FreezeTagMode::tryStartRecoveryEvent(bool isEndgame)
         mRecoverySafetyPoint = player->mPlayerRecoverySafetyPoint->mSafetyPointPos;
     else
         mRecoverySafetyPoint = sead::Vector3f::zero;
+    
+    Logger::log("Recovery event %.00fx %.00fy %.00fz\n", mRecoverySafetyPoint.x, mRecoverySafetyPoint.y, mRecoverySafetyPoint.z);
 
     return true;
 }

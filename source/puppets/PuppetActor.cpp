@@ -216,17 +216,28 @@ void PuppetActor::control() {
             }
         }
 
-        if (mNameTag) {
-            if (GameModeManager::instance()->isModeAndActive(GameMode::HIDEANDSEEK)) {
-                mNameTag->mIsAlive =
-                    GameModeManager::instance()->getMode<HideAndSeekMode>()->isPlayerIt() && mInfo->isIt;
-            } else if (GameModeManager::instance()->isModeAndActive(GameMode::SARDINE)) {
-                mNameTag->mIsAlive =
-                    GameModeManager::instance()->getMode<SardineMode>()->isPlayerIt() && mInfo->isIt;
-            } else {
-                if(!mNameTag->mIsAlive)
-                    mNameTag->appear();
-            }
+        if(mNameTag && !GameModeManager::instance()->isActive())
+            if(!mNameTag->mIsAlive)
+                mNameTag->appear();
+
+        if (mNameTag && GameModeManager::instance()->isActive()) {
+            GameMode curMode = GameModeManager::instance()->getGameMode();
+            switch(curMode) {
+                case GameMode::HIDEANDSEEK:
+                    mNameTag->mIsAlive = GameModeManager::instance()->getMode<HideAndSeekMode>()->isPlayerIt() && mInfo->isIt;
+                    break;
+                case GameMode::SARDINE:
+                    mNameTag->mIsAlive = GameModeManager::instance()->getMode<SardineMode>()->isPlayerIt() && mInfo->isIt;
+                    break;
+                case GameMode::FREEZETAG: {
+                    bool isRun = GameModeManager::instance()->getInfo<FreezeTagInfo>()->mIsPlayerRunner;
+                    mNameTag->mIsAlive = (isRun && mInfo->isFreezeTagRunner) || (!isRun && !mInfo->isFreezeTagRunner);
+                    break;
+                }
+                default:
+                    Logger::log("Name tag display failed due to unknown active game mode!\n");
+                    break;
+            };
         }
 
         // Sub-Actor Updating
