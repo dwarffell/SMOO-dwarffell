@@ -4,6 +4,7 @@
 #include "container/seadPtrArray.h"
 #include "container/seadSafeArray.h"
 #include "game/Player/PlayerActorBase.h"
+#include "game/Player/PlayerActorHakoniwa.h"
 #include "game/StageScene/StageScene.h"
 #include "layouts/FreezeTagIcon.h"
 #include "math/seadVector.h"
@@ -32,6 +33,8 @@ struct FreezeTagInfo : GameModeInfoBase {
 
     sead::PtrArray<PuppetInfo> mRunnerPlayers;
     sead::PtrArray<PuppetInfo> mChaserPlayers;
+
+    bool mIsDebugMode = false;
 };
 
 class FreezeTagMode : public GameModeBase {
@@ -46,11 +49,16 @@ public:
 
     bool isPlayerRunner() const { return mInfo->mIsPlayerRunner; };
     bool isPlayerFreeze() const { return mInfo->mIsPlayerFreeze; };
+    bool isEndgameActive() {return mIsEndgameActive;}
     bool isPlayerLastSurvivor(PuppetInfo* changingPuppet);
+    bool isAllRunnerFrozen(PuppetInfo* changingPuppet);
+
+    PlayerActorHakoniwa* getPlayerActorHakoniwa();
 
     void setWipeHolder(al::WipeHolder* wipe) { mWipeHolder = wipe; };
-    bool tryStartRecoveryEvent(bool isMakeFrozen, bool isResetScore);
+    bool tryStartRecoveryEvent(bool isEndgame);
     bool tryEndRecoveryEvent();
+    void tryStartEndgameEvent();
 
     bool trySetPlayerRunnerState(FreezeState state);
 
@@ -64,6 +72,10 @@ private:
     int mRecoveryEventFrames = 0;
     const int mRecoveryEventLength = 60; // Length of recovery event in frames
     sead::Vector3f mRecoverySafetyPoint = sead::Vector3f::zero;
+
+    // Endgame info
+    bool mIsEndgameActive = false;
+    float mEndgameTimer = -1.f;
 
     FreezeTagIcon* mModeLayout = nullptr;
     FreezeTagInfo* mInfo = nullptr;

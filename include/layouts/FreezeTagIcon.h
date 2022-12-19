@@ -23,6 +23,15 @@ public:
     void setFreezeOverlayHeight();
     void setSpectateOverlayHeight();
 
+    void showEndgameScreen()
+    {
+        mEndgameIsDisplay = true;
+        mEndgameTextAngle = 0.f;
+        mEndgameTextSize = 0.f;
+    };
+
+    void hideEndgameScreen() { mEndgameIsDisplay = false; };
+
     void queueScoreEvent(int eventValue, const char* eventDesc);
 
     bool tryStart();
@@ -41,24 +50,29 @@ private:
     const int mMaxRunners = 9;
     const int mMaxChasers = 9;
 
-    //Spectate and genera; infp
+    // Spectate and genera; infp
     bool mIsRunner = true;
     bool mIsOverlayShowing = false;
     const char* mSpectateName;
 
-    //Score event tracker
+    // Score event tracker
     bool mScoreEventIsQueued = false;
     int mScoreEventValue = 0;
     const char* mScoreEventDesc = nullptr;
 
-    float mScoreEventTime = -1.f; //Every time a score event starts, this timer is set to zero, increase over time to control anim
+    float mScoreEventTime = -1.f; // Every time a score event starts, this timer is set to zero, increase over time to control anim
     sead::Vector3f mScoreEventPos = sead::Vector3f::zero;
     float mScoreEventScale = 0.f;
 
-    //UI positioning and angle calculations
+    // UI positioning and angle calculations
     float mRunnerFreezeIconAngle = 0.f;
     float mFreezeOverlayHeight = 415.f;
     float mSpectateOverlayHeight = -400.f;
+
+    // Endgame popup
+    bool mEndgameIsDisplay = false;
+    float mEndgameTextSize = 0.f;
+    float mEndgameTextAngle = 0.f;
 };
 
 namespace {

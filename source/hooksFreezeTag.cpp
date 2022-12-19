@@ -28,7 +28,7 @@ bool freezeDisableMsgDisregard(al::SensorMsg const* msg)
     return al::isMsgPlayerDisregard(msg);
 }
 
-bool freezeDisableBazooka(IUsePlayerHack *param_1)
+bool freezeDisableBazooka(IUsePlayerHack* param_1)
 {
     if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
         return false;
@@ -46,14 +46,15 @@ bool freezeDisableLoadZone(al::LiveActor const* actor)
 
 bool freezeDeathArea(al::LiveActor const* player)
 {
-    //If player isn't actively playing freeze tag, perform normal functionality
+    // If player isn't actively playing freeze tag, perform normal functionality
     if (!GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
         return al::isInDeathArea(player);
-    
-    //If player is in a death area but in Freeze Tag mode, start a recovery event
-    if(al::isInAreaObj(player, "DeathArea")) {
+
+    // If player is in a death area but in Freeze Tag mode, start a recovery event
+    if (al::isInAreaObj(player, "DeathArea")) {
         FreezeTagMode* mode = GameModeManager::instance()->getMode<FreezeTagMode>();
-        mode->tryStartRecoveryEvent(true, false);
+        if (!mode->isEndgameActive())
+            mode->tryStartRecoveryEvent(false);
     }
 
     return false;

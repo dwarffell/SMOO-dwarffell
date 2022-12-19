@@ -18,6 +18,7 @@ FreezeTagIcon::FreezeTagIcon(const char* name, const al::LayoutInitInfo& initInf
     : al::LayoutActor(name)
 {
     al::initLayoutActor(this, initInfo, "FreezeTagIcon", 0);
+    al::hidePane(this, "Endgame");
 
     mInfo = GameModeManager::instance()->getInfo<FreezeTagInfo>();
     mIsRunner = mInfo->mIsPlayerRunner;
@@ -123,6 +124,21 @@ void FreezeTagIcon::exeWait()
     // Spectate UI
     if (mInfo->mIsPlayerFreeze && mSpectateName)
         al::setPaneStringFormat(this, "TxtSpectateTarget", "%s", mSpectateName);
+
+    // Endgame UI
+    if (mEndgameIsDisplay) {
+        if (al::isHidePane(this, "Endgame"))
+            al::showPane(this, "Endgame");
+
+        mEndgameTextSize = al::lerpValue(mEndgameTextSize, 1.3f, 0.02f);
+        mEndgameTextAngle = al::lerpValue(mEndgameTextAngle, 8.f, 0.01f);
+
+        al::setPaneLocalScale(this, "PicEndgameText", { mEndgameTextSize, mEndgameTextSize });
+        al::setPaneLocalRotate(this, "PicEndgameText", { 0.f, 0.f, mEndgameTextAngle });
+    }
+
+    if (!mEndgameIsDisplay && !al::isHidePane(this, "Endgame"))
+        al::hidePane(this, "Endgame");
 }
 
 void FreezeTagIcon::queueScoreEvent(int eventValue, const char* eventDesc)
@@ -147,7 +163,7 @@ void FreezeTagIcon::setFreezeOverlayHeight()
 void FreezeTagIcon::setSpectateOverlayHeight()
 {
     // Show or hide the spectator UI
-    float targetHeight = mInfo->mIsPlayerFreeze && mInfo->mRunnerPlayers.size() > 0 ? -250.f : -400.f;
+    float targetHeight = mInfo->mIsPlayerFreeze && mInfo->mRunnerPlayers.size() > 0 && !mEndgameIsDisplay ? -250.f : -400.f;
     mSpectateOverlayHeight = al::lerpValue(mSpectateOverlayHeight, targetHeight, 0.04f);
     al::setPaneLocalTrans(this, "Spectate", { 0.f, mSpectateOverlayHeight, 0.f });
 }

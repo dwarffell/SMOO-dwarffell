@@ -15,7 +15,8 @@ const sead::WFixedSafeString<0x200> *FreezeTagConfigMenu::getStringData() {
     sead::SafeArray<sead::WFixedSafeString<0x200>, mItemCount>* gamemodeConfigOptions =
         new sead::SafeArray<sead::WFixedSafeString<0x200>, mItemCount>();
 
-    gamemodeConfigOptions->mBuffer[0].copy(u"NULL");
+    gamemodeConfigOptions->mBuffer[0].copy(u"Enable Debug Mode");
+    gamemodeConfigOptions->mBuffer[1].copy(u"Disable Debug Mode");
 
     return gamemodeConfigOptions->mBuffer;
 }
@@ -34,7 +35,13 @@ bool FreezeTagConfigMenu::updateMenu(int selectIndex) {
     switch (selectIndex) {
         case 0: {
             if (GameModeManager::instance()->isMode(GameMode::FREEZETAG)) {
-                curMode->mPlayerTagScore.mScore += 0;
+                curMode->mIsDebugMode = true;
+            }
+            return true;
+        }
+        case 1: {
+            if (GameModeManager::instance()->isMode(GameMode::FREEZETAG)) {
+                curMode->mIsDebugMode = false;
             }
             return true;
         }
