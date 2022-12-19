@@ -81,7 +81,7 @@ void FreezeTagMode::begin() {
     if (playGuideLyt->mIsAlive)
         playGuideLyt->end();
 
-    mCurScene->mSceneLayout->end();
+    // mCurScene->mSceneLayout->end();
 
     //Update other players on your freeze tag state when starting
     Client::sendFreezeInfPacket();
@@ -126,8 +126,8 @@ void FreezeTagMode::update() {
         return;
 
     //Verify standard hud is hidden
-    if(!mCurScene->mSceneLayout->isEnd())
-        mCurScene->mSceneLayout->end();
+    // if(!mCurScene->mSceneLayout->isEnd())
+    //     mCurScene->mSceneLayout->end();
 
     //Main player's ice block state and post processing
     if(mInfo->mIsPlayerFreeze) {
@@ -186,24 +186,16 @@ void FreezeTagMode::update() {
                     continue;
 
                 //Check for freeze
-                if (!mInfo->mIsPlayerFreeze && pupDist < 200.f && isP2D == curInfo->is2D && !isPDead && !curInfo->isFreezeTagRunner)
+                if (!mInfo->mIsPlayerFreeze && pupDist < 225.f && isP2D == curInfo->is2D && !isPDead && !curInfo->isFreezeTagRunner)
                     trySetPlayerRunnerState(FreezeState::FREEZE);
 
                 //Check for unfreeze
-                if (mInvulnTime >= 3.75f && mInfo->mIsPlayerFreeze && pupDist < 150.f && isP2D == curInfo->is2D
+                if (mInvulnTime >= 3.75f && mInfo->mIsPlayerFreeze && pupDist < 175.f && isP2D == curInfo->is2D
                 && !isPDead && curInfo->isFreezeTagRunner && !curInfo->isFreezeTagFreeze) {
                     trySetPlayerRunnerState(FreezeState::ALIVE);
                 }
             }
         }
-    }
-
-    //Change teams
-    if (al::isPadTriggerRight(-1) && !al::isPadHoldZL(-1) && !al::isPadHoldX(-1) && !al::isPadHoldY(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0) {
-        mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
-        mInvulnTime = 0.f;
-
-        Client::sendFreezeInfPacket();
     }
 
     // Update recovery event timer
@@ -232,6 +224,17 @@ void FreezeTagMode::update() {
         score->mPrevScore = score->mScore;
         Client::sendFreezeInfPacket();
     };
+
+    // D-Pad functions
+    if (al::isPadTriggerUp(-1) && al::isPadHoldL(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive) {
+        mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
+        mInvulnTime = 0.f;
+
+        Client::sendFreezeInfPacket();
+    }
+
+    if (al::isPadTriggerDown(-1) && al::isPadHoldL(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive)
+        mInfo->mPlayerTagScore.resetScore();
 
     //Debug freeze buttons
     if (mInfo->mIsDebugMode) {
@@ -348,7 +351,7 @@ void FreezeTagMode::tryScoreEvent(FreezeInf* incomingPacket, PuppetInfo* sourceP
 
     // Get the distance of the incoming player
     float puppetDistance = al::calcDistance(rs::getPlayerActor(mCurScene), sourcePuppet->playerPos);
-    bool isInRange = puppetDistance < 375.f; // Only apply this score event if player is less than this many units away
+    bool isInRange = puppetDistance < 400.f; // Only apply this score event if player is less than this many units away
 
     if(isInRange) {
         //Check for unfreeze score event

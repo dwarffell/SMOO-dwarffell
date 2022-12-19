@@ -130,8 +130,8 @@ void FreezeTagIcon::exeWait()
         if (al::isHidePane(this, "Endgame"))
             al::showPane(this, "Endgame");
 
-        mEndgameTextSize = al::lerpValue(mEndgameTextSize, 1.3f, 0.02f);
-        mEndgameTextAngle = al::lerpValue(mEndgameTextAngle, 8.f, 0.01f);
+        mEndgameTextSize = al::lerpValue(mEndgameTextSize, 1.1f, 0.02f);
+        mEndgameTextAngle = al::lerpValue(mEndgameTextAngle, 5.f, 0.01f);
 
         al::setPaneLocalScale(this, "PicEndgameText", { mEndgameTextSize, mEndgameTextSize });
         al::setPaneLocalRotate(this, "PicEndgameText", { 0.f, 0.f, mEndgameTextAngle });
