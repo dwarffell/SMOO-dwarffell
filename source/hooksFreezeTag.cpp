@@ -54,6 +54,5 @@ bool freezeKidsMode(GameDataFile* thisPtr)
     if(GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
         return true;
     
-    Logger::log("Is Kids Mode: %s\n", BTOC(thisPtr->mIsKidsMode));
     return thisPtr->mIsKidsMode;
 }

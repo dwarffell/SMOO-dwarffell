@@ -15,6 +15,7 @@
 #include "game/Player/HackCap.h"
 #include "game/Player/PlayerActorBase.h"
 #include "game/Player/PlayerActorHakoniwa.h"
+#include "game/Player/PlayerHitPointData.h"
 #include "heap/seadHeapMgr.h"
 #include "layouts/FreezeTagIcon.h"
 #include "logger.hpp"
@@ -83,6 +84,10 @@ void FreezeTagMode::begin() {
         playGuideLyt->end();
 
     mCurScene->mSceneLayout->end();
+
+    PlayerHitPointData* hit = mCurScene->mHolder.mData->mGameDataFile->getPlayerHitPointData();
+    hit->mCurrentHit = hit->getMaxCurrent();
+    hit->mIsKidsMode = true;
 
     //Update other players on your freeze tag state when starting
     Client::sendFreezeInfPacket();
