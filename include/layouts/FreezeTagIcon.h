@@ -53,7 +53,7 @@ private:
     // Spectate and genera; infp
     bool mIsRunner = true;
     bool mIsOverlayShowing = false;
-    const char* mSpectateName;
+    const char* mSpectateName = nullptr;
 
     // Score event tracker
     bool mScoreEventIsQueued = false;

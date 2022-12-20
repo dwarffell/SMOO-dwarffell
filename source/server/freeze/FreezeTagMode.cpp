@@ -226,7 +226,7 @@ void FreezeTagMode::update() {
     };
 
     // D-Pad functions
-    if (al::isPadTriggerUp(-1) && al::isPadHoldL(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive) {
+    if (al::isPadTriggerUp(-1) && !al::isPadHoldL(-1)&& !al::isPadHoldZR(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive) {
         mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
         mInvulnTime = 0.f;
 
@@ -238,13 +238,13 @@ void FreezeTagMode::update() {
 
     //Debug freeze buttons
     if (mInfo->mIsDebugMode) {
-        if (al::isPadTriggerUp(-1) && al::isPadHoldX(-1) && mInfo->mIsPlayerRunner)
+        if (al::isPadTriggerRight(-1) && al::isPadHoldX(-1) && mInfo->mIsPlayerRunner)
             trySetPlayerRunnerState(FreezeState::ALIVE);
-        if (al::isPadTriggerUp(-1) && al::isPadHoldY(-1) && mInfo->mIsPlayerRunner)
+        if (al::isPadTriggerRight(-1) && al::isPadHoldY(-1) && mInfo->mIsPlayerRunner)
             trySetPlayerRunnerState(FreezeState::FREEZE);
-        if (al::isPadTriggerUp(-1) && al::isPadHoldA(-1))
+        if (al::isPadTriggerRight(-1) && al::isPadHoldA(-1))
             mInfo->mPlayerTagScore.eventScoreDebug();
-        if (al::isPadTriggerUp(-1) && al::isPadHoldB(-1))
+        if (al::isPadTriggerRight(-1) && al::isPadHoldB(-1))
             tryStartEndgameEvent();
     }
 

@@ -37,6 +37,8 @@ FreezeTagIcon::FreezeTagIcon(const char* name, const al::LayoutInitInfo& initInf
         mChaserSlots.pushBack(newSlot);
     }
 
+    mSpectateName = nullptr;
+
     initNerve(&nrvFreezeTagIconEnd, 0);
     kill();
 }
