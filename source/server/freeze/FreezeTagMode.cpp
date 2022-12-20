@@ -8,6 +8,7 @@
 #include "al/util/LiveActorUtil.h"
 #include "al/util/NerveUtil.h"
 #include "cameras/CameraPoserActorSpectate.h"
+#include "game/GameData/GameDataFunction.h"
 #include "game/GameData/GameDataHolderAccessor.h"
 #include "game/Layouts/CoinCounter.h"
 #include "game/Layouts/MapMini.h"
@@ -125,11 +126,11 @@ void FreezeTagMode::update() {
     if(!player)
         return;
 
-    //Verify standard hud is hidden
+    // Verify standard hud is hidden
     if(!mCurScene->mSceneLayout->isEnd())
         mCurScene->mSceneLayout->end();
 
-    //Main player's ice block state and post processing
+    // Main player's ice block state and post processing
     if(mInfo->mIsPlayerFreeze) {
         if(!al::isAlive(mMainPlayerIceBlock)) {
             mMainPlayerIceBlock->appear();
@@ -143,6 +144,7 @@ void FreezeTagMode::update() {
         
         //Lock block onto player
         al::setTrans(mMainPlayerIceBlock, al::getTrans(player));
+        al::setQuat(mMainPlayerIceBlock, al::getQuat(player));
 
     } else {
         if(al::isAlive(mMainPlayerIceBlock) && !al::isNerve(mMainPlayerIceBlock, &nrvFreezePlayerBlockDisappear)) {

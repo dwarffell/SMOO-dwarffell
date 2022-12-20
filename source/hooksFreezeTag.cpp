@@ -1,48 +1,18 @@
 #include "al/util.hpp"
 #include "al/util/NerveUtil.h"
 #include "al/util/SensorUtil.h"
+#include "game/GameData/GameDataFile.h"
 #include "game/Player/PlayerActorBase.h"
 #include "game/Player/PlayerActorHakoniwa.h"
 
 #include "rs/util/InputUtil.h"
+#include "rs/util/SensorUtil.h"
 #include "server/Client.hpp"
 #include "server/freeze/FreezeTagMode.hpp"
 #include "server/gamemode/GameModeManager.hpp"
 
 #include "al/nerve/Nerve.h"
 #include "rs/util.hpp"
-
-bool freezeDisableActor(al::IUseNerve const* thisPtr, al::Nerve const* nrv)
-{
-    if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
-        return true;
-
-    return al::isNerve(thisPtr, nrv);
-}
-
-bool freezeDisableMsgDisregard(al::SensorMsg const* msg)
-{
-    if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
-        return true;
-
-    return al::isMsgPlayerDisregard(msg);
-}
-
-bool freezeDisableBazooka(IUsePlayerHack* param_1)
-{
-    if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
-        return false;
-
-    return rs::isHoldHackJump(param_1);
-}
-
-bool freezeDisableLoadZone(al::LiveActor const* actor)
-{
-    if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
-        return true;
-
-    return rs::isInvalidChangeStage(actor);
-}
 
 bool freezeDeathArea(al::LiveActor const* player)
 {
@@ -58,4 +28,32 @@ bool freezeDeathArea(al::LiveActor const* player)
     }
 
     return false;
+}
+
+void playerHitPointDamage(PlayerHitPointData *thisPtr)
+{
+    if(GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return;
+    
+    int nextHit = 0;
+    int maxUpVal = 0;
+
+    nextHit = thisPtr->mCurrentHit - 1;
+    if (nextHit <= 0)
+        nextHit = 0;
+    
+    thisPtr->mCurrentHit = nextHit;
+
+    if (!thisPtr->mIsForceNormalHealth )
+        if (nextHit <= (thisPtr->mIsKidsMode ? 6 : 3))
+            thisPtr->mIsHaveMaxUpItem = false;
+}
+
+bool freezeKidsMode(GameDataFile* thisPtr)
+{
+    if(GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return true;
+    
+    Logger::log("Is Kids Mode: %s\n", BTOC(thisPtr->mIsKidsMode));
+    return thisPtr->mIsKidsMode;
 }

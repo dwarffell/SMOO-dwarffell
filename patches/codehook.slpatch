@@ -134,11 +134,7 @@ B59E28 B seadPrintHook // sead::system::print
 25ffac MOV X0, #0
 
 //Freeze tag hooks
-25b34c BL freezeDisableActor // Disables warp pipes in freeze tag, replaces al::isNerve call
-34d654 BL freezeDisableActor // Disables paintings in freeze tag, replaces al::isNerve call
-262a34 BL freezeDisableActor // Disables door warps when in freeze tag, replaces al::isNerve call
-260bfc BL freezeDisableMsgDisregard // Also disables door warps in freeze tag by marking messages as disregards
-307928 BL freezeDisableMsgDisregard // Disables hole on Odyssey roof, has animation bug, leaving it in cause funny
-219980 BL freezeDisableBazooka // Disables rocket capture from taking off for Freeze Tag
-544df8 BL freezeDisableLoadZone // Disables the rs function checking if the player is colliding with a load zone for freeze tag
 4272f0 BL freezeDeathArea // Replaces functionality of death areas in freeze tag
+538a94 B playerHitPointDamage // Reimplements the damage function, disabling it's functionality in Freeze Tag
+51b280 B freezeKidsMode // Forces kids mode to be enabled during Freeze Tag
+// 51d144 BL changeNextStage

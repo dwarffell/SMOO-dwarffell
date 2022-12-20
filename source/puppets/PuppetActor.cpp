@@ -120,6 +120,7 @@ void PuppetActor::movement() {
         }
         
         al::setTrans(mFreezeTagIceBlock, mInfo->playerPos);
+        al::setQuat(mFreezeTagIceBlock, mInfo->playerRot);
     }
 }
 
