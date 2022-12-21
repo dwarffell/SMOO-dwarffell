@@ -48,9 +48,11 @@ void FreezeTagMode::init(const GameModeInitInfo& info) {
     else Logger::log("No gamemode info found\n");
     if (curGameInfo && curGameInfo->mMode == mMode) {
         mInfo = (FreezeTagInfo*)curGameInfo;
+        mModeTimer = new GameModeTimer(mInfo->mRoundTimer);
     } else {
         if (curGameInfo) delete curGameInfo;  // attempt to destory previous info before creating new one
         mInfo = GameModeManager::instance()->createModeInfo<FreezeTagInfo>();
+        mModeTimer = new GameModeTimer();
     }
 
     mInfo->mRunnerPlayers.allocBuffer(0x10, al::getSceneHeap());
@@ -77,6 +79,7 @@ void FreezeTagMode::begin() {
     mInvulnTime = 0.f;
     mSpectateIndex = -1;
     mPrevSpectateIndex = -2;
+    mIsScoreEventsValid = true;
 
     if (compass->mIsAlive)
         compass->end();
@@ -102,6 +105,7 @@ void FreezeTagMode::end() {
     al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
 
     mInvulnTime = 0.f;
+    mIsScoreEventsValid = false;
 
     if (!compass->mIsAlive)
         compass->appearSlideIn();
@@ -130,33 +134,25 @@ void FreezeTagMode::update() {
     PlayerActorHakoniwa* player = getPlayerActorHakoniwa();
     if(!player)
         return;
+    
+    // Update the mode timer
+    mModeTimer->updateTimer();
+    
+    // Check for a decrease in the minute value (how survival time score is awarded)
+    if((mInfo->mRoundTimer.mMinutes > mModeTimer->getTime().mMinutes) && mInfo->mIsPlayerRunner)
+        mInfo->mPlayerTagScore.eventScoreSurvivalTime();
 
-    // Verify standard hud is hidden
-    if(!mCurScene->mSceneLayout->isEnd())
-        mCurScene->mSceneLayout->end();
-
-    // Main player's ice block state and post processing
-    if(mInfo->mIsPlayerFreeze) {
-        if(!al::isAlive(mMainPlayerIceBlock)) {
-            mMainPlayerIceBlock->appear();
-            al::validatePostProcessingFilter(mCurScene);
-            int effectIndex = al::getPostProcessingFilterPresetId(mCurScene);
-            while(effectIndex != 1) {
-                al::incrementPostProcessingFilterPreset(mCurScene);
-                effectIndex = (effectIndex + 1) % 18;
-            }
-        }
+    mInfo->mRoundTimer = mModeTimer->getTime();
+    if(mModeTimer->isEnabled()) {
+        if(mModeTimer->getTimeCombined() <= 0.f)
+            endRound();
         
-        //Lock block onto player
-        al::setTrans(mMainPlayerIceBlock, al::getTrans(player));
-        al::setQuat(mMainPlayerIceBlock, al::getQuat(player));
-
-    } else {
-        if(al::isAlive(mMainPlayerIceBlock) && !al::isNerve(mMainPlayerIceBlock, &nrvFreezePlayerBlockDisappear)) {
-            mMainPlayerIceBlock->end();
-            al::invalidatePostProcessingFilter(mCurScene);
-        }
+        //Debug shiznit
+        Logger::log("%02i:%02i.%f\n%f\n", mInfo->mRoundTimer.mMinutes, mInfo->mRoundTimer.mSeconds, mInfo->mRoundTimer.mMilliseconds, mModeTimer->getTimeCombined());
     }
+
+    if(al::isPadHoldR(-1) && al::isPadTriggerZL(-1))
+        startRound();
 
     //Create list of runner and chaser player indexs
     mInfo->mRunnerPlayers.clear();
@@ -180,7 +176,7 @@ void FreezeTagMode::update() {
     mInvulnTime += Time::deltaTime;
 
     // Runner team frame checks
-    if (mInfo->mIsPlayerRunner) {
+    if (mInfo->mIsPlayerRunner && mInfo->mIsRound) {
         if (mInvulnTime >= 3) {
             bool isPDead = PlayerFunction::isPlayerDeadStatus(player);
             bool isP2D = ((PlayerActorHakoniwa*)player)->mDimKeeper->is2D;
@@ -193,11 +189,11 @@ void FreezeTagMode::update() {
                     continue;
 
                 //Check for freeze
-                if (!mInfo->mIsPlayerFreeze && pupDist < 225.f && isP2D == curInfo->is2D && !isPDead && !curInfo->isFreezeTagRunner)
+                if (!mInfo->mIsPlayerFreeze && pupDist < 250.f && isP2D == curInfo->is2D && !isPDead && !curInfo->isFreezeTagRunner)
                     trySetPlayerRunnerState(FreezeState::FREEZE);
 
                 //Check for unfreeze
-                if (mInvulnTime >= 3.75f && mInfo->mIsPlayerFreeze && pupDist < 175.f && isP2D == curInfo->is2D
+                if (mInvulnTime >= 3.75f && mInfo->mIsPlayerFreeze && pupDist < 200.f && isP2D == curInfo->is2D
                 && !isPDead && curInfo->isFreezeTagRunner && !curInfo->isFreezeTagFreeze) {
                     trySetPlayerRunnerState(FreezeState::ALIVE);
                 }
@@ -232,6 +228,29 @@ void FreezeTagMode::update() {
         Client::sendFreezeInfPacket();
     };
 
+    // Main player's ice block state and post processing
+    if(mInfo->mIsPlayerFreeze) {
+        if(!al::isAlive(mMainPlayerIceBlock)) {
+            mMainPlayerIceBlock->appear();
+            al::validatePostProcessingFilter(mCurScene);
+            int effectIndex = al::getPostProcessingFilterPresetId(mCurScene);
+            while(effectIndex != 1) {
+                al::incrementPostProcessingFilterPreset(mCurScene);
+                effectIndex = (effectIndex + 1) % 18;
+            }
+        }
+        
+        //Lock block onto player
+        al::setTrans(mMainPlayerIceBlock, al::getTrans(player));
+        al::setQuat(mMainPlayerIceBlock, al::getQuat(player));
+
+    } else {
+        if(al::isAlive(mMainPlayerIceBlock) && !al::isNerve(mMainPlayerIceBlock, &nrvFreezePlayerBlockDisappear)) {
+            mMainPlayerIceBlock->end();
+            al::invalidatePostProcessingFilter(mCurScene);
+        }
+    }
+
     // D-Pad functions
     if (al::isPadTriggerUp(-1) && !al::isPadHoldL(-1)&& !al::isPadHoldZR(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive) {
         mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
@@ -255,6 +274,10 @@ void FreezeTagMode::update() {
             tryStartEndgameEvent();
     }
 
+    // Verify standard hud is hidden
+    if(!mCurScene->mSceneLayout->isEnd())
+        mCurScene->mSceneLayout->end();
+
     //Spectate camera
     if(!mTicket->mIsActive && mInfo->mIsPlayerFreeze)
         al::startCamera(mCurScene, mTicket, -1);
@@ -263,270 +286,4 @@ void FreezeTagMode::update() {
     
     if(mTicket->mIsActive && mInfo->mIsPlayerFreeze)
         updateSpectateCam(player);
-}
-
-bool FreezeTagMode::isPlayerLastSurvivor(PuppetInfo* changingPuppet)
-{
-    if(!mInfo->mIsPlayerRunner)
-        return false; // If player is on the chaser team, just return false instantly
-    
-    if(mInfo->mRunnerPlayers.size() == 0)
-        return false; // If there's no other player on the runner team, last survivor stuff is disabled
-    
-    for(int i = 0; i < mInfo->mRunnerPlayers.size(); i++) {
-        PuppetInfo* inf = mInfo->mRunnerPlayers.at(i);
-        if(changingPuppet == inf)
-            continue; // If the puppet getting updated is the one currently being checked, skip this one
-
-        if(!inf->isFreezeTagFreeze)
-            return false; // Found another non-frozen player, not last survivor
-    }
-
-    return true; //Last survivor check passed!
-}
-
-bool FreezeTagMode::isAllRunnerFrozen(PuppetInfo* changingPuppet)
-{
-    if(mInfo->mRunnerPlayers.size() < 2 - mInfo->mIsPlayerRunner)
-        return false; // Verify there is at least two runners (including yourself), otherwise disable this functionality
-    
-    if(mInfo->mIsPlayerRunner && !mInfo->mIsPlayerFreeze)
-        return false; // If you are a runner but aren't frozen then skip
-    
-    for(int i = 0; i < mInfo->mRunnerPlayers.size(); i++) {
-        PuppetInfo* inf = mInfo->mRunnerPlayers.at(i);
-        if(changingPuppet == inf)
-            continue; // If the puppet getting updated is the one currently being checked, skip this one
-
-        if(!inf->isFreezeTagFreeze)
-            return false; // Found a non-frozen player on the runner team, cancel
-    }
-
-    return true; // All runners are frozen!
-}
-
-PlayerActorHakoniwa* FreezeTagMode::getPlayerActorHakoniwa()
-{
-    PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
-    bool isYukimaru = !playerBase->getPlayerInfo();
-
-    if(isYukimaru)
-        return nullptr;
-    
-    return (PlayerActorHakoniwa*)playerBase;
-}
-
-bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
-{
-    PlayerActorHakoniwa* player = getPlayerActorHakoniwa();
-    if(!player)
-        return false;
-
-    if(mInfo->mIsPlayerFreeze == newState || !mInfo->mIsPlayerRunner)
-        return false;
-    
-    HackCap* hackCap = player->mHackCap;
-
-    mInvulnTime = 0.f;
-    
-    if(newState == FreezeState::ALIVE) {
-        mInfo->mIsPlayerFreeze = FreezeState::ALIVE;
-        player->endDemoPuppetable();
-    } else {
-        mInfo->mIsPlayerFreeze = FreezeState::FREEZE;
-        player->startDemoPuppetable();
-        player->mPlayerAnimator->endSubAnim();
-        player->mPlayerAnimator->startAnim("DeadIce");
-
-        hackCap->forcePutOn();
-
-        mSpectateIndex = -1;
-
-        if(isAllRunnerFrozen(nullptr))
-            tryStartEndgameEvent();
-    }
-
-    Client::sendFreezeInfPacket();
-
-    return true;
-}
-
-void FreezeTagMode::tryScoreEvent(FreezeInf* incomingPacket, PuppetInfo* sourcePuppet)
-{
-    if(!mCurScene || !GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
-        return;
-
-    // Get the distance of the incoming player
-    float puppetDistance = al::calcDistance(rs::getPlayerActor(mCurScene), sourcePuppet->playerPos);
-    bool isInRange = puppetDistance < 400.f; // Only apply this score event if player is less than this many units away
-
-    if(isInRange) {
-        //Check for unfreeze score event
-        if((mInfo->mIsPlayerRunner && !mInfo->mIsPlayerFreeze) && (sourcePuppet->isFreezeTagFreeze && !incomingPacket->isFreeze)) {
-            mInfo->mPlayerTagScore.eventScoreUnfreeze();
-        }
-
-        //Check for freeze score event
-        if((!mInfo->mIsPlayerRunner) && (!sourcePuppet->isFreezeTagFreeze && incomingPacket->isFreeze)) {
-            mInfo->mPlayerTagScore.eventScoreFreeze();
-        }
-    }
-
-    // Check if the current player is the last unfrozen runner!
-    if(mInfo->mIsPlayerRunner && !mInfo->mIsPlayerFreeze && !sourcePuppet->isFreezeTagFreeze
-    && incomingPacket->isFreeze && isPlayerLastSurvivor(sourcePuppet)) {
-        mInfo->mPlayerTagScore.eventScoreLastSurvivor();
-    }
-
-    // Checks if every runner is frozen, starts endgame sequence if so
-    if(!sourcePuppet->isFreezeTagFreeze && incomingPacket->isFreeze && isAllRunnerFrozen(sourcePuppet)) {
-        tryStartEndgameEvent();
-    }
-}
-
-
-bool FreezeTagMode::tryStartRecoveryEvent(bool isEndgame)
-{
-    PlayerActorHakoniwa* player = getPlayerActorHakoniwa();
-    if(!player)
-        return false;
-
-    if(mRecoveryEventFrames > 0 || !mWipeHolder)
-        return false; //Something isn't applicable here, return fail
-    
-    mRecoveryEventFrames = (mRecoveryEventLength / 2) * (isEndgame + 1);
-    mWipeHolder->startClose("FadeBlack", (mRecoveryEventLength / 4) * (isEndgame + 1));
-
-    if(!isEndgame)
-        mRecoverySafetyPoint = player->mPlayerRecoverySafetyPoint->mSafetyPointPos;
-    else
-        mRecoverySafetyPoint = sead::Vector3f::zero;
-    
-    Logger::log("Recovery event %.00fx %.00fy %.00fz\n", mRecoverySafetyPoint.x, mRecoverySafetyPoint.y, mRecoverySafetyPoint.z);
-
-    return true;
-}
-
-bool FreezeTagMode::tryEndRecoveryEvent()
-{
-    if(!mWipeHolder)
-        return false; //Recovery event is already started, return fail
-    
-    mWipeHolder->startOpen(mRecoveryEventLength / 2);
-    
-    PlayerActorHakoniwa* player = getPlayerActorHakoniwa();
-    if(!player)
-        return false;
-
-    // Set the player to frozen if they are a runner AND they had a valid recovery point
-    if(mInfo->mIsPlayerRunner && mRecoverySafetyPoint != sead::Vector3f::zero) {
-        trySetPlayerRunnerState(FreezeState::FREEZE);
-        al::setTrans(player, mRecoverySafetyPoint);
-    } else {
-        trySetPlayerRunnerState(FreezeState::ALIVE);
-    }
-
-    // If player is a chaser with a valid recovery point, teleport (and disable collisions)
-    if(!mInfo->mIsPlayerRunner) {
-        player->startDemoPuppetable();
-        if(mRecoverySafetyPoint != sead::Vector3f::zero)
-            al::setTrans(player, mRecoverySafetyPoint);
-    }
-
-    // If player is being made alive, force end demo puppet state
-    if(!mInfo->mIsPlayerFreeze)
-        player->endDemoPuppetable();
-
-    if(!mIsEndgameActive)
-        mModeLayout->hideEndgameScreen();
-
-    return true;
-}
-
-void FreezeTagMode::tryStartEndgameEvent()
-{
-    mIsEndgameActive = true;
-    mEndgameTimer = 0.f;
-    mModeLayout->showEndgameScreen();
-
-    PlayerActorHakoniwa* player = getPlayerActorHakoniwa();
-    if(!player)
-        return;
-    
-    player->startDemoPuppetable();
-    rs::faceToCamera(player);
-    player->mPlayerAnimator->endSubAnim();
-    if(mInfo->mIsPlayerRunner)
-        player->mPlayerAnimator->startAnim("RaceResultLose");
-    else
-        player->mPlayerAnimator->startAnim("RaceResultWin");
-}
-
-void FreezeTagMode::updateSpectateCam(PlayerActorBase* playerBase)
-{
-    //If the specate camera ticket is active, get the camera poser
-    al::CameraPoser* curPoser;
-    al::CameraDirector* director = mCurScene->getCameraDirector();
-
-    if (director) {
-        al::CameraPoseUpdater* updater = director->getPoseUpdater(0);
-        if (updater && updater->mTicket) {
-            curPoser = updater->mTicket->mPoser;
-        }
-    }
-    
-    //Verify 100% that this poser is the actor spectator
-    if (al::isEqualString(curPoser->getName(), "CameraPoserActorSpectate")) {
-        cc::CameraPoserActorSpectate* spectatePoser = (cc::CameraPoserActorSpectate*)curPoser;
-        spectatePoser->setPlayer(playerBase);
-
-        //Increase or decrease spectate index, followed by clamping it
-        int indexDirection = 0;
-        if(al::isPadTriggerRight(-1) && !mIsEndgameActive) indexDirection = 1; //Move index right
-        if(al::isPadTriggerLeft(-1) && !mIsEndgameActive) indexDirection = -1; //Move index left
-
-        //Force index to decrease if your current index is higher than runner player count
-        //Force index towards -1 during endgame if spectate index is not already -1
-        if(mSpectateIndex >= mInfo->mRunnerPlayers.size() || (mIsEndgameActive && mSpectateIndex != -1))
-            indexDirection = -1;
-
-        //Force index to decrease if your current target changes stages
-        if(mSpectateIndex != -1 && indexDirection == 0)
-            if(!mInfo->mRunnerPlayers.at(mSpectateIndex)->isInSameStage)
-                indexDirection = -1; //Move index left
-
-        //Loop over indexs until you find a sutible one in the same stage
-        bool isFinalIndex = false;
-        while(!isFinalIndex) {
-            mSpectateIndex += indexDirection;
-
-            // Start by clamping the index
-            if(mSpectateIndex < -1) mSpectateIndex = mInfo->mRunnerPlayers.size() - 1;
-            if(mSpectateIndex >= mInfo->mRunnerPlayers.size()) mSpectateIndex = -1;
-
-            // If not in same stage, skip
-            if(mSpectateIndex != -1) {
-                if(mInfo->mRunnerPlayers.at(mSpectateIndex)->isInSameStage)
-                    isFinalIndex = true;
-            } else {
-                isFinalIndex = true;
-            }
-
-        }
-        
-        //If no index change is happening, end here
-        if(mPrevSpectateIndex == mSpectateIndex)
-            return;
-
-        //Apply index to target actor and HUD
-        if(mSpectateIndex == -1) {
-            spectatePoser->setTargetActor(al::getTransPtr(playerBase));
-            mModeLayout->setSpectateString("Spectate");
-        } else {
-            spectatePoser->setTargetActor(&mInfo->mRunnerPlayers.at(mSpectateIndex)->playerPos);
-            mModeLayout->setSpectateString(mInfo->mRunnerPlayers.at(mSpectateIndex)->puppetName);
-        }
-
-        mPrevSpectateIndex = mSpectateIndex;
-    }
 }

@@ -29,7 +29,10 @@ struct FreezeTagInfo : GameModeInfoBase {
     bool mIsPlayerRunner = true;
     float mFreezeIconSize = 0.f;
     FreezeState mIsPlayerFreeze = FreezeState::ALIVE;
+
+    bool mIsRound = false;
     FreezeTagScore mPlayerTagScore;
+    GameTime mRoundTimer;
 
     sead::PtrArray<PuppetInfo> mRunnerPlayers;
     sead::PtrArray<PuppetInfo> mChaserPlayers;
@@ -47,6 +50,10 @@ public:
     virtual void update() override;
     virtual void end() override;
 
+    void startRound();
+    void endRound();
+
+    bool isScoreEventsEnabled() const { return mIsScoreEventsValid; };
     bool isPlayerRunner() const { return mInfo->mIsPlayerRunner; };
     bool isPlayerFreeze() const { return mInfo->mIsPlayerFreeze; };
     bool isEndgameActive() {return mIsEndgameActive;}
@@ -77,12 +84,14 @@ private:
     bool mIsEndgameActive = false;
     float mEndgameTimer = -1.f;
 
+    GameModeTimer* mModeTimer = nullptr;
     FreezeTagIcon* mModeLayout = nullptr;
     FreezeTagInfo* mInfo = nullptr;
     FreezePlayerBlock* mMainPlayerIceBlock = nullptr;
     al::WipeHolder* mWipeHolder = nullptr; // Pointer set by setWipeHolder on first step of hakoniwaSequence hook
 
     float mInvulnTime = 0.0f;
+    bool mIsScoreEventsValid = false;
 
     // Spectate camera ticket and target information
     al::CameraTicket* mTicket = nullptr;

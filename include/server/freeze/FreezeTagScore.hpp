@@ -22,9 +22,12 @@ public:
 
     // Events
     void eventScoreDebug() { addScore(1, "Debugging!"); };
-    void eventScoreUnfreeze() { addScore(3, "Rescued"); };
-    void eventScoreFreeze() { addScore(1, "Caught"); };
-    void eventScoreLastSurvivor() { addScore(10, "Last Survivor"); };
+    void eventScoreSurvivalTime() { addScore(1, "Survival Time"); };
+    void eventScoreUnfreeze() { addScore(2, "Rescued"); };
+    void eventScoreFreeze() { addScore(2, "Caught"); };
+    void eventScoreLastSurvivor() { addScore(5, "Last Survivor"); };
+    void eventScoreRunnerWin() { addScore(4, "Survived!"); };
+    void eventScoreWipeout() { addScore(15, "Wipeout!"); };
 
 private:
     FreezeTagIcon* mIcon;
