@@ -109,6 +109,9 @@ void FreezeTagIcon::exeWait()
     if (mScoreEventTime >= 0.f) {
         mScoreEventTime += Time::deltaTime;
 
+        if(mScoreEventTime > 3.75f)
+            mScoreEventValue = 0;
+
         // Calculate score event pane's position
         sead::Vector3f targetPos = mScoreEventTime < 3.f ? sead::Vector3f(0.f, 280.f, 0.f) : sead::Vector3f(-650.f, 420.f, 0.f);
         if (!mInfo->mIsPlayerRunner)
@@ -147,7 +150,9 @@ void FreezeTagIcon::queueScoreEvent(int eventValue, const char* eventDesc)
 {
     mScoreEventTime = 0.f;
     mScoreEventIsQueued = true;
-    mScoreEventValue = eventValue;
+    mScoreEventValue += eventValue;
+    mScoreEventValue = al::clamp(mScoreEventValue, 0, 99);
+
     mScoreEventDesc = eventDesc;
     mScoreEventPos = sead::Vector3f(0.f, 280.f, 0.f);
     mScoreEventScale = 1.35f;
