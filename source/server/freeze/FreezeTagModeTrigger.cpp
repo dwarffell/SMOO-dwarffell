@@ -1,4 +1,9 @@
+#include "al/util/LiveActorUtil.h"
+#include "al/util/RandomUtil.h"
+#include "math/seadVector.h"
+#include "puppets/PuppetInfo.h"
 #include "server/freeze/FreezeTagMode.hpp"
+#include "al/alCollisionUtil.h"
 
 /*
     ROUND START AND END FUNCTIONS
@@ -53,6 +58,9 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
         player->endDemoPuppetable();
     } else {
         mInfo->mIsPlayerFreeze = FreezeState::FREEZE;
+        if(player->getPlayerHackKeeper()->currentHackActor)
+            player->getPlayerHackKeeper()->cancelHackArea();
+            
         player->startDemoPuppetable();
         player->mPlayerAnimator->endSubAnim();
         player->mPlayerAnimator->startAnim("DeadIce");
@@ -156,7 +164,7 @@ bool FreezeTagMode::tryEndRecoveryEvent()
     // Set the player to frozen if they are a runner AND they had a valid recovery point
     if(mInfo->mIsPlayerRunner && mRecoverySafetyPoint != sead::Vector3f::zero) {
         trySetPlayerRunnerState(FreezeState::FREEZE);
-        al::setTrans(player, mRecoverySafetyPoint);
+        warpToRecoveryPoint(player);
     } else {
         trySetPlayerRunnerState(FreezeState::ALIVE);
     }
@@ -165,7 +173,7 @@ bool FreezeTagMode::tryEndRecoveryEvent()
     if(!mInfo->mIsPlayerRunner) {
         player->startDemoPuppetable();
         if(mRecoverySafetyPoint != sead::Vector3f::zero)
-            al::setTrans(player, mRecoverySafetyPoint);
+            warpToRecoveryPoint(player);
     }
 
     // If player is being made alive, force end demo puppet state
@@ -176,6 +184,22 @@ bool FreezeTagMode::tryEndRecoveryEvent()
         mModeLayout->hideEndgameScreen();
 
     return true;
+}
+
+void FreezeTagMode::warpToRecoveryPoint(al::LiveActor *actor)
+{
+    if(mInfo->mChaserPlayers.size() == 0 || !mInfo->mIsPlayerRunner || !mInfo->mIsRound) {
+        al::setTrans(actor, mRecoverySafetyPoint);
+        return;
+    }
+
+    PuppetInfo* inf = mInfo->mChaserPlayers.at(al::getRandom(mInfo->mChaserPlayers.size()));
+    if(!inf->isInSameStage || !inf->isConnected) {
+        al::setTrans(actor, mRecoverySafetyPoint);
+        return;
+    }
+
+    al::setTrans(actor, inf->playerPos);
 }
 
 /*

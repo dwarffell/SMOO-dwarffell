@@ -65,6 +65,9 @@ public:
     void setWipeHolder(al::WipeHolder* wipe) { mWipeHolder = wipe; };
     bool tryStartRecoveryEvent(bool isEndgame);
     bool tryEndRecoveryEvent();
+    void warpToRecoveryPoint(al::LiveActor* actor);
+
+
     void tryStartEndgameEvent();
 
     bool trySetPlayerRunnerState(FreezeState state);
