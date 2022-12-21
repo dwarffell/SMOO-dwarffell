@@ -295,6 +295,49 @@ bool Client::openKeyboardPort() {
 }
 
 /**
+ * @brief Opens up OS's software keyboard in order to change the player's current freeze tag score
+ * @returns whether or not a new score has been defined and needs to be updated.
+ */
+uint16_t Client::openKeyboardFreezeTag() {
+    if (!sInstance) {
+        Logger::log("Static Instance is null!\n");
+        return -1;
+    }
+
+    if (!GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return -1;
+    
+    uint16_t oldScore = GameModeManager::instance()->getInfo<FreezeTagInfo>()->mPlayerTagScore.mScore;
+    uint16_t newScore = -1;
+
+    Client::getKeyboard()->setHeaderText(u"Set your Freeze Tag score");
+    Client::getKeyboard()->setSubText(u"Must be in game and have the game mode active to set your score");
+
+    // opens swkbd with the initial text set to the last saved port
+    char buf[5];
+    nn::util::SNPrintf(buf, 5, "%u", oldScore);
+
+    sInstance->mKeyboard->openKeyboard(buf, [](nn::swkbd::KeyboardConfig& config) {
+        config.keyboardMode = nn::swkbd::KeyboardMode::ModeNumeric;
+        config.textMaxLength = 4;
+        config.textMinLength = 1;
+        config.isUseUtf8 = true;
+        config.inputFormMode = nn::swkbd::InputFormMode::OneLine;
+    });
+
+    while (true) {
+        if (sInstance->mKeyboard->isThreadDone()) {
+            if(!sInstance->mKeyboard->isKeyboardCancelled())
+                newScore = ::atoi(sInstance->mKeyboard->getResult());
+            break;
+        }
+        nn::os::YieldThread(); // allow other threads to run
+    }
+
+    return newScore;
+}
+
+/**
  * @brief main thread function for read thread, responsible for processing packets from server
  * 
  */

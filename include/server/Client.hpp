@@ -177,6 +177,7 @@ class Client {
 
         static bool openKeyboardIP();
         static bool openKeyboardPort();
+        static uint16_t openKeyboardFreezeTag();
 
         static void showConnect();
 
