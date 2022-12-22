@@ -58,11 +58,16 @@ void CameraPoserActorSpectate::start(al::CameraStartInfo const&)
 
     mPosition = faceDir;
     mFovyDegree = 47.5f;
+
+    mPoserFlags->mOffVerticalAbsorb = true;
+    mPoserFlags->mInvalidChangeSubjective = true;
+    mPoserFlags->mInvalidPreCameraEndAfterInterpole = true;
+    mPoserFlags->mInvalidChangeSubjective = true;
+    mPoserFlags->mValidKeepPreSelfPoseNextCameraByParam = false;
 }
 
 void CameraPoserActorSpectate::movement()
 {
-
     if (mTargetActorPos)
         al::lerpVec(&mTargetTrans, mTargetTrans - sead::Vector3f(0.f, 100.f, 0.f), *mTargetActorPos, 0.08f);
     

@@ -122,6 +122,11 @@ void FreezeTagMode::begin() {
     mPrevSpectateIndex = -2;
     mIsScoreEventsValid = true;
 
+    if(mInfo->mIsRound)
+        mModeTimer->enableTimer();
+    mModeTimer->disableControl();
+    mModeTimer->setTimerDirection(false);
+
     PlayerHitPointData* hit = mCurScene->mHolder.mData->mGameDataFile->getPlayerHitPointData();
     hit->mCurrentHit = hit->getMaxCurrent();
     hit->mIsKidsMode = true;
@@ -316,6 +321,8 @@ void FreezeTagMode::update() {
             mInfo->mPlayerTagScore.eventScoreDebug();
         if (al::isPadTriggerRight(-1) && al::isPadHoldB(-1))
             tryStartEndgameEvent();
+        if (al::isPadTriggerLeft(-1) && al::isPadHoldA(-1))
+            mModeTimer->setTime(0.f, 5, 1, 0);
     }
 
     // Verify standard hud is hidden
