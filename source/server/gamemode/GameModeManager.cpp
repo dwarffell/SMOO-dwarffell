@@ -9,19 +9,21 @@
 #include "server/gamemode/GameModeFactory.hpp"
 #include "server/gamemode/modifiers/ModeModifierBase.hpp"
 #include "server/gamemode/modifiers/ModifierFactory.hpp"
+#include "types.h"
 
 SEAD_SINGLETON_DISPOSER_IMPL(GameModeManager)
 
 GameModeManager::GameModeManager() {
     mHeap = sead::ExpHeap::create(0x50000, "GameModeHeap", al::getSequenceHeap(), 8,
                                     sead::Heap::HeapDirection::cHeapDirection_Reverse, false);
-    setMode(GameMode::FREEZETAG);
+    setMode(GameMode::FREEZETAG); // set default gamemode
 }
 
 void GameModeManager::begin() {
     if (mCurModeBase) {
         sead::ScopedCurrentHeapSetter heapSetter(mHeap);
         mCurModeBase->begin();
+        Logger::log("Beginning Mode.\n");
     }
 }
 
@@ -29,6 +31,23 @@ void GameModeManager::end() {
     if (mCurModeBase) {
         sead::ScopedCurrentHeapSetter heapSetter(mHeap);
         mCurModeBase->end();
+        Logger::log("Ending Mode.\n");
+    }
+}
+
+void GameModeManager::pause() {
+    if (mCurModeBase) {
+        sead::ScopedCurrentHeapSetter heapSetter(mHeap);
+        mCurModeBase->pause();
+        Logger::log("Pausing Mode.\n");
+    }
+}
+
+void GameModeManager::unpause() {
+    if (mCurModeBase) {
+        sead::ScopedCurrentHeapSetter heapSetter(mHeap);
+        mCurModeBase->unpause();
+        Logger::log("Unpausing Mode.\n");
     }
 }
 
@@ -49,9 +68,22 @@ void GameModeManager::setMode(GameMode mode) {
 void GameModeManager::update() {
     if (!mCurModeBase) return;
     bool inScene = al::getSceneHeap() != nullptr;
-    if ((mActive && inScene && !mPaused && !mCurModeBase->isModeActive()) || mWasSceneTrans) begin();
-    if ((!mActive || mPaused || !inScene) && mCurModeBase->isModeActive()) end();
+    if ((mActive && inScene && !mCurModeBase->isModeActive() && !mPaused && !mWasPaused) || mWasSceneTrans) {
+        begin();
+        mWasPaused = false;
+    }
+    if ((!mActive || !inScene) && mCurModeBase->isModeActive()) end();
     mWasSceneTrans = false;
+
+    if (mActive) {
+        if (mPaused && mCurModeBase->isModeActive()) {
+            pause();
+            mWasPaused = true;
+        } else if (!mPaused && !mCurModeBase->isModeActive()) {
+            unpause();
+        }
+    }
+
     if (mCurModeBase && mCurModeBase->isModeActive()) {
         sead::ScopedCurrentHeapSetter heapSetter(mHeap);
         mCurModeBase->update();

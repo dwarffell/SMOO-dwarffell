@@ -5,11 +5,7 @@
 #include "heap/seadHeapMgr.h"
 #include "logger.hpp"
 #include "packets/Packet.h"
-#include "server/freeze/FreezeTagMode.hpp"
-#include "server/gamemode/GameModeBase.hpp"
-#include "server/gamemode/GameModeManager.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
-#include "server/snh/SardineMode.hpp"
 
 SEAD_SINGLETON_DISPOSER_IMPL(Client)
 
@@ -295,49 +291,6 @@ bool Client::openKeyboardPort() {
 }
 
 /**
- * @brief Opens up OS's software keyboard in order to change the player's current freeze tag score
- * @returns whether or not a new score has been defined and needs to be updated.
- */
-uint16_t Client::openKeyboardFreezeTag() {
-    if (!sInstance) {
-        Logger::log("Static Instance is null!\n");
-        return -1;
-    }
-
-    if (!GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
-        return -1;
-    
-    uint16_t oldScore = GameModeManager::instance()->getInfo<FreezeTagInfo>()->mPlayerTagScore.mScore;
-    uint16_t newScore = -1;
-
-    Client::getKeyboard()->setHeaderText(u"Set your Freeze Tag score");
-    Client::getKeyboard()->setSubText(u"Must be in game and have the game mode active to set your score");
-
-    // opens swkbd with the initial text set to the last saved port
-    char buf[5];
-    nn::util::SNPrintf(buf, 5, "%u", oldScore);
-
-    sInstance->mKeyboard->openKeyboard(buf, [](nn::swkbd::KeyboardConfig& config) {
-        config.keyboardMode = nn::swkbd::KeyboardMode::ModeNumeric;
-        config.textMaxLength = 4;
-        config.textMinLength = 1;
-        config.isUseUtf8 = true;
-        config.inputFormMode = nn::swkbd::InputFormMode::OneLine;
-    });
-
-    while (true) {
-        if (sInstance->mKeyboard->isThreadDone()) {
-            if(!sInstance->mKeyboard->isKeyboardCancelled())
-                newScore = ::atoi(sInstance->mKeyboard->getResult());
-            break;
-        }
-        nn::os::YieldThread(); // allow other threads to run
-    }
-
-    return newScore;
-}
-
-/**
  * @brief main thread function for read thread, responsible for processing packets from server
  * 
  */
@@ -416,8 +369,8 @@ void Client::readFunc() {
                 curPacket->mUserID.print();
                 disconnectPlayer((PlayerDC*)curPacket);
                 break;
-            case PacketType::TAGINF:
-                updateTagInfo((TagInf*)curPacket);
+            case PacketType::GAMEMODEINF:
+                GameModeManager::processModePacket(curPacket);
                 break;
             case PacketType::CHANGESTAGE:
                 sendToStage((ChangeStagePacket*)curPacket);
@@ -640,7 +593,7 @@ void Client::sendGameInfPacket(GameDataHolderAccessor holder) {
  * @brief 
  * 
  */
-void Client::sendTagInfPacket() {
+void Client::sendGamemodePacket() {
 
     if (!sInstance) {
         Logger::log("Static Instance is Null!\n");
@@ -648,81 +601,13 @@ void Client::sendTagInfPacket() {
     }
 
     sead::ScopedCurrentHeapSetter setter(sInstance->mHeap);
-    
-    GameMode curMode = GameModeManager::instance()->getGameMode();
-    HideAndSeekMode* hsMode;
-    HideAndSeekInfo* hsInfo;
-    SardineMode* sarMode;
-    SardineInfo* sarInfo;
 
-    switch(GameModeManager::instance()->getGameMode()){
-        case GameMode::HIDEANDSEEK:
-            hsMode = GameModeManager::instance()->getMode<HideAndSeekMode>();
-            hsInfo = GameModeManager::instance()->getInfo<HideAndSeekInfo>();
-            break;
-        case GameMode::SARDINE:
-            sarMode = GameModeManager::instance()->getMode<SardineMode>();
-            sarInfo = GameModeManager::instance()->getInfo<SardineInfo>();
-            break;
-        case GameMode::NONE:
-            Logger::log("Tag info packet has unknown gamemode!\n");
-            return;
-        default:
-            Logger::log("Tag info packet has unknown gamemode!\n");
-            return;
-    };
+    Packet* gmPacket = GameModeManager::createModePacket();
 
-    TagInf *packet = new TagInf();
-
-    packet->mUserID = sInstance->mUserID;
-
-    if(curMode == GameMode::HIDEANDSEEK){
-        packet->isIt = hsMode->isPlayerIt();
-        packet->minutes = hsInfo->mHidingTime.mMinutes;
-        packet->seconds = hsInfo->mHidingTime.mSeconds;
-    }
-    else if (curMode == GameMode::SARDINE){
-        packet->isIt = sarMode->isPlayerIt();
-        packet->minutes = sarInfo->mHidingTime.mMinutes;
-        packet->seconds = sarInfo->mHidingTime.mSeconds;
+    if(gmPacket) {
+        sInstance->mSocket->queuePacket(gmPacket);
     }
 
-    packet->updateType = static_cast<TagUpdateType>(TagUpdateType::STATE | TagUpdateType::TIME);
-
-    sInstance->mSocket->queuePacket(packet);
-}
-
-/**
- * @brief 
- * 
- */
-void Client::sendFreezeInfPacket() {
-
-    if (!sInstance) {
-        Logger::log("Static Instance is Null!\n");
-        return;
-    }
-
-    sead::ScopedCurrentHeapSetter setter(sInstance->mHeap);
-    
-    GameMode curMode = GameModeManager::instance()->getGameMode();
-    if(curMode != GameMode::FREEZETAG) {
-        Logger::log("Attempting to send FreezeInf packet while not in Freeze Tag mode!\n");
-        return;
-    }
-
-    FreezeTagMode* frMode = GameModeManager::instance()->getMode<FreezeTagMode>();
-    FreezeTagInfo* frInfo = GameModeManager::instance()->getInfo<FreezeTagInfo>();;
-
-    FreezeInf *packet = new FreezeInf();
-
-    packet->mUserID = sInstance->mUserID;
-
-    packet->isRunner = frInfo->mIsPlayerRunner;
-    packet->isFreeze = frInfo->mIsPlayerFreeze;
-    packet->score = frInfo->mPlayerTagScore.mScore;
-
-    sInstance->mSocket->queuePacket(packet);
 }
 
 /**
@@ -989,106 +874,6 @@ void Client::updateGameInfo(GameInf *packet) {
  * 
  * @param packet 
  */
-void Client::updateTagInfo(TagInf *packet) {
-    GameMode mode = GameModeManager::instance()->getGameMode();
-
-    if(mode == GameMode::HIDEANDSEEK || mode == GameMode::SARDINE) {
-        // if the packet is for our player, edit info for our player
-        if (packet->mUserID == mUserID && GameModeManager::instance()->isMode(GameMode::HIDEANDSEEK)) {
-
-            HideAndSeekMode* mMode = GameModeManager::instance()->getMode<HideAndSeekMode>();
-            HideAndSeekInfo* curInfo = GameModeManager::instance()->getInfo<HideAndSeekInfo>();
-
-            if (packet->updateType & TagUpdateType::STATE) {
-                mMode->setPlayerTagState(packet->isIt);
-            }
-
-            if (packet->updateType & TagUpdateType::TIME) {
-                curInfo->mHidingTime.mSeconds = packet->seconds;
-                curInfo->mHidingTime.mMinutes = packet->minutes;
-            }
-
-            return;
-
-        }
-
-        if (packet->mUserID == mUserID && GameModeManager::instance()->isMode(GameMode::SARDINE)) {
-
-            SardineMode* mMode = GameModeManager::instance()->getMode<SardineMode>();
-            SardineInfo* curInfo = GameModeManager::instance()->getInfo<SardineInfo>();
-
-            if (packet->updateType & TagUpdateType::STATE) {
-                mMode->setPlayerTagState(packet->isIt);
-            }
-
-            if (packet->updateType & TagUpdateType::TIME) {
-                curInfo->mHidingTime.mSeconds = packet->seconds;
-                curInfo->mHidingTime.mMinutes = packet->minutes;
-            }
-
-            return;
-
-        }
-
-        PuppetInfo* curInfo = findPuppetInfo(packet->mUserID, false);
-
-        if (!curInfo) {
-            return;
-        }
-
-        curInfo->isIt = packet->isIt;
-        curInfo->seconds = packet->seconds;
-        curInfo->minutes = packet->minutes;
-    }
-
-    if(mode == GameMode::FREEZETAG) {
-        FreezeInf* freezePak = (FreezeInf*)packet;
-        
-        // if the packet is for our player, edit info for our player
-        if (packet->mUserID == mUserID && GameModeManager::instance()->isMode(GameMode::FREEZETAG)) {
-
-            FreezeTagMode* mMode = GameModeManager::instance()->getMode<FreezeTagMode>();
-            FreezeTagInfo* curInfo = GameModeManager::instance()->getInfo<FreezeTagInfo>();
-            
-            curInfo->mIsPlayerRunner = freezePak->isRunner;
-
-            if(freezePak->isFreeze && !freezePak->isRunner)
-                mMode->trySetPlayerRunnerState(FreezeState::FREEZE);
-            else
-                mMode->trySetPlayerRunnerState(FreezeState::ALIVE);
-
-            return;
-
-        }
-
-        PuppetInfo* curInfo = findPuppetInfo(packet->mUserID, false);
-
-        if (!curInfo)
-            return;
-
-        if(!GameModeManager::instance()->isActive()) {
-            curInfo->isFreezeTagFreeze = freezePak->isFreeze;
-            curInfo->isFreezeTagRunner = freezePak->isRunner;
-            curInfo->freezeTagScore = freezePak->score;
-            return;
-        }
-        
-        FreezeTagMode* mMode = GameModeManager::instance()->getMode<FreezeTagMode>();
-
-        if(mMode->isScoreEventsEnabled())
-            mMode->tryScoreEvent(freezePak, curInfo);
-
-        curInfo->isFreezeTagFreeze = freezePak->isFreeze;
-        curInfo->isFreezeTagRunner = freezePak->isRunner;
-        curInfo->freezeTagScore = freezePak->score;
-    }
-}
-
-/**
- * @brief 
- * 
- * @param packet 
- */
 void Client::sendToStage(ChangeStagePacket* packet) {
     if (mSceneInfo && mSceneInfo->mSceneObjHolder) {
 
@@ -1158,7 +943,7 @@ PuppetInfo* Client::findPuppetInfo(const nn::account::Uid& id, bool isFindAvaila
 
     for (size_t i = 0; i < getMaxPlayerCount() - 1; i++) {
 
-        PuppetInfo* curInfo = mPuppetInfoArr[i];
+        PuppetInfo* curInfo = instance()->mPuppetInfoArr[i];
 
         if (curInfo->playerID == id) {
             return curInfo;
@@ -1249,7 +1034,7 @@ PuppetInfo *Client::getLatestInfo() {
 
 /**
  * @brief 
- * 
+ * Returns Puppet Info based off index in array.
  * @param idx 
  * @return PuppetInfo* 
  */
@@ -1264,6 +1049,32 @@ PuppetInfo *Client::getPuppetInfo(int idx) {
         }
 
         return curInfo;
+    }else {
+        return nullptr;
+    }
+}
+
+/**
+ * @brief 
+ * Returns Puppet Info based off player name.
+ * @param idx 
+ * @return PuppetInfo* 
+ */
+PuppetInfo *Client::getPuppetInfo(const char *name) {
+    if(sInstance) {
+
+        for (size_t i = 0; i < getMaxPlayerCount(); i++)
+        {
+            PuppetInfo* curInfo = sInstance->mPuppetInfoArr[i];
+
+            if(curInfo && al::isEqualString(curInfo->puppetName, name)) {
+                return curInfo;
+            }
+        }
+
+        Logger::log("Unable to find Puppet with Name: %s\n", name);
+        return nullptr;
+
     }else {
         return nullptr;
     }

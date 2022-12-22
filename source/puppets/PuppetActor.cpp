@@ -1,7 +1,6 @@
 #include <cmath>
 #include <cstddef>
 #include "al/model/PartsModel.h"
-#include "al/util/NerveUtil.h"
 #include "al/util/SensorUtil.h"
 #include "game/Player/PlayerCostumeFunction.h"
 #include "game/Player/PlayerCostumeInfo.h"
@@ -23,6 +22,7 @@
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
 #include "server/snh/SardineMode.hpp"
+// #include "server/manhunt/ManhuntMode.hpp"
 
 static const char *subActorNames[] = {
     "顔", // Face
@@ -288,15 +288,25 @@ void PuppetActor::makeActorDead() {
 }
 
 void PuppetActor::attackSensor(al::HitSensor* source, al::HitSensor* target) {
+
+    // prevent normal attack behavior if gamemode requires custom behavior
+    if (GameModeManager::tryAttackPuppetSensor(source, target))
+        return;
     
     if (!al::sendMsgPush(target, source)) {
         rs::sendMsgPushToPlayer(target, source);
+        rs::sendMsgPlayerDisregardTargetMarker(target, source);
     }
 
 }
 
 bool PuppetActor::receiveMsg(const al::SensorMsg* msg, al::HitSensor* source,
                              al::HitSensor* target) {
+
+    // try to use gamemode recieve logic, otherwise fallback to default behavior
+    if (GameModeManager::tryReceivePuppetMsg(msg, source, target)) {
+        return true;
+    }
 
     if ((al::isMsgPlayerTrampleReflect(msg) || rs::isMsgPlayerAndCapObjHipDropReflectAll(msg)) && al::isSensorName(target, "Body"))
     {
@@ -449,6 +459,17 @@ void PuppetActor::emitJoinEffect() {
     al::tryDeleteEffect(this, "Disappear"); // remove previous effect (if played previously)
 
     al::tryEmitEffect(this, "Disappear", nullptr);
+}
+
+void PuppetActor::debugThrowCap() {
+    mInfo->isCapThrow = !mInfo->isCapThrow;
+
+    if (mInfo->isCapThrow) {
+        sead::Vector3f &fowardDir = al::getFront(this);
+        sead::Vector3f &curPos = al::getTrans(this);
+
+        mInfo->capPos = sead::Vector3f(curPos.x - (fowardDir.x * 500.0f), curPos.y + 80.0f, curPos.z - (fowardDir.z * 500.0f));
+    }
 }
 
 const char *executorName = "ＮＰＣ";

@@ -8,7 +8,6 @@
 #include "game/StageScene/StageScene.h"
 #include "layouts/FreezeTagIcon.h"
 #include "math/seadVector.h"
-#include "packets/FreezeInf.h"
 #include "puppets/PuppetInfo.h"
 #include "server/freeze/FreezePlayerBlock.h"
 #include "server/freeze/FreezeTagScore.hpp"
@@ -40,6 +39,21 @@ struct FreezeTagInfo : GameModeInfoBase {
     bool mIsDebugMode = false;
 };
 
+enum FreezeUpdateType : u8 {
+    PLAYER                 = 1 << 0,
+    ROUNDSTART             = 1 << 1,
+    ROUNDCANCEL            = 1 << 2,
+    FALLOFF                = 1 << 3
+};
+
+struct PACKED FreezeTagPacket : Packet {
+    FreezeTagPacket() : Packet() { this->mType = PacketType::GAMEMODEINF; mPacketSize = sizeof(FreezeTagPacket) - sizeof(Packet);};
+    FreezeUpdateType updateType;
+    bool isRunner = false;
+    bool isFreeze = false;
+    uint16_t score = 0;
+};
+
 class FreezeTagMode : public GameModeBase {
 public:
     FreezeTagMode(const char* name);
@@ -50,8 +64,17 @@ public:
     virtual void update() override;
     virtual void end() override;
 
+    void pause() override;
+    void unpause() override;
+
+    bool isUseNormalUI() const override { return false; }
+
+    void processPacket(Packet* packet) override;
+    Packet* createPacket() override;
+    void sendFreezePacket(FreezeUpdateType updateType);
+
     void startRound(int roundMinutes);
-    void endRound();
+    void endRound(bool isAbort);
 
     bool isScoreEventsEnabled() const { return mIsScoreEventsValid; };
     bool isPlayerRunner() const { return mInfo->mIsPlayerRunner; };
@@ -61,23 +84,32 @@ public:
     bool isAllRunnerFrozen(PuppetInfo* changingPuppet);
 
     PlayerActorHakoniwa* getPlayerActorHakoniwa();
+    uint16_t getScore() { return mInfo->mPlayerTagScore.mScore; }
 
     void setWipeHolder(al::WipeHolder* wipe) { mWipeHolder = wipe; };
     bool tryStartRecoveryEvent(bool isEndgame);
     bool tryEndRecoveryEvent();
     void warpToRecoveryPoint(al::LiveActor* actor);
 
-
     void tryStartEndgameEvent();
 
     bool trySetPlayerRunnerState(FreezeState state);
 
-    void tryScoreEvent(FreezeInf* incomingPacket, PuppetInfo* sourcePuppet);
+    void tryScoreEvent(FreezeTagPacket* incomingPacket, PuppetInfo* sourcePuppet);
 
     void updateSpectateCam(PlayerActorBase* playerBase);
     void setCameraTicket(al::CameraTicket* ticket) { mTicket = ticket; }
 
 private:
+    const int mRoundLength = 10; // Length of rounds in minutes
+
+    FreezeUpdateType mNextUpdateType = FreezeUpdateType::PLAYER;
+    GameModeTimer* mModeTimer = nullptr;
+    FreezeTagIcon* mModeLayout = nullptr;
+    FreezeTagInfo* mInfo = nullptr;
+    FreezePlayerBlock* mMainPlayerIceBlock = nullptr;
+    al::WipeHolder* mWipeHolder = nullptr; // Pointer set by setWipeHolder on first step of hakoniwaSequence hook
+
     // Recovery event info
     int mRecoveryEventFrames = 0;
     const int mRecoveryEventLength = 60; // Length of recovery event in frames
@@ -86,12 +118,6 @@ private:
     // Endgame info
     bool mIsEndgameActive = false;
     float mEndgameTimer = -1.f;
-
-    GameModeTimer* mModeTimer = nullptr;
-    FreezeTagIcon* mModeLayout = nullptr;
-    FreezeTagInfo* mInfo = nullptr;
-    FreezePlayerBlock* mMainPlayerIceBlock = nullptr;
-    al::WipeHolder* mWipeHolder = nullptr; // Pointer set by setWipeHolder on first step of hakoniwaSequence hook
 
     float mInvulnTime = 0.0f;
     bool mIsScoreEventsValid = false;

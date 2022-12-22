@@ -35,7 +35,6 @@
 
 #include "heap/seadExpHeap.h"
 #include "layouts/HideAndSeekIcon.h"
-#include "packets/FreezeInf.h"
 #include "rs/util.hpp"
 
 #include "sead/heap/seadDisposer.h"
@@ -102,9 +101,8 @@ class Client {
         static void sendGameInfPacket(GameDataHolderAccessor holder);
         static void sendCostumeInfPacket(const char *body, const char *cap);
         static void sendShineCollectPacket(int shineId);
-        static void sendTagInfPacket();
-        static void sendFreezeInfPacket();
         static void sendCaptureInfPacket(const PlayerActorHakoniwa *player);
+        static void sendGamemodePacket();
 
         int getCollectedShinesCount() { return curCollectedShines.size(); }
         int getShineID(int index) { if (index < curCollectedShines.size()) { return curCollectedShines[index]; } return -1; }
@@ -125,13 +123,15 @@ class Client {
 
         static PuppetInfo *getPuppetInfo(int idx);
 
+        static PuppetInfo *getPuppetInfo(const char *name);
+
+        static PuppetInfo* findPuppetInfo(const nn::account::Uid& id, bool isFindAvailable);
+
         static PuppetInfo *getLatestInfo();
 
         static PuppetInfo *getDebugPuppetInfo();
 
         static PuppetActor* getDebugPuppet();
-
-        static const StageScene* getCurrentScene() { return sInstance->mCurStageScene; }
 
         static sead::Heap *getClientHeap() { return sInstance ? sInstance->mHeap : nullptr; }
 
@@ -177,7 +177,6 @@ class Client {
 
         static bool openKeyboardIP();
         static bool openKeyboardPort();
-        static uint16_t openKeyboardFreezeTag();
 
         static void showConnect();
 
@@ -199,13 +198,10 @@ class Client {
         void updateCostumeInfo(CostumeInf *packet);
         void updateShineInfo(ShineCollect *packet);
         void updatePlayerConnect(PlayerConnect *packet);
-        void updateTagInfo(TagInf *packet);
-        void updateFreezeInfo(FreezeInf *packet);
         void updateCaptureInfo(CaptureInf* packet);
         void sendToStage(ChangeStagePacket* packet);
         void disconnectPlayer(PlayerDC *packet);
 
-        PuppetInfo* findPuppetInfo(const nn::account::Uid& id, bool isFindAvailable);
 
         bool startConnection();
 

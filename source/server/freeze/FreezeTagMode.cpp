@@ -42,7 +42,7 @@ void FreezeTagMode::init(const GameModeInitInfo& info) {
     mCurScene = (StageScene*)info.mScene;
     mPuppetHolder = info.mPuppetHolder;
 
-    GameModeInfoBase* curGameInfo = GameModeManager::instance()->getInfo<HideAndSeekInfo>();
+    GameModeInfoBase* curGameInfo = GameModeManager::instance()->getInfo<FreezeTagInfo>();
 
     if (curGameInfo) Logger::log("Gamemode info found: %s %s\n", GameModeFactory::getModeString(curGameInfo->mMode), GameModeFactory::getModeString(info.mMode));
     else Logger::log("No gamemode info found\n");
@@ -70,48 +70,75 @@ void FreezeTagMode::init(const GameModeInitInfo& info) {
     mMainPlayerIceBlock->init(*info.mActorInitInfo);
 }
 
-void FreezeTagMode::begin() {
-    mModeLayout->appear();
+void FreezeTagMode::processPacket(Packet *packet) {
+    FreezeTagPacket* frzPak = (FreezeTagPacket*)packet;
+    PuppetInfo* curInfo = Client::findPuppetInfo(frzPak->mUserID, false);
 
-    MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
-    al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
+    if (!curInfo)
+        return;
+
+    if (frzPak->updateType & FreezeUpdateType::PLAYER) {
+        tryScoreEvent(frzPak, curInfo);
+        curInfo->isFreezeTagRunner = frzPak->isRunner;
+        curInfo->isFreezeTagFreeze = frzPak->isFreeze;
+        curInfo->freezeTagScore = frzPak->score;
+    }
+
+    if (frzPak->updateType & FreezeUpdateType::ROUNDSTART && !mInfo->mIsRound)
+        startRound(mRoundLength); // Start round if round not already started
+
+    if (frzPak->updateType & FreezeUpdateType::ROUNDCANCEL && mInfo->mIsRound)
+        endRound(true); // Abort round early on receiving cancel packet
+
+    if (frzPak->updateType & FreezeUpdateType::FALLOFF && mInfo->mIsRound && !mInfo->mIsPlayerRunner)
+        mInfo->mPlayerTagScore.eventScoreFallOff();
+}
+
+Packet *FreezeTagMode::createPacket() {
+
+    FreezeTagPacket *packet = new FreezeTagPacket();
+
+    packet->mUserID = Client::getClientId();
+
+    packet->isRunner = mInfo->mIsPlayerRunner;
+    packet->isFreeze = mInfo->mIsPlayerFreeze;
+    packet->score = mInfo->mPlayerTagScore.mScore;
+
+    packet->updateType = mNextUpdateType;
+
+    return packet;
+}
+
+void FreezeTagMode::sendFreezePacket(FreezeUpdateType updateType) {
+    mNextUpdateType = updateType;
+    Client::sendGamemodePacket();
+}
+
+void FreezeTagMode::begin() {
+    unpause();
 
     mInvulnTime = 0.f;
     mSpectateIndex = -1;
     mPrevSpectateIndex = -2;
     mIsScoreEventsValid = true;
 
-    if (compass->mIsAlive)
-        compass->end();
-    if (playGuideLyt->mIsAlive)
-        playGuideLyt->end();
-
-    mCurScene->mSceneLayout->end();
-
     PlayerHitPointData* hit = mCurScene->mHolder.mData->mGameDataFile->getPlayerHitPointData();
     hit->mCurrentHit = hit->getMaxCurrent();
     hit->mIsKidsMode = true;
 
-    //Update other players on your freeze tag state when starting
-    Client::sendFreezeInfPacket();
+    sendFreezePacket(FreezeUpdateType::PLAYER);
 
     GameModeBase::begin();
+
+    mCurScene->mSceneLayout->end();
 }
 
-void FreezeTagMode::end() {
-    mModeLayout->tryEnd();
 
-    MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
-    al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
+void FreezeTagMode::end() {
+    pause();
 
     mInvulnTime = 0.f;
     mIsScoreEventsValid = false;
-
-    if (!compass->mIsAlive)
-        compass->appearSlideIn();
-    if (!playGuideLyt->mIsAlive)
-        playGuideLyt->appear();
-    
     mCurScene->mSceneLayout->start();
     
     if(!GameModeManager::instance()->isPaused()) {
@@ -130,6 +157,18 @@ void FreezeTagMode::end() {
     GameModeBase::end();
 }
 
+void FreezeTagMode::pause() {
+    GameModeBase::pause();
+
+    mModeLayout->tryEnd();
+}
+
+void FreezeTagMode::unpause() {
+    GameModeBase::unpause();
+
+    mModeLayout->appear();
+}
+
 void FreezeTagMode::update() {
     PlayerActorHakoniwa* player = getPlayerActorHakoniwa();
     if(!player)
@@ -145,11 +184,8 @@ void FreezeTagMode::update() {
     mInfo->mRoundTimer = mModeTimer->getTime();
     if(mModeTimer->isEnabled()) {
         if(mModeTimer->getTimeCombined() <= 0.f)
-            endRound();
+            endRound(false);
     }
-
-    if(al::isPadHoldR(-1) && al::isPadTriggerZL(-1))
-        startRound(10);
 
     //Create list of runner and chaser player indexs
     mInfo->mRunnerPlayers.clear();
@@ -211,7 +247,7 @@ void FreezeTagMode::update() {
         if(mEndgameTimer > 6.f) {
             mInfo->mIsPlayerRunner = true;
             mInvulnTime = 0.f;
-            Client::sendFreezeInfPacket();
+            sendFreezePacket(FreezeUpdateType::PLAYER);
 
             mIsEndgameActive = false;
             tryStartRecoveryEvent(true);
@@ -222,7 +258,7 @@ void FreezeTagMode::update() {
     FreezeTagScore* score = &mInfo->mPlayerTagScore;
     if(score->mScore != score->mPrevScore) {
         score->mPrevScore = score->mScore;
-        Client::sendFreezeInfPacket();
+        sendFreezePacket(FreezeUpdateType::PLAYER);
     };
 
     // Main player's ice block state and post processing
@@ -254,7 +290,7 @@ void FreezeTagMode::update() {
         mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
         mInvulnTime = 0.f;
 
-        Client::sendFreezeInfPacket();
+        sendFreezePacket(FreezeUpdateType::PLAYER);
     }
 
     if (al::isPadTriggerDown(-1) && al::isPadHoldL(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive)
@@ -270,6 +306,14 @@ void FreezeTagMode::update() {
             mInfo->mPlayerTagScore.eventScoreDebug();
         if (al::isPadTriggerRight(-1) && al::isPadHoldB(-1))
             tryStartEndgameEvent();
+        if (al::isPadTriggerRight(-1) && al::isPadHoldR(-1) && al::isPadHoldL(-1)) {
+            startRound(mRoundLength);
+            sendFreezePacket(FreezeUpdateType::ROUNDSTART);
+        }
+        if (al::isPadTriggerUp(-1) && al::isPadHoldR(-1) && al::isPadHoldL(-1)) {
+            endRound(true);
+            sendFreezePacket(FreezeUpdateType::ROUNDCANCEL);
+        }
     }
 
     // Verify standard hud is hidden

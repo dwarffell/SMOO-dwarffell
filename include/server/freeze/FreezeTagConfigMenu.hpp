@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Keyboard.hpp"
 #include "server/gamemode/GameModeConfigMenu.hpp"
 #include "game/Layouts/CommonVerticalList.h"
 #include "server/gamemode/GameModeBase.hpp"
@@ -16,4 +17,5 @@ public:
 
 private:
     static constexpr int mItemCount = 3;
+    Keyboard* mScoreKeyboard;
 };

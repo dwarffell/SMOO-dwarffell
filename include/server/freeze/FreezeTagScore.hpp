@@ -21,13 +21,13 @@ public:
     void resetScore() { mScore = 0; };
 
     // Events
-    void eventScoreDebug() { addScore(1, "Debugging!"); };
-    void eventScoreSurvivalTime() { addScore(1, "Survival Time"); };
-    void eventScoreUnfreeze() { addScore(2, "Rescued"); };
-    void eventScoreFreeze() { addScore(2, "Caught"); };
-    void eventScoreLastSurvivor() { addScore(5, "Last Survivor"); };
-    void eventScoreRunnerWin() { addScore(4, "Survived!"); };
-    void eventScoreWipeout() { addScore(15, "Wipeout!"); };
+    void eventScoreDebug() { addScore(1, "Debugging!"); }
+    void eventScoreSurvivalTime() { addScore(1, "Survival Time"); }
+    void eventScoreUnfreeze() { addScore(2, "Rescued"); }
+    void eventScoreFreeze() { addScore(2, "Caught"); }
+    void eventScoreFallOff() { addScore(2, "Fell Off L"); }
+    void eventScoreRunnerWin() { addScore(4, "Survived!"); }
+    void eventScoreWipeout() { addScore(15, "Wipeout!"); }
 
 private:
     FreezeTagIcon* mIcon;

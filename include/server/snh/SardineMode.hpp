@@ -21,6 +21,19 @@ struct SardineInfo : GameModeInfoBase {
     GameTime mHidingTime;
 };
 
+enum SardineUpdateType : u8 {
+    SARDINETIME                 = 1 << 0,
+    SARDINESTATE                = 1 << 1
+};
+
+struct PACKED SardinePacket : Packet {
+    SardinePacket() : Packet() { this->mType = PacketType::GAMEMODEINF; mPacketSize = sizeof(SardinePacket) - sizeof(Packet);};
+    SardineUpdateType updateType;
+    bool1 isIt = false;
+    u8 seconds;
+    u16 minutes;
+};
+
 class SardineMode : public GameModeBase {
 public:
     SardineMode(const char* name);
@@ -30,6 +43,14 @@ public:
     virtual void begin() override;
     virtual void update() override;
     virtual void end() override;
+
+    void pause() override;
+    void unpause() override;
+
+    bool isUseNormalUI() const override { return false; }
+
+    void processPacket(Packet* packet) override;
+    Packet* createPacket() override;
 
     bool isPlayerIt() const { return mInfo->mIsIt; };
 

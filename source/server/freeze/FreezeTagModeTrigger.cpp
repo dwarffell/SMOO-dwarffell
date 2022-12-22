@@ -19,18 +19,19 @@ void FreezeTagMode::startRound(int roundMinutes) {
     mModeTimer->setTime(0.f, 59, roundMinutes-1, 0);
 }
 
-void FreezeTagMode::endRound() {
+void FreezeTagMode::endRound(bool isAbort) {
     mInfo->mIsRound = false;
     mModeTimer->disableTimer();
 
     if(!mIsEndgameActive) {
         if(!mInfo->mIsPlayerRunner) {
             mInfo->mIsPlayerRunner = true;
-            Client::sendFreezeInfPacket();
+            sendFreezePacket(FreezeUpdateType::PLAYER);
             return;
         }
 
-        mInfo->mPlayerTagScore.eventScoreRunnerWin();
+        if(!isAbort)
+            mInfo->mPlayerTagScore.eventScoreRunnerWin();
 
         if(mInfo->mIsPlayerFreeze)
             trySetPlayerRunnerState(FreezeState::ALIVE);
@@ -77,7 +78,7 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
             tryStartEndgameEvent();
     }
 
-    Client::sendFreezeInfPacket();
+    sendFreezePacket(FreezeUpdateType::PLAYER);
 
     return true;
 }
@@ -87,7 +88,7 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
     FUNCTION CALLED FROM client.cpp ON RECEIVING FREEZE TAG PACKETS
 */
 
-void FreezeTagMode::tryScoreEvent(FreezeInf* incomingPacket, PuppetInfo* sourcePuppet)
+void FreezeTagMode::tryScoreEvent(FreezeTagPacket* incomingPacket, PuppetInfo* sourcePuppet)
 {
     if(!mCurScene || !sourcePuppet || !GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
         return;
@@ -115,12 +116,6 @@ void FreezeTagMode::tryScoreEvent(FreezeInf* incomingPacket, PuppetInfo* sourceP
         }
     }
 
-    // Check if the current player is the last unfrozen runner!
-    if(mInfo->mIsPlayerRunner && !mInfo->mIsPlayerFreeze && !sourcePuppet->isFreezeTagFreeze
-    && incomingPacket->isFreeze && isPlayerLastSurvivor(sourcePuppet)) {
-        mInfo->mPlayerTagScore.eventScoreLastSurvivor();
-    }
-
     // Checks if every runner is frozen, starts endgame sequence if so
     if(!sourcePuppet->isFreezeTagFreeze && incomingPacket->isFreeze && isAllRunnerFrozen(sourcePuppet)) {
         tryStartEndgameEvent();
@@ -144,10 +139,13 @@ bool FreezeTagMode::tryStartRecoveryEvent(bool isEndgame)
     mRecoveryEventFrames = (mRecoveryEventLength / 2) * (isEndgame + 1);
     mWipeHolder->startClose("FadeBlack", (mRecoveryEventLength / 4) * (isEndgame + 1));
 
-    if(!isEndgame)
+    if(!isEndgame) {
         mRecoverySafetyPoint = player->mPlayerRecoverySafetyPoint->mSafetyPointPos;
-    else
+        if(mInfo->mIsPlayerRunner && mInfo->mIsRound)
+            sendFreezePacket(FreezeUpdateType::FALLOFF);
+    } else {
         mRecoverySafetyPoint = sead::Vector3f::zero;
+    }
     
     Logger::log("Recovery event %.00fx %.00fy %.00fz\n", mRecoverySafetyPoint.x, mRecoverySafetyPoint.y, mRecoverySafetyPoint.z);
 
@@ -232,5 +230,5 @@ void FreezeTagMode::tryStartEndgameEvent()
     if(!mInfo->mIsPlayerRunner)
         mInfo->mPlayerTagScore.eventScoreWipeout();
 
-    endRound();
+    endRound(false);
 }

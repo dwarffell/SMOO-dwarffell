@@ -71,6 +71,8 @@ class PuppetActor : public al::LiveActor {
 
         void emitJoinEffect();
 
+        void debugThrowCap();
+
         bool mIsDebug = false;
         
     private:
