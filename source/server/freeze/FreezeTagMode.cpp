@@ -285,7 +285,7 @@ void FreezeTagMode::update() {
     }
 
     // D-Pad functions
-    if (al::isPadTriggerUp(-1) && !al::isPadHoldL(-1)&& !al::isPadHoldZR(-1)
+    if (al::isPadTriggerUp(-1) && !al::isPadHoldL(-1)&& !al::isPadHoldZR(-1) && !al::isPadHoldR(-1)
     && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive && !mInfo->mIsRound) {
         mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
         mInvulnTime = 0.f;
@@ -295,6 +295,15 @@ void FreezeTagMode::update() {
 
     if (al::isPadTriggerDown(-1) && al::isPadHoldL(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive)
         mInfo->mPlayerTagScore.resetScore();
+    
+    if (al::isPadTriggerUp(-1) && al::isPadHoldR(-1) && mInfo->mIsHostMode) {
+        startRound(mRoundLength);
+        sendFreezePacket(FreezeUpdateType::ROUNDSTART);
+    }
+    if (al::isPadTriggerDown(-1) && al::isPadHoldR(-1) && mInfo->mIsHostMode) {
+        endRound(true);
+        sendFreezePacket(FreezeUpdateType::ROUNDCANCEL);
+    }
 
     //Debug freeze buttons
     if (mInfo->mIsDebugMode) {
@@ -306,14 +315,6 @@ void FreezeTagMode::update() {
             mInfo->mPlayerTagScore.eventScoreDebug();
         if (al::isPadTriggerRight(-1) && al::isPadHoldB(-1))
             tryStartEndgameEvent();
-        if (al::isPadTriggerRight(-1) && al::isPadHoldR(-1) && al::isPadHoldL(-1)) {
-            startRound(mRoundLength);
-            sendFreezePacket(FreezeUpdateType::ROUNDSTART);
-        }
-        if (al::isPadTriggerUp(-1) && al::isPadHoldR(-1) && al::isPadHoldL(-1)) {
-            endRound(true);
-            sendFreezePacket(FreezeUpdateType::ROUNDCANCEL);
-        }
     }
 
     // Verify standard hud is hidden

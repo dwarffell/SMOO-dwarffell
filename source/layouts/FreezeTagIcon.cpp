@@ -164,7 +164,7 @@ void FreezeTagIcon::setFreezeOverlayHeight()
     // Show or hide the frozen UI overlay
     float targetHeight = mInfo->mIsPlayerFreeze ? 360.f : 415.f;
     mFreezeOverlayHeight = al::lerpValue(mFreezeOverlayHeight, targetHeight, 0.08f);
-    al::setPaneLocalTrans(this, "PicFreezeOverlayTop", { 0.f, mFreezeOverlayHeight, 0.f });
+    al::setPaneLocalTrans(this, "PicFreezeOverlayTop", { 0.f, mFreezeOverlayHeight + 15.f, 0.f });
     al::setPaneLocalTrans(this, "PicFreezeOverlayBot", { 0.f, -mFreezeOverlayHeight, 0.f });
 }
 

@@ -15,6 +15,7 @@ void FreezeTagMode::startRound(int roundMinutes) {
     mModeTimer->enableTimer();
     mModeTimer->disableControl();
     mModeTimer->setTimerDirection(false);
+    
     // Starts at the round minutes - 1 (and 59 seconds to not instantly set off score event)
     mModeTimer->setTime(0.f, 59, roundMinutes-1, 0);
 }

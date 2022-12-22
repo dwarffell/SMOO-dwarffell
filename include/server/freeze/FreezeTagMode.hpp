@@ -37,6 +37,7 @@ struct FreezeTagInfo : GameModeInfoBase {
     sead::PtrArray<PuppetInfo> mChaserPlayers;
 
     bool mIsDebugMode = false;
+    bool mIsHostMode = false;
 };
 
 enum FreezeUpdateType : u8 {
