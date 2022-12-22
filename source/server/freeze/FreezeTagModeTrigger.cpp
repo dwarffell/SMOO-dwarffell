@@ -11,17 +11,20 @@
 
 void FreezeTagMode::startRound(int roundMinutes) {
     mInfo->mIsRound = true;
+    mInfo->mFreezeCount = 0;
 
     mModeTimer->enableTimer();
     mModeTimer->disableControl();
     mModeTimer->setTimerDirection(false);
-    
+
     // Starts at the round minutes - 1 (and 59 seconds to not instantly set off score event)
     mModeTimer->setTime(0.f, 59, roundMinutes-1, 0);
 }
 
 void FreezeTagMode::endRound(bool isAbort) {
     mInfo->mIsRound = false;
+    mInfo->mFreezeCount = 0;
+
     mModeTimer->disableTimer();
 
     if(!mIsEndgameActive) {
@@ -74,6 +77,7 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
         hackCap->forcePutOn();
 
         mSpectateIndex = -1;
+        mInfo->mFreezeCount++;
 
         if(isAllRunnerFrozen(nullptr))
             tryStartEndgameEvent();

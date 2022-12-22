@@ -30,6 +30,7 @@ struct FreezeTagInfo : GameModeInfoBase {
     FreezeState mIsPlayerFreeze = FreezeState::ALIVE;
 
     bool mIsRound = false;
+    int mFreezeCount = 0;
     FreezeTagScore mPlayerTagScore;
     GameTime mRoundTimer;
 

@@ -226,7 +226,8 @@ void FreezeTagMode::update() {
                     trySetPlayerRunnerState(FreezeState::FREEZE);
 
                 //Check for unfreeze
-                if (mInvulnTime >= 3.75f && mInfo->mIsPlayerFreeze && pupDist < 200.f && isP2D == curInfo->is2D
+                float freezeMinTime = al::clamp(3.f + (mInfo->mFreezeCount * 0.5f), 3.f, 7.f);
+                if (mInvulnTime >= freezeMinTime && mInfo->mIsPlayerFreeze && pupDist < 200.f && isP2D == curInfo->is2D
                 && !isPDead && curInfo->isFreezeTagRunner && !curInfo->isFreezeTagFreeze) {
                     trySetPlayerRunnerState(FreezeState::ALIVE);
                 }
@@ -296,11 +297,11 @@ void FreezeTagMode::update() {
     if (al::isPadTriggerDown(-1) && al::isPadHoldL(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive)
         mInfo->mPlayerTagScore.resetScore();
     
-    if (al::isPadTriggerUp(-1) && al::isPadHoldR(-1) && mInfo->mIsHostMode) {
+    if (al::isPadTriggerUp(-1) && al::isPadHoldR(-1) && mInfo->mIsHostMode && !mInfo->mIsRound) {
         startRound(mRoundLength);
         sendFreezePacket(FreezeUpdateType::ROUNDSTART);
     }
-    if (al::isPadTriggerDown(-1) && al::isPadHoldR(-1) && mInfo->mIsHostMode) {
+    if (al::isPadTriggerDown(-1) && al::isPadHoldR(-1) && mInfo->mIsHostMode && mInfo->mIsRound) {
         endRound(true);
         sendFreezePacket(FreezeUpdateType::ROUNDCANCEL);
     }
