@@ -86,7 +86,13 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
     //     Application::sInstance->mFramework->mGpuPerf->drawResult((agl::DrawContext *)drawContext, frameBuffer);
     // }
 
-    Time::calcTime();  // this needs to be ran every frame, so running it here works
+    // Freeze tag needs the delta time to not update while the game is paused, so if in Freeze Tag mode, override functionality
+    if(GameModeManager::instance()->isMode(GameMode::FREEZETAG)) {
+        if(!GameModeManager::instance()->isPaused())
+            Time::calcTime();
+    } else {
+        Time::calcTime();  // this needs to be ran every frame, so running it here works
+    }
 
     if(!debugMode) {
         al::executeDraw(curSequence->mLytKit, "２Ｄバック（メイン画面）");

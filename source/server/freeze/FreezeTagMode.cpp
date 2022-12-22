@@ -146,13 +146,10 @@ void FreezeTagMode::update() {
     if(mModeTimer->isEnabled()) {
         if(mModeTimer->getTimeCombined() <= 0.f)
             endRound();
-        
-        //Debug shiznit
-        Logger::log("%02i:%02i.%f\n%f\n", mInfo->mRoundTimer.mMinutes, mInfo->mRoundTimer.mSeconds, mInfo->mRoundTimer.mMilliseconds, mModeTimer->getTimeCombined());
     }
 
     if(al::isPadHoldR(-1) && al::isPadTriggerZL(-1))
-        startRound();
+        startRound(10);
 
     //Create list of runner and chaser player indexs
     mInfo->mRunnerPlayers.clear();
@@ -252,7 +249,8 @@ void FreezeTagMode::update() {
     }
 
     // D-Pad functions
-    if (al::isPadTriggerUp(-1) && !al::isPadHoldL(-1)&& !al::isPadHoldZR(-1) && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive) {
+    if (al::isPadTriggerUp(-1) && !al::isPadHoldL(-1)&& !al::isPadHoldZR(-1)
+    && !mInfo->mIsPlayerFreeze && mRecoveryEventFrames == 0 && !mIsEndgameActive && !mInfo->mIsRound) {
         mInfo->mIsPlayerRunner = !mInfo->mIsPlayerRunner;
         mInvulnTime = 0.f;
 

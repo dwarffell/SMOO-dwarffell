@@ -50,7 +50,7 @@ public:
     virtual void update() override;
     virtual void end() override;
 
-    void startRound();
+    void startRound(int roundMinutes);
     void endRound();
 
     bool isScoreEventsEnabled() const { return mIsScoreEventsValid; };

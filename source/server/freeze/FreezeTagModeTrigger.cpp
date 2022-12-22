@@ -9,13 +9,14 @@
     ROUND START AND END FUNCTIONS
 */
 
-void FreezeTagMode::startRound() {
+void FreezeTagMode::startRound(int roundMinutes) {
     mInfo->mIsRound = true;
 
     mModeTimer->enableTimer();
     mModeTimer->disableControl();
     mModeTimer->setTimerDirection(false);
-    mModeTimer->setTime(0.f, 5, 0, 0); // 3 minute timer
+    // Starts at the round minutes - 1 (and 59 seconds to not instantly set off score event)
+    mModeTimer->setTime(0.f, 59, roundMinutes-1, 0);
 }
 
 void FreezeTagMode::endRound() {

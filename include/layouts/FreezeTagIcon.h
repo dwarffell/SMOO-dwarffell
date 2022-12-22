@@ -22,6 +22,7 @@ public:
     void setSpectateString(const char* spec) { mSpectateName = spec; }
     void setFreezeOverlayHeight();
     void setSpectateOverlayHeight();
+    void setRoundTimerOverlay();
 
     void showEndgameScreen()
     {
@@ -66,8 +67,14 @@ private:
 
     // UI positioning and angle calculations
     float mRunnerFreezeIconAngle = 0.f;
+
     float mFreezeOverlayHeight = 415.f;
+
     float mSpectateOverlayHeight = -400.f;
+
+    float mRoundTimerClockInsideSpin = 0.f;
+    float mRoundTimerHeight = 390.f;
+    float mRoundTimerScale = 1.f;
 
     // Endgame popup
     bool mEndgameIsDisplay = false;

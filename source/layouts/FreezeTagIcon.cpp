@@ -98,6 +98,7 @@ void FreezeTagIcon::exeWait()
     // Set all overlay positons
     setFreezeOverlayHeight();
     setSpectateOverlayHeight();
+    setRoundTimerOverlay();
 
     // Update score event info
     if (mScoreEventIsQueued) {
@@ -109,11 +110,11 @@ void FreezeTagIcon::exeWait()
     if (mScoreEventTime >= 0.f) {
         mScoreEventTime += Time::deltaTime;
 
-        if(mScoreEventTime > 3.75f)
+        if (mScoreEventTime > 3.75f)
             mScoreEventValue = 0;
 
         // Calculate score event pane's position
-        sead::Vector3f targetPos = mScoreEventTime < 3.f ? sead::Vector3f(0.f, 280.f, 0.f) : sead::Vector3f(-650.f, 420.f, 0.f);
+        sead::Vector3f targetPos = mScoreEventTime < 3.f ? sead::Vector3f(0.f, 235.f, 0.f) : sead::Vector3f(-650.f, 420.f, 0.f);
         if (!mInfo->mIsPlayerRunner)
             targetPos.x *= -1.f;
 
@@ -154,7 +155,7 @@ void FreezeTagIcon::queueScoreEvent(int eventValue, const char* eventDesc)
     mScoreEventValue = al::clamp(mScoreEventValue, 0, 99);
 
     mScoreEventDesc = eventDesc;
-    mScoreEventPos = sead::Vector3f(0.f, 280.f, 0.f);
+    mScoreEventPos = sead::Vector3f(0.f, 245.f, 0.f);
     mScoreEventScale = 1.35f;
 }
 
@@ -173,6 +174,30 @@ void FreezeTagIcon::setSpectateOverlayHeight()
     float targetHeight = mInfo->mIsPlayerFreeze && mInfo->mRunnerPlayers.size() > 0 && !mEndgameIsDisplay ? -250.f : -400.f;
     mSpectateOverlayHeight = al::lerpValue(mSpectateOverlayHeight, targetHeight, 0.04f);
     al::setPaneLocalTrans(this, "Spectate", { 0.f, mSpectateOverlayHeight, 0.f });
+}
+
+void FreezeTagIcon::setRoundTimerOverlay()
+{
+    // If round is active, set the timer's height on screen
+    float targetHeight = mInfo->mIsRound && !mEndgameIsDisplay ? 330.f : 390.f;
+    mRoundTimerHeight = al::lerpValue(mRoundTimerHeight, targetHeight, 0.03f);
+    al::setPaneLocalTrans(this, "RoundTimer", { 0.f, mRoundTimerHeight, 0.f });
+
+    // If time remaining is less than one minute, scale up larget
+    float targetScale = mInfo->mIsRound && !mEndgameIsDisplay && mInfo->mRoundTimer.mMinutes <= 0 ? 1.66f : 1.f;
+    mRoundTimerScale = al::lerpValue(mRoundTimerScale, targetScale, 0.02f);
+    al::setPaneLocalScale(this, "RoundTimer", { mRoundTimerScale, mRoundTimerScale });
+
+    // Spin the inside of the clock if a round is going
+    if (mInfo->mIsRound) {
+        mRoundTimerClockInsideSpin -= 1.2f;
+        if (mRoundTimerClockInsideSpin < -360.f)
+            mRoundTimerClockInsideSpin += 360.f;
+
+        al::setPaneLocalRotate(this, "PicRoundTimerSpin", { 0.f, 0.f, mRoundTimerClockInsideSpin });
+    }
+
+    al::setPaneStringFormat(this, "TxtRoundTimer", "%02i:%02i", mInfo->mRoundTimer.mMinutes, mInfo->mRoundTimer.mSeconds);
 }
 
 void FreezeTagIcon::exeEnd()
