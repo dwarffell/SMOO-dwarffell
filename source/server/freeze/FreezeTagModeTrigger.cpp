@@ -58,6 +58,9 @@ bool FreezeTagMode::trySetPlayerRunnerState(FreezeState newState)
         mInfo->mIsPlayerFreeze = FreezeState::ALIVE;
         player->endDemoPuppetable();
     } else {
+        if(!mInfo->mIsRound)
+            return false;
+
         mInfo->mIsPlayerFreeze = FreezeState::FREEZE;
         if(player->getPlayerHackKeeper()->currentHackActor)
             player->getPlayerHackKeeper()->cancelHackArea();
@@ -163,7 +166,7 @@ bool FreezeTagMode::tryEndRecoveryEvent()
         return false;
 
     // Set the player to frozen if they are a runner AND they had a valid recovery point
-    if(mInfo->mIsPlayerRunner && mRecoverySafetyPoint != sead::Vector3f::zero) {
+    if(mInfo->mIsPlayerRunner && mRecoverySafetyPoint != sead::Vector3f::zero && mInfo->mIsRound) {
         trySetPlayerRunnerState(FreezeState::FREEZE);
         warpToRecoveryPoint(player);
     } else {
@@ -171,7 +174,7 @@ bool FreezeTagMode::tryEndRecoveryEvent()
     }
 
     // If player is a chaser with a valid recovery point, teleport (and disable collisions)
-    if(!mInfo->mIsPlayerRunner) {
+    if(!mInfo->mIsPlayerRunner || !mInfo->mIsRound) {
         player->startDemoPuppetable();
         if(mRecoverySafetyPoint != sead::Vector3f::zero)
             warpToRecoveryPoint(player);
