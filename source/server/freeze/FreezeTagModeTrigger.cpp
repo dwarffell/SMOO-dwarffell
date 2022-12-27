@@ -112,7 +112,9 @@ void FreezeTagMode::tryScoreEvent(FreezeTagPacket* incomingPacket, PuppetInfo* s
     if(isInRange) {
         //Check for unfreeze score event
         if((mInfo->mIsPlayerRunner && !mInfo->mIsPlayerFreeze) && (sourcePuppet->isFreezeTagFreeze && !incomingPacket->isFreeze)) {
-            mInfo->mPlayerTagScore.eventScoreUnfreeze();
+            //Verify that the target puppet wasn't frozen via falling off the map
+            if(!sourcePuppet->isFreezeTagFallenOff)
+                mInfo->mPlayerTagScore.eventScoreUnfreeze();
         }
 
         //Check for freeze score event

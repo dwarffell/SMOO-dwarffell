@@ -79,6 +79,11 @@ void FreezeTagMode::processPacket(Packet *packet) {
 
     if (frzPak->updateType & FreezeUpdateType::PLAYER) {
         tryScoreEvent(frzPak, curInfo);
+
+        // When puppet transitioning from frozen to unfrozen, disable the fall off flag
+        if(curInfo->isFreezeTagFreeze && !frzPak->isFreeze)
+            curInfo->isFreezeTagFallenOff = false;
+
         curInfo->isFreezeTagRunner = frzPak->isRunner;
         curInfo->isFreezeTagFreeze = frzPak->isFreeze;
         curInfo->freezeTagScore = frzPak->score;
@@ -90,8 +95,12 @@ void FreezeTagMode::processPacket(Packet *packet) {
     if (frzPak->updateType & FreezeUpdateType::ROUNDCANCEL && mInfo->mIsRound)
         endRound(true); // Abort round early on receiving cancel packet
 
-    if (frzPak->updateType & FreezeUpdateType::FALLOFF && mInfo->mIsRound && !mInfo->mIsPlayerRunner)
-        mInfo->mPlayerTagScore.eventScoreFallOff();
+    if (frzPak->updateType & FreezeUpdateType::FALLOFF && mInfo->mIsRound) {
+        curInfo->isFreezeTagFallenOff = true;
+        
+        if(!mInfo->mIsPlayerRunner)
+            mInfo->mPlayerTagScore.eventScoreFallOff();
+    }
 }
 
 Packet *FreezeTagMode::createPacket() {

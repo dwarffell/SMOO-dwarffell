@@ -52,5 +52,6 @@ struct PuppetInfo {
     uint16_t freezeTagScore = 0;
     bool isFreezeTagRunner = true;
     bool isFreezeTagFreeze = false;
+    bool isFreezeTagFallenOff = false; // When runenr falls off and is automatically frozen, this flag is set
     float freezeIconSize = 0.f;
 };

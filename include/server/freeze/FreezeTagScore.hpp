@@ -27,7 +27,7 @@ public:
     void eventScoreFreeze() { addScore(2, "Caught"); }
     void eventScoreFallOff() { addScore(2, "Fell Off L"); }
     void eventScoreRunnerWin() { addScore(4, "Survived!"); }
-    void eventScoreWipeout() { addScore(15, "Wipeout!"); }
+    void eventScoreWipeout() { addScore(20, "Wipeout!"); }
 
 private:
     FreezeTagIcon* mIcon;
