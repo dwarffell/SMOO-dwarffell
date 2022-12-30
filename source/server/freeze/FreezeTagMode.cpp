@@ -164,7 +164,7 @@ void FreezeTagMode::end() {
         
         if(al::isAlive(mMainPlayerIceBlock) && !al::isNerve(mMainPlayerIceBlock, &nrvFreezePlayerBlockDisappear)) {
             mMainPlayerIceBlock->end();
-            al::invalidatePostProcessingFilter(mCurScene);
+            trySetPostProcessingType(FreezePostProcessingType::PPDISABLED);
         }
     }
 
@@ -280,12 +280,7 @@ void FreezeTagMode::update() {
     if(mInfo->mIsPlayerFreeze) {
         if(!al::isAlive(mMainPlayerIceBlock)) {
             mMainPlayerIceBlock->appear();
-            al::validatePostProcessingFilter(mCurScene);
-            int effectIndex = al::getPostProcessingFilterPresetId(mCurScene);
-            while(effectIndex != 1) {
-                al::incrementPostProcessingFilterPreset(mCurScene);
-                effectIndex = (effectIndex + 1) % 18;
-            }
+            trySetPostProcessingType(FreezePostProcessingType::PPFROZEN);
         }
         
         //Lock block onto player
@@ -293,9 +288,9 @@ void FreezeTagMode::update() {
         al::setQuat(mMainPlayerIceBlock, al::getQuat(player));
 
     } else {
-        if(al::isAlive(mMainPlayerIceBlock) && !al::isNerve(mMainPlayerIceBlock, &nrvFreezePlayerBlockDisappear)) {
+        if(al::isAlive(mMainPlayerIceBlock) && mMainPlayerIceBlock->mIsLocked) {
             mMainPlayerIceBlock->end();
-            al::invalidatePostProcessingFilter(mCurScene);
+            trySetPostProcessingType(FreezePostProcessingType::PPDISABLED);
         }
     }
 

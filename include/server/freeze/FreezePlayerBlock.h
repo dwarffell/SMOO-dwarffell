@@ -28,6 +28,7 @@ public:
     void exeDisappear();
     void exeDead();
 
+    bool mIsLocked = false;
     float mDitheringOffset = -150.f; // -150 is fully opaque, 0 is fully dithered, -80 is good looking
 };
 

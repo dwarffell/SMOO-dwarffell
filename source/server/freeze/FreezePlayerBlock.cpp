@@ -50,11 +50,13 @@ void FreezePlayerBlock::appear()
 {
     al::LiveActor::appear();
     al::setNerve(this, &nrvFreezePlayerBlockAppear);
+    mIsLocked = true;
 }
 
 void FreezePlayerBlock::end()
 {
     al::setNerve(this, &nrvFreezePlayerBlockDisappear);
+    mIsLocked = false;
 }
 
 void FreezePlayerBlock::exeAppear()

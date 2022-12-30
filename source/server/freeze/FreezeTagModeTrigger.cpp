@@ -1,3 +1,4 @@
+#include "al/util.hpp"
 #include "al/util/LiveActorUtil.h"
 #include "al/util/RandomUtil.h"
 #include "math/seadVector.h"
@@ -176,6 +177,7 @@ bool FreezeTagMode::tryEndRecoveryEvent()
         warpToRecoveryPoint(player);
     } else {
         trySetPlayerRunnerState(FreezeState::ALIVE);
+        trySetPostProcessingType(FreezePostProcessingType::PPDISABLED);
     }
 
     // If player is a chaser with a valid recovery point, teleport (and disable collisions)
@@ -183,6 +185,8 @@ bool FreezeTagMode::tryEndRecoveryEvent()
         player->startDemoPuppetable();
         if(mRecoverySafetyPoint != sead::Vector3f::zero)
             warpToRecoveryPoint(player);
+        
+        trySetPostProcessingType(FreezePostProcessingType::PPDISABLED);
     }
 
     // If player is being made alive, force end demo puppet state
@@ -228,14 +232,48 @@ void FreezeTagMode::tryStartEndgameEvent()
     player->startDemoPuppetable();
     rs::faceToCamera(player);
     player->mPlayerAnimator->endSubAnim();
-    if(mInfo->mIsPlayerRunner)
+    if(mInfo->mIsPlayerRunner) {
         player->mPlayerAnimator->startAnim("RaceResultLose");
-    else
+        trySetPostProcessingType(FreezePostProcessingType::PPENDGAMELOSE);
+    } else {
         player->mPlayerAnimator->startAnim("RaceResultWin");
-    
-    // Award wipeout points to chasers
-    if(!mInfo->mIsPlayerRunner)
+        trySetPostProcessingType(FreezePostProcessingType::PPENDGAMEWIN);
         mInfo->mPlayerTagScore.eventScoreWipeout();
-
+    }
+    
     endRound(false);
+}
+
+/*
+    SET THE POST PROCESSING STYLE IN THE GAMEMODE
+*/
+
+bool FreezeTagMode::trySetPostProcessingType(FreezePostProcessingType type)
+{
+    u8 ppIdx = type;
+    u32 curIdx = al::getPostProcessingFilterPresetId(mCurScene);
+
+    if(ppIdx == curIdx || !mCurScene)
+        return false; // Already set to target post processing type or doesn't have scene, return fail
+    
+    if(type == FreezePostProcessingType::PPDISABLED) {
+        while(curIdx != ppIdx) {
+            al::incrementPostProcessingFilterPreset(mCurScene);
+            curIdx = (curIdx + 1) % 18;
+        }
+
+        al::invalidatePostProcessingFilter(mCurScene);
+        return true; // Disabled current post processing mode
+    }
+
+    while(curIdx != ppIdx) {
+        al::incrementPostProcessingFilterPreset(mCurScene);
+        curIdx = (curIdx + 1) % 18;
+    }
+
+    al::validatePostProcessingFilter(mCurScene);
+
+    Logger::log("Set post processing to %i\n", al::getPostProcessingFilterPresetId(mCurScene));
+
+    return true; // Set post processing mode to on at desired index
 }
