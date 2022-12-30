@@ -37,27 +37,8 @@ void CameraPoserActorSpectate::start(al::CameraStartInfo const&)
     if(mPlayer && !mTargetActorPos)
         mTargetTrans = *al::getTransPtr(mPlayer);
 
-    sead::Vector3f faceDir;
-    sead::Vector3f targetFront;
-
-    if (alCameraPoserFunction::isSceneCameraFirstCalc(this)) {
-        alCameraPoserFunction::calcTargetTrans(&mTargetTrans, this);
-        targetFront = sead::Vector3f(0, 0, 0);
-        alCameraPoserFunction::calcTargetFront(&targetFront, this);
-
-        faceDir = mTargetTrans - targetFront;
-
-    } else {
-        sead::LookAtCamera* curLookCam = alCameraPoserFunction::getLookAtCamera(this);
-        sead::Vector3f curPos = curLookCam->getPos();
-        sead::Vector3f curAt = curLookCam->getAt();
-        targetFront = sead::Vector3f(curPos.x - curAt.x, 0.0, curPos.z - curAt.z);
-        al::tryNormalizeOrDirZ(&targetFront);
-        faceDir = targetFront + mTargetTrans;
-    }
-
-    mPosition = faceDir;
     mFovyDegree = 47.5f;
+    mFrameCounter = 0;
 
     mPoserFlags->mOffVerticalAbsorb = true;
     mPoserFlags->mInvalidChangeSubjective = true;
@@ -68,8 +49,10 @@ void CameraPoserActorSpectate::start(al::CameraStartInfo const&)
 
 void CameraPoserActorSpectate::movement()
 {
+    mFrameCounter++;
+
     if (mTargetActorPos)
-        al::lerpVec(&mTargetTrans, mTargetTrans - sead::Vector3f(0.f, 100.f, 0.f), *mTargetActorPos, 0.08f);
+        al::lerpVec(&mTargetTrans, mTargetTrans - sead::Vector3f(0.f, 100.f, 0.f), *mTargetActorPos, mFrameCounter >= 10 ? 0.08f : 1.f);
     
     if(mPlayer && !mTargetActorPos)
         mTargetTrans = *al::getTransPtr(mPlayer);

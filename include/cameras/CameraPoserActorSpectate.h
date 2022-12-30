@@ -30,6 +30,7 @@ public:
     float mDist = 1400.f;
     float mYOffset = 100.f;
     float mDefaultFovy = 35.f;
+    int mFrameCounter = 0;
 
     sead::Vector2f mInterpRStick = sead::Vector2f::zero;
 

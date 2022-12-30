@@ -334,10 +334,15 @@ void FreezeTagMode::update() {
         mCurScene->mSceneLayout->end();
 
     //Spectate camera
-    if(!mTicket->mIsActive && mInfo->mIsPlayerFreeze)
+    if(!mTicket->mIsActive && mInfo->mIsPlayerFreeze) {
         al::startCamera(mCurScene, mTicket, -1);
-    if(mTicket->mIsActive && !mInfo->mIsPlayerFreeze)
+        al::requestStopCameraVerticalAbsorb(mCurScene);
+    }
+    
+    if(mTicket->mIsActive && !mInfo->mIsPlayerFreeze) {
         al::endCamera(mCurScene, mTicket, 0, false);
+        al::requestStopCameraVerticalAbsorb(mCurScene);
+    }
     
     if(mTicket->mIsActive && mInfo->mIsPlayerFreeze)
         updateSpectateCam(player);
