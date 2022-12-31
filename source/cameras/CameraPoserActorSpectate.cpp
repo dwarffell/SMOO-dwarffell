@@ -91,7 +91,7 @@ void CameraPoserActorSpectate::movement()
     if (maxDist > mDistLerp)
         mDistLerp = al::lerpValue(mDistLerp, maxDist, 0.07f);
     else
-        mDistLerp = maxDist
+        mDistLerp = maxDist;
 
     mPosition = mTargetTrans + (rotatedVec * mDistLerp);
 }
