@@ -33,8 +33,8 @@ void CameraPoserActorSpectate::start(al::CameraStartInfo const&)
 {
     if (mTargetActorPos)
         mTargetTrans = *mTargetActorPos;
-    
-    if(mPlayer && !mTargetActorPos)
+
+    if (mPlayer && !mTargetActorPos)
         mTargetTrans = *al::getTransPtr(mPlayer);
 
     mFovyDegree = 47.5f;
@@ -53,11 +53,11 @@ void CameraPoserActorSpectate::movement()
 
     if (mTargetActorPos)
         al::lerpVec(&mTargetTrans, mTargetTrans - sead::Vector3f(0.f, 100.f, 0.f), *mTargetActorPos, mFrameCounter >= 10 ? 0.08f : 1.f);
-    
-    if(mPlayer && !mTargetActorPos)
+
+    if (mPlayer && !mTargetActorPos)
         mTargetTrans = *al::getTransPtr(mPlayer);
-    
-    if(!mPlayer && !mTargetActorPos)
+
+    if (!mPlayer && !mTargetActorPos)
         return;
 
     mTargetTrans.y += mYOffset;
@@ -71,11 +71,11 @@ void CameraPoserActorSpectate::movement()
 
     calcRotVec(targetDir, &rotatedVec, &rightVec);
 
-    float maxDist = mDist; // This will be cut short if a solid surface is found in the way
+    float maxDist = mDistMax; // This will be cut short if a solid surface is found in the way
     sead::Vector3f resultVec;
     bool isHit = false;
     if (mPlayer)
-        isHit = alCollisionUtil::getFirstPolyOnArrow(mPlayer, &resultVec, nullptr, mTargetTrans, rotatedVec * mDist, nullptr, nullptr);
+        isHit = alCollisionUtil::getFirstPolyOnArrow(mPlayer, &resultVec, nullptr, mTargetTrans, rotatedVec * mDistMax, nullptr, nullptr);
 
     if (isHit && mTargetActorPos) {
         // Formula calculates distance between result vec and target trans
@@ -88,7 +88,12 @@ void CameraPoserActorSpectate::movement()
             maxDist = 1.f;
     }
 
-    mPosition = mTargetTrans + (rotatedVec * maxDist);
+    if (maxDist > mDistLerp)
+        mDistLerp = al::lerpValue(mDistLerp, maxDist, 0.07f);
+    else
+        mDistLerp = maxDist
+
+    mPosition = mTargetTrans + (rotatedVec * mDistLerp);
 }
 
 void CameraPoserActorSpectate::calcRotVec(sead::Vector3f targetDir, sead::Vector3f* rotatedVec, sead::Vector3f* rightVec)

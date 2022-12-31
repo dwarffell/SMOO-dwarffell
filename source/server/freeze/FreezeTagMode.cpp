@@ -89,8 +89,10 @@ void FreezeTagMode::processPacket(Packet *packet) {
         curInfo->freezeTagScore = frzPak->score;
     }
 
-    if (frzPak->updateType & FreezeUpdateType::ROUNDSTART && !mInfo->mIsRound)
-        startRound(mRoundLength); // Start round if round not already started
+    if (frzPak->updateType & FreezeUpdateType::ROUNDSTART && !mInfo->mIsRound) {
+        FreezeTagRoundPacket* roundPak = (FreezeTagRoundPacket*)frzPak;
+        startRound(al::clamp(roundPak->roundTime, u8(2), u8(60))); // Start round if round not already started
+    }
 
     if (frzPak->updateType & FreezeUpdateType::ROUNDCANCEL && mInfo->mIsRound)
         endRound(true); // Abort round early on receiving cancel packet
@@ -103,19 +105,24 @@ void FreezeTagMode::processPacket(Packet *packet) {
     }
 }
 
-Packet *FreezeTagMode::createPacket() {
-
+Packet* FreezeTagMode::createPacket() {
     FreezeTagPacket *packet = new FreezeTagPacket();
-
+    
     packet->mUserID = Client::getClientId();
-
-    packet->isRunner = mInfo->mIsPlayerRunner;
-    packet->isFreeze = mInfo->mIsPlayerFreeze;
-    packet->score = mInfo->mPlayerTagScore.mScore;
-
     packet->updateType = mNextUpdateType;
 
-    return packet;
+    if(packet->updateType != FreezeUpdateType::ROUNDSTART) {
+        packet->isRunner = mInfo->mIsPlayerRunner;
+        packet->isFreeze = mInfo->mIsPlayerFreeze;
+        packet->score = mInfo->mPlayerTagScore.mScore;
+
+        return packet;
+    }
+
+    FreezeTagRoundPacket* roundPak = (FreezeTagRoundPacket*)packet;
+    roundPak->roundTime = u8(mInfo->mRoundLength);
+
+    return roundPak;
 }
 
 void FreezeTagMode::sendFreezePacket(FreezeUpdateType updateType) {
@@ -190,6 +197,7 @@ void FreezeTagMode::update() {
     
     // Update the mode timer
     mModeTimer->updateTimer();
+    mModeTimer->disableControl();
     
     // Check for a decrease in the minute value (how survival time score is awarded)
     if((mInfo->mRoundTimer.mMinutes > mModeTimer->getTime().mMinutes) && mInfo->mIsPlayerRunner)
@@ -307,7 +315,7 @@ void FreezeTagMode::update() {
         mInfo->mPlayerTagScore.resetScore();
     
     if (al::isPadTriggerUp(-1) && al::isPadHoldR(-1) && mInfo->mIsHostMode && !mInfo->mIsRound) {
-        startRound(mRoundLength);
+        startRound(mInfo->mRoundLength);
         sendFreezePacket(FreezeUpdateType::ROUNDSTART);
     }
     if (al::isPadTriggerDown(-1) && al::isPadHoldR(-1) && mInfo->mIsHostMode && mInfo->mIsRound) {
@@ -338,7 +346,7 @@ void FreezeTagMode::update() {
         al::startCamera(mCurScene, mTicket, -1);
         al::requestStopCameraVerticalAbsorb(mCurScene);
     }
-    
+
     if(mTicket->mIsActive && !mInfo->mIsPlayerFreeze) {
         al::endCamera(mCurScene, mTicket, 0, false);
         al::requestStopCameraVerticalAbsorb(mCurScene);

@@ -18,4 +18,5 @@ public:
 private:
     static constexpr int mItemCount = 3;
     Keyboard* mScoreKeyboard;
+    Keyboard* mRoundKeyboard;
 };

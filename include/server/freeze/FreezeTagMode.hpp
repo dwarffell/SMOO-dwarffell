@@ -17,6 +17,7 @@
 #include "server/gamemode/GameModeTimer.hpp"
 #include "server/hns/HideAndSeekConfigMenu.hpp"
 #include <math.h>
+#include <stdint.h>
 
 enum FreezeState { // Runner team player's state
     ALIVE = 0,
@@ -51,8 +52,10 @@ struct FreezeTagInfo : GameModeInfoBase {
     sead::PtrArray<PuppetInfo> mRunnerPlayers;
     sead::PtrArray<PuppetInfo> mChaserPlayers;
 
-    bool mIsDebugMode = false;
+    int mRoundLength = 10; // Length of rounds in minutes
     bool mIsHostMode = false;
+
+    bool mIsDebugMode = false;
 };
 
 struct PACKED FreezeTagPacket : Packet {
@@ -61,6 +64,13 @@ struct PACKED FreezeTagPacket : Packet {
     bool isRunner = false;
     bool isFreeze = false;
     uint16_t score = 0;
+};
+
+struct PACKED FreezeTagRoundPacket : Packet {
+    FreezeTagRoundPacket() : Packet() { this->mType = PacketType::GAMEMODEINF; mPacketSize = sizeof(FreezeTagPacket) - sizeof(Packet);};
+    FreezeUpdateType updateType;
+    uint8_t roundTime = 10;
+    const char padding[3] = "\0\0";
 };
 
 class FreezeTagMode : public GameModeBase {
@@ -109,8 +119,6 @@ public:
     void setCameraTicket(al::CameraTicket* ticket) { mTicket = ticket; } // Called when the camera ticket is constructed to get a pointer
 
 private:
-    const int mRoundLength = 10; // Length of rounds in minutes
-
     FreezeUpdateType mNextUpdateType = FreezeUpdateType::PLAYER; // Set for the sendPacket funtion to know what packet type is sent
     FreezePostProcessingType mPostProcessingType = FreezePostProcessingType::PPDISABLED; // Current post processing mode (snapshot mode)
     GameModeTimer* mModeTimer = nullptr; // Generic timer from H&S used for round timer
