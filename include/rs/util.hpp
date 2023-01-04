@@ -87,4 +87,6 @@ namespace rs {
     int getStageShineAnimFrame(al::LiveActor const*, char const*);
     const char* getStageShineArchiveName(al::LiveActor const*, char const*);
     const char* getStageShineEmptyArchiveName(al::LiveActor const*, char const*);
+
+    bool isActionEndDemoPlayer(al::LiveActor const*);
 }

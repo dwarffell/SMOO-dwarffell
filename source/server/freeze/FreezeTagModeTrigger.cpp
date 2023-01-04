@@ -229,6 +229,9 @@ void FreezeTagMode::tryStartEndgameEvent()
     if(!player)
         return;
     
+    if(player->getPlayerHackKeeper()->currentHackActor)
+        player->getPlayerHackKeeper()->cancelHackArea();
+        
     player->startDemoPuppetable();
     rs::faceToCamera(player);
     player->mPlayerAnimator->endSubAnim();
