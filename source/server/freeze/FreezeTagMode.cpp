@@ -22,6 +22,7 @@
 #include "math/seadVector.h"
 #include "puppets/PuppetInfo.h"
 #include "rs/util.hpp"
+#include "server/freeze/FreezeHintArrow.h"
 #include "server/freeze/FreezeTagScore.hpp"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/Client.hpp"
@@ -65,9 +66,13 @@ void FreezeTagMode::init(const GameModeInitInfo& info) {
     
     Logger::log("Scene Heap Free Size: %f/%f\n", al::getSceneHeap()->getFreeSize() * 0.001f, al::getSceneHeap()->getSize() * 0.001f);
 
-    //Create main player's ice block
+    // Create main player's ice block
     mMainPlayerIceBlock = new FreezePlayerBlock("MainPlayerBlock");
     mMainPlayerIceBlock->init(*info.mActorInitInfo);
+
+    // Create hint arrow
+    mHintArrow = new FreezeHintArrow("ChaserHintArrow");
+    mHintArrow->init(*info.mActorInitInfo);
 }
 
 void FreezeTagMode::processPacket(Packet *packet) {
@@ -230,8 +235,11 @@ void FreezeTagMode::update() {
     
     mInvulnTime += Time::deltaTime;
 
-    // Runner team frame checks
-    if (mInfo->mIsPlayerRunner && mInfo->mIsRound) {
+    // Puppet checks
+    float closePupDistance = 9999999.f;
+    PuppetInfo* closePup = nullptr;
+
+    if (mInfo->mIsRound) {
         if (mInvulnTime >= 3) {
             bool isPDead = PlayerFunction::isPlayerDeadStatus(player);
             bool isP2D = ((PlayerActorHakoniwa*)player)->mDimKeeper->is2D;
@@ -240,7 +248,16 @@ void FreezeTagMode::update() {
                 PuppetInfo *curInfo = Client::getPuppetInfo(i);
                 float pupDist = al::calcDistance(player, curInfo->playerPos);
 
-                if(!curInfo->isConnected)
+                if(!curInfo->isConnected || !curInfo->isInSameStage)
+                    continue;
+                
+                // If this puppet is the new closest, set the closest info to the current puppet
+                if(pupDist < closePupDistance && curInfo->isFreezeTagRunner && !curInfo->isFreezeTagFreeze) {
+                    closePupDistance = pupDist;
+                    closePup = curInfo;
+                }
+
+                if(!mInfo->mIsPlayerRunner)
                     continue;
 
                 //Check for freeze
@@ -256,6 +273,12 @@ void FreezeTagMode::update() {
             }
         }
     }
+
+    // Set the target position to the closest puppet
+    if(closePup)
+        mHintArrow->setTarget(&closePup->playerPos);
+    else
+        mHintArrow->setTarget(nullptr);
 
     // Update recovery event timer
     if(mRecoveryEventFrames > 0) {

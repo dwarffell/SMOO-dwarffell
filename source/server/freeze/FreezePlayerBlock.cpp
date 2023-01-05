@@ -16,7 +16,6 @@ void FreezePlayerBlock::init(al::ActorInitInfo const& info)
 {
     al::initActorWithArchiveName(this, info, "FreezePlayerBlock", nullptr);
     al::initNerve(this, &nrvFreezePlayerBlockAppear, 0);
-    this->makeActorAlive();
 
     al::invalidateClipping(this);
 

@@ -9,7 +9,9 @@
 #include "layouts/FreezeTagIcon.h"
 #include "math/seadVector.h"
 #include "puppets/PuppetInfo.h"
+#include "server/freeze/FreezeHintArrow.h"
 #include "server/freeze/FreezePlayerBlock.h"
+#include "server/freeze/FreezeTagInfo.h"
 #include "server/freeze/FreezeTagScore.hpp"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/gamemode/GameModeConfigMenu.hpp"
@@ -18,11 +20,6 @@
 #include "server/hns/HideAndSeekConfigMenu.hpp"
 #include <math.h>
 #include <stdint.h>
-
-enum FreezeState { // Runner team player's state
-    ALIVE = 0,
-    FREEZE = 1
-};
 
 enum FreezeUpdateType : u8 { // Type of packets to send between players
     PLAYER                 = 1 << 0,
@@ -36,26 +33,6 @@ enum FreezePostProcessingType : u8 { // Snapshot mode post processing state
     PPFROZEN = 1,
     PPENDGAMELOSE = 2,
     PPENDGAMEWIN = 3
-};
-
-struct FreezeTagInfo : GameModeInfoBase {
-    FreezeTagInfo() { mMode = GameMode::FREEZETAG; }
-    bool mIsPlayerRunner = true;
-    float mFreezeIconSize = 0.f;
-    FreezeState mIsPlayerFreeze = FreezeState::ALIVE;
-
-    bool mIsRound = false;
-    int mFreezeCount = 0;
-    FreezeTagScore mPlayerTagScore;
-    GameTime mRoundTimer;
-
-    sead::PtrArray<PuppetInfo> mRunnerPlayers;
-    sead::PtrArray<PuppetInfo> mChaserPlayers;
-
-    int mRoundLength = 10; // Length of rounds in minutes
-    bool mIsHostMode = false;
-
-    bool mIsDebugMode = false;
 };
 
 struct PACKED FreezeTagPacket : Packet {
@@ -124,8 +101,11 @@ private:
     GameModeTimer* mModeTimer = nullptr; // Generic timer from H&S used for round timer
     FreezeTagIcon* mModeLayout = nullptr; // HUD layout (creates sub layout actors for runner and chaser)
     FreezeTagInfo* mInfo = nullptr;
-    FreezePlayerBlock* mMainPlayerIceBlock = nullptr; // Visual block around player's when frozen
     al::WipeHolder* mWipeHolder = nullptr; // Pointer set by setWipeHolder on first step of hakoniwaSequence hook
+
+    // Scene actors
+    FreezePlayerBlock* mMainPlayerIceBlock = nullptr; // Visual block around player's when frozen
+    FreezeHintArrow* mHintArrow = nullptr; // Arrow that points to nearest runner while in chaser
 
     // Recovery event info
     int mRecoveryEventFrames = 0;
@@ -135,7 +115,7 @@ private:
     // Endgame info
     bool mIsEndgameActive = false;
     float mEndgameTimer = -1.f;
-
+    
     float mInvulnTime = 0.0f;
     bool mIsScoreEventsValid = false;
 

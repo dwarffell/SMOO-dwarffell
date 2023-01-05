@@ -56,3 +56,11 @@ bool freezeKidsMode(GameDataFile* thisPtr)
     
     return thisPtr->mIsKidsMode;
 }
+
+bool freezeMoonHitboxDisable(al::IUseNerve* nrvUse, al::Nerve* nrv)
+{
+    if(GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return true;
+
+    return al::isNerve(nrvUse, nrv);
+}
