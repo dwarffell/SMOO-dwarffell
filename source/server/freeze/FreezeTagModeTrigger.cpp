@@ -108,7 +108,7 @@ void FreezeTagMode::tryScoreEvent(FreezeTagPacket* incomingPacket, PuppetInfo* s
         return;
     
     float puppetDistance = al::calcDistance(playerBase, sourcePuppet->playerPos);
-    bool isInRange = puppetDistance < 400.f; // Only apply this score event if player is less than this many units away
+    bool isInRange = puppetDistance < 600.f; // Only apply this score event if player is less than this many units away
 
     if(isInRange) {
         //Check for unfreeze score event
