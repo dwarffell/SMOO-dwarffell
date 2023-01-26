@@ -310,8 +310,10 @@ bool PuppetActor::receiveMsg(const al::SensorMsg* msg, al::HitSensor* source,
 
     if ((al::isMsgPlayerTrampleReflect(msg) || rs::isMsgPlayerAndCapObjHipDropReflectAll(msg)) && al::isSensorName(target, "Body"))
     {
-        rs::requestHitReactionToAttacker(msg, target, source);
-        return true;
+        if(!GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG)) {
+            rs::requestHitReactionToAttacker(msg, target, source);
+            return true;
+        }
     }
 
     return false;
