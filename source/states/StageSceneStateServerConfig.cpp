@@ -237,8 +237,17 @@ void StageSceneStateServerConfig::exeGamemodeConfig() {
     subMenuUpdate();
 
     if (mIsDecideConfig && mCurrentList->isDecideEnd()) {
-        if (mGamemodeConfigMenu->mMenu->updateMenu(mCurrentList->mCurSelected)) {
-            endSubMenu();
+        GameModeConfigMenu::UpdateAction action = mGamemodeConfigMenu->mMenu->updateMenu(mCurrentList->mCurSelected);
+        switch (action) {
+            case GameModeConfigMenu::UpdateAction::CLOSE:
+                endSubMenu();
+                break;
+            case GameModeConfigMenu::UpdateAction::REFRESH:
+                subMenuRefresh();
+                break;
+            case GameModeConfigMenu::UpdateAction::NOOP:
+                activateInput();
+                break;
         }
     }
 }
@@ -314,6 +323,14 @@ void StageSceneStateServerConfig::subMenuUpdate() {
     if (rs::isTriggerUiDecide(mHost)) {
         deactivateInput();
     }
+}
+
+void StageSceneStateServerConfig::subMenuRefresh() {
+    mGamemodeConfigMenu = &mGamemodeConfigMenus[GameModeManager::instance()->getGameMode()];
+    mGamemodeConfigMenu->mList->initDataNoResetSelected(mGamemodeConfigMenu->mMenu->getMenuSize());
+    mGamemodeConfigMenu->mList->addStringData(mGamemodeConfigMenu->mMenu->getStringData(), "TxtContent");
+    mGamemodeConfigMenu->mList->updateParts();
+    activateInput();
 }
 
 void StageSceneStateServerConfig::activateInput() {

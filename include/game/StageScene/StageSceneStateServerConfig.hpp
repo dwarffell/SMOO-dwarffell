@@ -50,6 +50,7 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
     private:
         inline void subMenuStart();
         inline void subMenuUpdate();
+        inline void subMenuRefresh();
 
         al::MessageSystem* mMsgSystem = nullptr;
         FooterParts* mFooterParts = nullptr;
