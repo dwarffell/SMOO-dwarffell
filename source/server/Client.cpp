@@ -924,7 +924,6 @@ void Client::updateTagInfo(TagInf* packet) {
  */
 void Client::sendToStage(ChangeStagePacket* packet) {
     if (mSceneInfo && mSceneInfo->mSceneObjHolder) {
-      
         if (!sInstance->mUIMessage->mIsAlive) {
             if (strcmp(packet->changeStage, "$agogusStage") == 0) { // kicked
                 sInstance->mUIMessage->appear();
