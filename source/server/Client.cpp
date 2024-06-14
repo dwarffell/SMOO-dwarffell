@@ -189,8 +189,9 @@ bool Client::openKeyboardIP() {
 
     while (true) {
         if (sInstance->mKeyboard->isThreadDone()) {
-            if (!sInstance->mKeyboard->isKeyboardCancelled())
+            if (!sInstance->mKeyboard->isKeyboardCancelled()) {
                 sInstance->mServerIP = sInstance->mKeyboard->getResult();
+            }
             break;
         }
         nn::os::YieldThread(); // allow other threads to run
@@ -232,8 +233,9 @@ bool Client::openKeyboardPort() {
 
     while (true) {
         if (sInstance->mKeyboard->isThreadDone()) {
-            if (!sInstance->mKeyboard->isKeyboardCancelled())
+            if (!sInstance->mKeyboard->isKeyboardCancelled()) {
                 sInstance->mServerPort = ::atoi(sInstance->mKeyboard->getResult());
+            }
             break;
         }
         nn::os::YieldThread(); // allow other threads to run
@@ -326,20 +328,25 @@ void Client::readFunc() {
 
                 if (lastGameInfPacket != emptyGameInfPacket) {
                     // Assume game packets are empty from first connection
-                    if (lastGameInfPacket.mUserID != mUserID)
+                    if (lastGameInfPacket.mUserID != mUserID) {
                         lastGameInfPacket.mUserID = mUserID;
+                    }
                     mSocket->send(&lastGameInfPacket);
                 }
 
                 // No need to send player/costume packets if they're empty
-                if (lastPlayerInfPacket.mUserID == mUserID)
+                if (lastPlayerInfPacket.mUserID == mUserID) {
                     mSocket->send(&lastPlayerInfPacket);
-                if (lastCostumeInfPacket.mUserID == mUserID)
+                }
+                if (lastCostumeInfPacket.mUserID == mUserID) {
                     mSocket->send(&lastCostumeInfPacket);
-                if (lastTagInfPacket.mUserID == mUserID)
+                }
+                if (lastTagInfPacket.mUserID == mUserID) {
                     mSocket->send(&lastTagInfPacket);
-                if (lastCaptureInfPacket.mUserID == mUserID)
+                }
+                if (lastCaptureInfPacket.mUserID == mUserID) {
                     mSocket->send(&lastCaptureInfPacket);
+                }
 
                 break;
             case PacketType::COSTUMEINF:
@@ -526,14 +533,8 @@ void Client::sendGameInfPacket(const PlayerActorHakoniwa* player, GameDataHolder
     sead::ScopedCurrentHeapSetter setter(sInstance->mHeap);
 
     GameInf* packet = new GameInf();
-    packet->mUserID = sInstance->mUserID;
-
-    if (player) {
-        packet->is2D = player->mDimKeeper->is2DModel;
-    } else {
-        packet->is2D = false;
-    }
-
+    packet->mUserID    = sInstance->mUserID;
+    packet->is2D       = player ? player->mDimKeeper->is2DModel : false;
     packet->scenarioNo = holder.mData->mGameDataFile->getScenarioNo();
 
     strcpy(packet->stageName, GameDataFunction::getCurrentStageName(holder));
@@ -596,8 +597,8 @@ void Client::sendTagInfPacket() {
     TagInf* packet = new TagInf();
     packet->mUserID    = sInstance->mUserID;
     packet->isIt       = hsMode->isPlayerIt() && hsMode->isModeActive();
-    packet->minutes    = curInfo->mHidingTime.mMinutes;
     packet->seconds    = curInfo->mHidingTime.mSeconds;
+    packet->minutes    = curInfo->mHidingTime.mMinutes;
     packet->updateType = static_cast<TagUpdateType>(TagUpdateType::STATE | TagUpdateType::TIME);
 
     sInstance->mSocket->queuePacket(packet);
@@ -733,16 +734,18 @@ void Client::updatePlayerInfo(PlayerInf* packet) {
 
     if (packet->actName != PlayerAnims::Type::Unknown) {
         strcpy(curInfo->curAnimStr, PlayerAnims::FindStr(packet->actName));
-        if (curInfo->curAnimStr[0] == '\0')
+        if (curInfo->curAnimStr[0] == '\0') {
             Logger::log("[ERROR] %s: actName was out of bounds: %d\n", __func__, packet->actName);
+        }
     } else {
         strcpy(curInfo->curAnimStr, "Wait");
     }
 
     if (packet->subActName != PlayerAnims::Type::Unknown) {
         strcpy(curInfo->curSubAnimStr, PlayerAnims::FindStr(packet->subActName));
-        if (curInfo->curSubAnimStr[0] == '\0')
+        if (curInfo->curSubAnimStr[0] == '\0') {
             Logger::log("[ERROR] %s: subActName was out of bounds: %d\n", __func__, packet->subActName);
+        }
     } else {
         strcpy(curInfo->curSubAnimStr, "");
     }
@@ -1005,7 +1008,7 @@ void Client::disconnectPlayer(PlayerDC* packet) {
  * @return false
  */
 bool Client::isShineCollected(int shineId) {
-    for (size_t i = 0; i < curCollectedShines.size(); i++) {
+    for (size_t i = 0; i < (size_t)curCollectedShines.size(); i++) {
         if (curCollectedShines[i] >= 0) {
             if (curCollectedShines[i] == shineId) {
                 return true;
@@ -1025,7 +1028,7 @@ bool Client::isShineCollected(int shineId) {
 PuppetInfo* Client::findPuppetInfo(const nn::account::Uid& id, bool isFindAvailable) {
     PuppetInfo* firstAvailable = nullptr;
 
-    for (size_t i = 0; i < getMaxPlayerCount() - 1; i++) {
+    for (size_t i = 0; i < (size_t)getMaxPlayerCount() - 1; i++) {
         PuppetInfo* curInfo = mPuppetInfoArr[i];
 
         if (curInfo->playerID == id) {
@@ -1067,9 +1070,8 @@ void Client::setStageInfo(GameDataHolderAccessor holder) {
 bool Client::tryAddPuppet(PuppetActor* puppet) {
     if (sInstance) {
         return sInstance->mPuppetHolder->tryRegisterPuppet(puppet);
-    } else {
-        return false;
     }
+    return false;
 }
 
 /**
@@ -1082,9 +1084,8 @@ bool Client::tryAddPuppet(PuppetActor* puppet) {
 bool Client::tryAddDebugPuppet(PuppetActor* puppet) {
     if (sInstance) {
         return sInstance->mPuppetHolder->tryRegisterDebugPuppet(puppet);
-    } else {
-        return false;
     }
+    return false;
 }
 
 /**
@@ -1099,9 +1100,8 @@ PuppetActor* Client::getPuppet(int idx) {
     }
     if (sInstance) {
         return sInstance->mPuppetHolder->getPuppetActor(idx);
-    } else {
-        return nullptr;
     }
+    return nullptr;
 }
 
 /**
@@ -1112,9 +1112,8 @@ PuppetActor* Client::getPuppet(int idx) {
 PuppetInfo* Client::getLatestInfo() {
     if (sInstance) {
         return Client::getPuppetInfo(sInstance->mPuppetHolder->getSize() - 1);
-    } else {
-        return nullptr;
     }
+    return nullptr;
 }
 
 /**
@@ -1128,15 +1127,13 @@ PuppetInfo* Client::getPuppetInfo(int idx) {
         // unsafe get
         PuppetInfo* curInfo = sInstance->mPuppetInfoArr[idx];
 
-        if (!curInfo) {
-            Logger::log("Attempting to Access Puppet Out of Bounds! Value: %d\n", idx);
-            return nullptr;
+        if (curInfo) {
+            return curInfo;
         }
 
-        return curInfo;
-    } else {
-        return nullptr;
+        Logger::log("Attempting to Access Puppet Out of Bounds! Value: %d\n", idx);
     }
+    return nullptr;
 }
 
 /**
@@ -1154,7 +1151,7 @@ void Client::resetCollectedShines() {
  * @param shineId
  */
 void Client::removeShine(int shineId) {
-    for (size_t i = 0; i < curCollectedShines.size(); i++) {
+    for (size_t i = 0; i < (size_t)curCollectedShines.size(); i++) {
         if (curCollectedShines[i] == shineId) {
             curCollectedShines[i] = -1;
             collectedShineCount--;
@@ -1189,10 +1186,10 @@ void Client::updateShines() {
 
     GameDataHolderAccessor accessor(sInstance->mCurStageScene);
 
-    for (size_t i = 0; i < sInstance->getCollectedShinesCount(); i++) {
+    for (size_t i = 0; i < (size_t)sInstance->getCollectedShinesCount(); i++) {
         int shineID = sInstance->getShineID(i);
 
-        if (shineID < 0) continue;
+        if (shineID < 0) { continue; }
 
         Logger::log("Shine UID: %d\n", shineID);
 
@@ -1256,9 +1253,8 @@ void Client::clearArrays() {
 PuppetInfo* Client::getDebugPuppetInfo() {
     if (sInstance) {
         return &sInstance->mDebugPuppetInfo;
-    } else {
-        return nullptr;
     }
+    return nullptr;
 }
 
 /**
@@ -1269,9 +1265,8 @@ PuppetInfo* Client::getDebugPuppetInfo() {
 PuppetActor* Client::getDebugPuppet() {
     if (sInstance) {
         return sInstance->mPuppetHolder->getDebugPuppet();
-    } else {
-        return nullptr;
     }
+    return nullptr;
 }
 
 /**

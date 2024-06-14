@@ -9,13 +9,9 @@
 #include "al/layout/LayoutInitInfo.h"
 #include "al/scene/Scene.h"
 #include "al/util/NerveUtil.h"
-#include "rs/util/InputUtil.h"
-
-#include "al/util.hpp"
 
 #include "game/GameData/GameDataHolder.h"
 
-#include "logger.hpp"
 #include "server/gamemode/GameModeConfigMenu.hpp"
 #include "server/gamemode/GameModeConfigMenuFactory.hpp"
 
@@ -37,7 +33,7 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
             GAMEMODESWITCH,
             SETIP,
             SETPORT,
-            HIDESERVER
+            HIDESERVER,
         };
 
         virtual al::MessageSystem* getMessageSystem(void) const override;

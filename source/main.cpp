@@ -74,13 +74,6 @@ static int pageIndex = 0;
 static const int maxPages = 4;
 
 void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead::DrawContext* drawContext) {
-    // sead::FrameBuffer* frameBuffer;
-    // __asm ("MOV %[result], X21" : [result] "=r" (frameBuffer));
-
-    // if(Application::sInstance->mFramework) {
-    //     Application::sInstance->mFramework->mGpuPerf->drawResult((agl::DrawContext*)drawContext, frameBuffer);
-    // }
-
     Time::calcTime();  // this needs to be ran every frame, so running it here works
 
     if (!debugMode) {
@@ -92,7 +85,6 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
     SocketClient* socket      = client->mSocket;
     bool          isConnected = socket->isConnected();
 
-    // int dispWidth = al::getLayoutDisplayWidth();
     int dispHeight = al::getLayoutDisplayHeight();
 
     gTextWriter->mViewport = viewport;
@@ -232,8 +224,6 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
                 PuppetInfo*  debugInfo   = Client::getDebugPuppetInfo();
 
                 if (debugPuppet && debugInfo) {
-                    al::LiveActor* curModel = debugPuppet->getCurrentModel();
-
                     gTextWriter->printf("Is Debug Puppet Tagged: %s\n", BTOC(debugInfo->isIt));
                 }
             }
@@ -400,8 +390,6 @@ bool threadInit(HakoniwaSequence* mainSeq) { // hook for initializing client cla
 bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
     StageScene* stageScene = (StageScene*)sequence->curScene;
 
-    static bool isCameraActive = false;
-
     bool isFirstStep = al::isFirstStep(sequence);
 
     al::PlayerHolder* pHolder    = al::getScenePlayerHolder(stageScene);
@@ -421,27 +409,40 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
     static bool isDisableMusic = false;
 
     if (al::isPadHoldZR(-1)) {
-        if (al::isPadTriggerUp(-1)) debugMode = !debugMode;
-        if (al::isPadTriggerLeft(-1)) pageIndex--;
-        if (al::isPadTriggerRight(-1)) pageIndex++;
-        if (pageIndex < 0) {
-            pageIndex = maxPages - 1;
+        if (al::isPadTriggerUp(-1)) { // ZR + Up => Debug menu
+            debugMode = !debugMode;
         }
-        if (pageIndex >= maxPages) pageIndex = 0;
+        if (al::isPadTriggerLeft(-1)) { // ZR + Left => Previous page
+            pageIndex--;
+            if (pageIndex < 0) {
+                pageIndex = maxPages - 1;
+            }
+        }
+        if (al::isPadTriggerRight(-1)) { // ZR + Right => Next page
+            pageIndex++;
+            if (pageIndex >= maxPages) {
+                pageIndex = 0;
+            }
+        }
     } else if (al::isPadHoldZL(-1)) {
         if (debugMode) {
-            if (al::isPadTriggerLeft(-1)) debugPuppetIndex--;
-            if (al::isPadTriggerRight(-1)) debugPuppetIndex++;
-
-            if (debugPuppetIndex < 0) {
-                debugPuppetIndex = Client::getMaxPlayerCount() - 1;
+            if (al::isPadTriggerLeft(-1)) { // [Debug menu] ZL + Left => Previous player
+                debugPuppetIndex--;
+                if (debugPuppetIndex < 0) {
+                    debugPuppetIndex = Client::getMaxPlayerCount() - 1;
+                }
             }
-            if (debugPuppetIndex >= Client::getMaxPlayerCount()) {
-                debugPuppetIndex = 0;
+            if (al::isPadTriggerRight(-1)) { // [Debug menu] ZL + Right => Next player
+                debugPuppetIndex++;
+                if (debugPuppetIndex >= Client::getMaxPlayerCount()) {
+                    debugPuppetIndex = 0;
+                }
             }
         }
     } else if (al::isPadHoldL(-1)) {
-        if (al::isPadTriggerLeft(-1)) GameModeManager::instance()->toggleActive();
+        if (al::isPadTriggerLeft(-1)) { // L + Left => Activate gamemode
+            GameModeManager::instance()->toggleActive();
+        }
         if (al::isPadTriggerRight(-1)) {
             if (debugMode) {
                 PuppetInfo* debugPuppet = Client::getDebugPuppetInfo();
@@ -468,12 +469,9 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
             if (debugMode) {
                 PuppetActor* debugPuppet = Client::getDebugPuppet();
                 if (debugPuppet) {
-                    PuppetInfo* info = debugPuppet->getInfo();
-                    // info->isIt = !info->isIt;
-
                     debugPuppet->emitJoinEffect();
                 }
-            } else {
+            } else { // L + Up => Disable background music
                 isDisableMusic = !isDisableMusic;
             }
         }

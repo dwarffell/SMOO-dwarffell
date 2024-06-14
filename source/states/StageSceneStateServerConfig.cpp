@@ -3,12 +3,10 @@
 #include <cstring>
 #include <math.h>
 #include "al/string/StringTmp.h"
+#include "al/util.hpp"
 #include "basis/seadNew.h"
-#include "game/Layouts/CommonVerticalList.h"
 #include "game/SaveData/SaveDataAccessFunction.h"
 #include "server/Client.hpp"
-#include "al/util.hpp"
-#include "al/util/NerveUtil.h"
 #include "container/seadPtrArray.h"
 #include "container/seadSafeArray.h"
 #include "logger.hpp"
@@ -16,17 +14,8 @@
 #include "prim/seadStringUtil.h"
 #include "rs/util/InputUtil.h"
 #include "server/gamemode/GameModeBase.hpp"
-#include "server/gamemode/GameModeConfigMenuFactory.hpp"
 #include "server/gamemode/GameModeFactory.hpp"
 #include "server/gamemode/GameModeManager.hpp"
-#include "server/hns/HideAndSeekMode.hpp"
-
-// WIP work on RollPartsData, not exactly working out atm
-const char16_t* testValues[] = {
-    u"Test 1", u"Test 2", u"Test 3",
-    u"Test 4", u"Test 5", u"Test 6",
-    u"Test 7", u"Test 8", u"Test 9"
-};
 
 StageSceneStateServerConfig::StageSceneStateServerConfig(
     const char* name,
@@ -62,22 +51,6 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(
 
     mMainOptionsList->addStringData(getMainMenuOptions(), "TxtContent");
 
-    // WIP work on RollPartsData, not exactly working out atm
-    // RollPartsData* testArr = new RollPartsData[2]();
-
-    // for (int i = 0; i < 2; i++) {
-    //     RollPartsData* part = &testArr[i];
-
-    //     part->mRollMsgCount = 3;
-    //     part->mRollMsgList  = testValues;
-    //     part->unkInt1       = 0;
-    //     part->mUnkBool      = i == 0;
-    // }
-
-    //mMainOptionsList->startLoopActionAll("Loop", "Loop");
-
-    // mMainOptionsList->setRollPartsData(testArr);
-
     // gamemode select menu
 
     mModeSelect     = new SimpleLayoutMenu("GamemodeSelectMenu", "OptionSelect", initInfo, 0, false);
@@ -89,7 +62,7 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(
 
     mModeSelectList->initDataNoResetSelected(modeCount);
 
-    sead::SafeArray<sead::WFixedSafeString<0x200>, modeCount>* modeSelectOptions = new sead::SafeArray<sead::WFixedSafeString<0x200>, modeCount>();
+    auto* modeSelectOptions = new sead::SafeArray<sead::WFixedSafeString<0x200>, modeCount>();
 
     for (size_t i = 0; i < modeCount; i++) {
         const char* modeName = GameModeFactory::getModeName(i);
@@ -189,9 +162,10 @@ void StageSceneStateServerConfig::exeMainMenu() {
                 al::setNerve(this, &nrvStageSceneStateServerConfigHideServer);
                 break;
             }
-            default:
+            default: {
                 kill();
                 break;
+            }
         }
     }
 }
@@ -207,10 +181,11 @@ void StageSceneStateServerConfig::exeOpenKeyboardIP() {
 
         al::startHitReaction(mCurrentMenu, "リセット", 0);
 
-        if (isSave)
+        if (isSave) {
             al::setNerve(this, &nrvStageSceneStateServerConfigSaveData);
-        else
+        } else {
             al::setNerve(this, &nrvStageSceneStateServerConfigMainMenu);
+        }
     }
 }
 
@@ -225,10 +200,11 @@ void StageSceneStateServerConfig::exeOpenKeyboardPort() {
 
         al::startHitReaction(mCurrentMenu, "リセット", 0);
 
-        if (isSave)
+        if (isSave) {
             al::setNerve(this, &nrvStageSceneStateServerConfigSaveData);
-        else
+        } else {
             al::setNerve(this, &nrvStageSceneStateServerConfigMainMenu);
+        }
     }
 }
 
@@ -260,15 +236,18 @@ void StageSceneStateServerConfig::exeGamemodeConfig() {
     if (mIsDecideConfig && mCurrentList->isDecideEnd()) {
         GameModeConfigMenu::UpdateAction action = mGamemodeConfigMenu->mMenu->updateMenu(mCurrentList->mCurSelected);
         switch (action) {
-            case GameModeConfigMenu::UpdateAction::CLOSE:
+            case GameModeConfigMenu::UpdateAction::CLOSE: {
                 endSubMenu();
                 break;
-            case GameModeConfigMenu::UpdateAction::REFRESH:
+            }
+            case GameModeConfigMenu::UpdateAction::REFRESH: {
                 subMenuRefresh();
                 break;
-            case GameModeConfigMenu::UpdateAction::NOOP:
+            }
+            case GameModeConfigMenu::UpdateAction::NOOP: {
                 activateInput();
                 break;
+            }
         }
     }
 }

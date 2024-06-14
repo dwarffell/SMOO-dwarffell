@@ -136,14 +136,16 @@ class Client {
         static const int getCurrentPort();
 
         static int getConnectCount() {
-            if (sInstance)
+            if (sInstance) {
                 return sInstance->mConnectCount;
+            }
             return 0;
         }
 
         static PuppetHolder* getPuppetHolder() {
-            if (sInstance)
+            if (sInstance) {
                 return sInstance->mPuppetHolder;
+            }
             return nullptr;
         }
 
