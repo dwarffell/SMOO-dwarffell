@@ -136,15 +136,7 @@ al::MessageSystem* StageSceneStateServerConfig::getMessageSystem(void) const {
 
 void StageSceneStateServerConfig::exeMainMenu() {
     if (al::isFirstStep(this)) {
-
-        mInput->reset();
-
-        mCurrentList->activate();
-
-        mCurrentList->appearCursor();
-
-        mIsDecideConfig = false;
-
+        activateInput();
     }
 
     mInput->update();
@@ -163,10 +155,7 @@ void StageSceneStateServerConfig::exeMainMenu() {
     }
 
     if (rs::isTriggerUiDecide(mHost)) {
-        al::startHitReaction(mCurrentMenu, "決定", 0);
-        mCurrentList->endCursor();
-        mCurrentList->decide();
-        mIsDecideConfig = true;
+        deactivateInput();
     }
 
     if (mIsDecideConfig && mCurrentList->isDecideEnd()) {
@@ -248,20 +237,27 @@ void StageSceneStateServerConfig::exeGamemodeConfig() {
     subMenuUpdate();
 
     if (mIsDecideConfig && mCurrentList->isDecideEnd()) {
-        if (mGamemodeConfigMenu->mMenu->updateMenu(mCurrentList->mCurSelected)) {
-            endSubMenu();
+        GameModeConfigMenu::UpdateAction action = mGamemodeConfigMenu->mMenu->updateMenu(mCurrentList->mCurSelected);
+        switch (action) {
+            case GameModeConfigMenu::UpdateAction::CLOSE:
+                endSubMenu();
+                break;
+            case GameModeConfigMenu::UpdateAction::REFRESH:
+                subMenuRefresh();
+                break;
+            case GameModeConfigMenu::UpdateAction::NOOP:
+                activateInput();
+                break;
         }
     }
 }
 
 void StageSceneStateServerConfig::exeGamemodeSelect() {
     if (al::isFirstStep(this)) {
-
         mCurrentList = mModeSelectList;
         mCurrentMenu = mModeSelect;
 
         subMenuStart();
-
     }
 
     subMenuUpdate();
@@ -274,7 +270,6 @@ void StageSceneStateServerConfig::exeGamemodeSelect() {
 }
 
 void StageSceneStateServerConfig::exeSaveData() {
-
     if (al::isFirstStep(this)) {
         SaveDataAccessFunction::startSaveDataWrite(mGameDataHolder);
     }
@@ -303,15 +298,9 @@ void StageSceneStateServerConfig::subMenuStart() {
 
     mCurrentMenu->kill();
 
-    mInput->reset();
-
-    mCurrentList->activate();
-
-    mCurrentList->appearCursor();
+    activateInput();
 
     mCurrentMenu->startAppear("Appear");
-
-    mIsDecideConfig = false;
 }
 
 void StageSceneStateServerConfig::subMenuUpdate() {
@@ -332,13 +321,31 @@ void StageSceneStateServerConfig::subMenuUpdate() {
     }
 
     if (rs::isTriggerUiDecide(mHost)) {
-        al::startHitReaction(mCurrentMenu, "決定", 0);
-        mCurrentList->endCursor();
-        mCurrentList->decide();
-        mIsDecideConfig = true;
+        deactivateInput();
     }
 }
 
+void StageSceneStateServerConfig::subMenuRefresh() {
+    mGamemodeConfigMenu = &mGamemodeConfigMenus[GameModeManager::instance()->getGameMode()];
+    mGamemodeConfigMenu->mList->initDataNoResetSelected(mGamemodeConfigMenu->mMenu->getMenuSize());
+    mGamemodeConfigMenu->mList->addStringData(mGamemodeConfigMenu->mMenu->getStringData(), "TxtContent");
+    mGamemodeConfigMenu->mList->updateParts();
+    activateInput();
+}
+
+void StageSceneStateServerConfig::activateInput() {
+    mInput->reset();
+    mCurrentList->activate();
+    mCurrentList->appearCursor();
+    mIsDecideConfig = false;
+}
+
+void StageSceneStateServerConfig::deactivateInput() {
+    al::startHitReaction(mCurrentMenu, "決定", 0);
+    mCurrentList->endCursor();
+    mCurrentList->decide();
+    mIsDecideConfig = true;
+}
 
 namespace {
 NERVE_IMPL(StageSceneStateServerConfig, MainMenu)
