@@ -412,16 +412,18 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
         if (al::isPadTriggerUp(-1)) { // ZR + Up => Debug menu
             debugMode = !debugMode;
         }
-        if (al::isPadTriggerLeft(-1)) { // ZR + Left => Previous page
-            pageIndex--;
-            if (pageIndex < 0) {
-                pageIndex = maxPages - 1;
+        if (debugMode) {
+            if (al::isPadTriggerLeft(-1)) { // [Debug menu] ZR + Left => Previous page
+                pageIndex--;
+                if (pageIndex < 0) {
+                    pageIndex = maxPages - 1;
+                }
             }
-        }
-        if (al::isPadTriggerRight(-1)) { // ZR + Right => Next page
-            pageIndex++;
-            if (pageIndex >= maxPages) {
-                pageIndex = 0;
+            if (al::isPadTriggerRight(-1)) { // [Debug menu] ZR + Right => Next page
+                pageIndex++;
+                if (pageIndex >= maxPages) {
+                    pageIndex = 0;
+                }
             }
         }
     } else if (al::isPadHoldZL(-1)) {
