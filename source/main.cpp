@@ -445,37 +445,8 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
         if (al::isPadTriggerLeft(-1)) { // L + Left => Activate gamemode
             GameModeManager::instance()->toggleActive();
         }
-        if (al::isPadTriggerRight(-1)) {
-            if (debugMode) {
-                PuppetInfo* debugPuppet = Client::getDebugPuppetInfo();
-
-                if (debugPuppet) {
-                    debugPuppet->playerPos = al::getTrans(playerBase);
-                    al::calcQuat(&debugPuppet->playerRot, playerBase);
-
-                    PlayerHackKeeper* hackKeeper = playerBase->getPlayerHackKeeper();
-
-                    if (hackKeeper) {
-                        const char* hackName = hackKeeper->getCurrentHackName();
-                        debugPuppet->isCaptured = hackName != nullptr;
-                        if (debugPuppet->isCaptured) {
-                            strcpy(debugPuppet->curHack, hackName);
-                        } else {
-                            strcpy(debugPuppet->curHack, "");
-                        }
-                    }
-                }
-            }
-        }
-        if (al::isPadTriggerUp(-1)) {
-            if (debugMode) {
-                PuppetActor* debugPuppet = Client::getDebugPuppet();
-                if (debugPuppet) {
-                    debugPuppet->emitJoinEffect();
-                }
-            } else { // L + Up => Disable background music
-                isDisableMusic = !isDisableMusic;
-            }
+        if (al::isPadTriggerUp(-1)) { // L + Up => Disable background music
+            isDisableMusic = !isDisableMusic;
         }
     }
 
