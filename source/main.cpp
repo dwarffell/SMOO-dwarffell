@@ -427,7 +427,7 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
             }
         }
     } else if (al::isPadHoldZL(-1)) {
-        if (debugMode) {
+        if (debugMode && pageIndex == 0) {
             if (al::isPadTriggerLeft(-1)) { // [Debug menu] ZL + Left => Previous player
                 debugPuppetIndex--;
                 if (debugPuppetIndex < 0) {
