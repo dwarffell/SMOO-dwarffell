@@ -135,6 +135,8 @@ class Client {
 
         static const int getCurrentPort();
 
+        static const bool hasServerChanged();
+
         static int getConnectCount() {
             if (sInstance) {
                 return sInstance->mConnectCount;

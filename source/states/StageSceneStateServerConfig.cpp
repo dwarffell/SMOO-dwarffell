@@ -109,6 +109,14 @@ void StageSceneStateServerConfig::appear(void) {
 void StageSceneStateServerConfig::kill(void) {
     mCurrentMenu->startEnd("End");
     al::NerveStateBase::kill();
+
+    if (Client::hasServerChanged()) {
+        #if EMU
+        Client::showUIMessage(u"You changed the server and have to restart the emulator now.");
+        #else
+        Client::showUIMessage(u"You changed the server and have to restart the game now.");
+        #endif
+    }
 }
 
 al::MessageSystem* StageSceneStateServerConfig::getMessageSystem(void) const {

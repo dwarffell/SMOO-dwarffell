@@ -1306,6 +1306,21 @@ const int Client::getCurrentPort() {
 }
 
 /**
+ * @brief
+ *
+ * @return const bool
+ */
+const bool Client::hasServerChanged() {
+    if (!sInstance) {
+        return false;
+    }
+    return (
+        getCurrentPort() != sInstance->mSocket->getPort()
+        || strcmp(getCurrentIP(), sInstance->mSocket->getIP()) != 0
+    );
+}
+
+/**
  * @brief sets server IP to supplied string, used specifically for loading IP from the save file.
  *
  * @param ip
