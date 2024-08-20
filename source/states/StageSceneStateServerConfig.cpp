@@ -20,6 +20,7 @@
 #include "server/gamemode/GameModeFactory.hpp"
 #include "server/gamemode/GameModeManager.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
+#include "tether.h"
 
 // WIP work on RollPartsData, not exactly working out atm
 const char16_t* testValues[] = {u"Test 1", u"Test 2", u"Test 3", u"Test 4", u"Test 5",
@@ -41,13 +42,14 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(const char *name, al::S
 
     mMainOptionsList->unkInt1 = 1;
 
-    mMainOptionsList->initDataNoResetSelected(4);
+    mMainOptionsList->initDataNoResetSelected(5);
 
-    sead::SafeArray<sead::WFixedSafeString<0x200>, 4>* mainMenuOptions =
-        new sead::SafeArray<sead::WFixedSafeString<0x200>, 4>();
+    sead::SafeArray<sead::WFixedSafeString<0x200>, 5>* mainMenuOptions =
+        new sead::SafeArray<sead::WFixedSafeString<0x200>, 5>();
 
     mainMenuOptions->mBuffer[ServerConfigOption::GAMEMODECONFIG].copy(u"Gamemode Config");
     mainMenuOptions->mBuffer[ServerConfigOption::GAMEMODESWITCH].copy(u"Change Gamemode");
+    mainMenuOptions->mBuffer[ServerConfigOption::TETHERCONFIG].copy(u"Player Tether Config");
     mainMenuOptions->mBuffer[ServerConfigOption::SETIP].copy(u"Change Server IP");
     mainMenuOptions->mBuffer[ServerConfigOption::SETPORT].copy(u"Change Server Port");
 
@@ -89,6 +91,25 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(const char *name, al::S
     }
 
     mModeSelectList->addStringData(modeSelectOptions->mBuffer, "TxtContent");
+
+    // tether config menu
+    mTetherSelect = new SimpleLayoutMenu("TetherSelectMenu", "OptionSelect", initInfo, 0, false);
+    mTetherSelectList = new CommonVerticalList(mTetherSelect, initInfo, true);
+
+    al::setPaneString(mTetherSelect, "TxtOption", u"Tether Config", 0);
+
+    mTetherSelectList->initDataNoResetSelected(5);
+
+    sead::SafeArray<sead::WFixedSafeString<0x200>, 5>* tetherSelectOptions =
+        new sead::SafeArray<sead::WFixedSafeString<0x200>, 5>();
+
+    tetherSelectOptions->mBuffer[0].convertFromMultiByteString("Very Long / Very Easy", strlen("Very Long / Very Easy"));
+    tetherSelectOptions->mBuffer[1].convertFromMultiByteString("Long / Easy", strlen("Long / Easy"));
+    tetherSelectOptions->mBuffer[2].convertFromMultiByteString("Medium / Normal", strlen("Medium / Normal"));
+    tetherSelectOptions->mBuffer[3].convertFromMultiByteString("Short / Hard", strlen("Short / Hard"));
+    tetherSelectOptions->mBuffer[4].convertFromMultiByteString("Tiny / Very Hard", strlen("Tiny / Very Hard"));
+    
+    mTetherSelectList->addStringData(tetherSelectOptions->mBuffer, "TxtContent");
 
     // gamemode config menu
     GameModeConfigMenuFactory factory("GameModeConfigFactory");
@@ -177,6 +198,10 @@ void StageSceneStateServerConfig::exeMainMenu() {
         }
         case ServerConfigOption::GAMEMODESWITCH: {
             al::setNerve(this, &nrvStageSceneStateServerConfigGamemodeSelect);
+            break;
+        }
+        case ServerConfigOption::TETHERCONFIG: {
+            al::setNerve(this, &nrvStageSceneStateServerConfigTetherConfig);
             break;
         }
         case ServerConfigOption::SETIP: {
@@ -273,6 +298,42 @@ void StageSceneStateServerConfig::exeGamemodeSelect() {
     }
 }
 
+void StageSceneStateServerConfig::exeTetherConfig() {
+    if (al::isFirstStep(this)) {
+
+        mCurrentList = mTetherSelectList;
+        mCurrentMenu = mTetherSelect;
+
+        subMenuStart();
+
+    }
+
+    subMenuUpdate();
+
+    if (mIsDecideConfig && mCurrentList->isDecideEnd()) {
+        switch(mCurrentList->mCurSelected) {
+            case 0:
+                getTether().setDifficultyVeryEasy();
+                break;
+            case 1:
+                getTether().setDifficultyEasy();
+                break;
+            case 2:
+                getTether().setDifficultyNormal();
+                break;
+            case 3:
+                getTether().setDifficultyHard();
+                break;
+            case 4:
+                getTether().setDifficultyVeryHard();
+                break;
+        };
+
+        Logger::log("Set tether difficult to %d / %d\n", mCurrentList->mCurSelected, getTether().getDifficultyDistance());
+        endSubMenu();
+    }
+}
+
 void StageSceneStateServerConfig::exeSaveData() {
 
     if (al::isFirstStep(this)) {
@@ -346,5 +407,6 @@ NERVE_IMPL(StageSceneStateServerConfig, OpenKeyboardIP)
 NERVE_IMPL(StageSceneStateServerConfig, OpenKeyboardPort)
 NERVE_IMPL(StageSceneStateServerConfig, GamemodeConfig)
 NERVE_IMPL(StageSceneStateServerConfig, GamemodeSelect)
+NERVE_IMPL(StageSceneStateServerConfig, TetherConfig)
 NERVE_IMPL(StageSceneStateServerConfig, SaveData)
 }

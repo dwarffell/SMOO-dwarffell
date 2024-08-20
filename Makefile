@@ -6,7 +6,7 @@
 SMOVER ?= 100
 BUILDVER ?= 101 
 BUILDVERSTR ?= 1.0.1 
-IP ?= 192.168.0.20 # ftp server ip (usually is switch's local IP)
+IP ?= 192.168.0.6 # ftp server ip (usually is switch's local IP)
 DEBUGLOG ?= 1 # defaults to disable debug logger 
 SERVERIP ?= 192.168.0.20 # put debug logger server IP here
 ISEMU ?= 0 # set to 1 to compile for emulators

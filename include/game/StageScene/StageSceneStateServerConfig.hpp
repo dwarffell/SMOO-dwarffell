@@ -29,6 +29,7 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         enum ServerConfigOption {
             GAMEMODECONFIG,
             GAMEMODESWITCH,
+            TETHERCONFIG,
             SETIP,
             SETPORT
         };
@@ -43,6 +44,7 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         void exeOpenKeyboardPort();
         void exeGamemodeConfig();
         void exeGamemodeSelect();
+        void exeTetherConfig();
         void exeSaveData();
 
         void endSubMenu();
@@ -66,6 +68,10 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         // Sub-Page of Mode config, used to select a gamemode for the client to use
         SimpleLayoutMenu* mModeSelect = nullptr;
         CommonVerticalList* mModeSelectList = nullptr;
+        // Sub-Page of tether config
+        SimpleLayoutMenu* mTetherSelect = nullptr;
+        CommonVerticalList* mTetherSelectList = nullptr;
+
 
         // Sub-Pages for Mode configuration, has buttons for selecting current gamemode and configuring currently selected mode (if no mode is chosen, button will not do anything)
         struct GameModeEntry {
@@ -85,5 +91,6 @@ namespace {
     NERVE_HEADER(StageSceneStateServerConfig, OpenKeyboardPort)
     NERVE_HEADER(StageSceneStateServerConfig, GamemodeConfig)
     NERVE_HEADER(StageSceneStateServerConfig, GamemodeSelect)
+    NERVE_HEADER(StageSceneStateServerConfig, TetherConfig)
     NERVE_HEADER(StageSceneStateServerConfig, SaveData)
 }

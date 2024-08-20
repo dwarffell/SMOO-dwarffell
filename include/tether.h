@@ -28,6 +28,7 @@ private:
     const char* mSceneName = nullptr;
     sead::Vector3f* mPlayerPos = nullptr;
     PuppetInfo* mClosePup = nullptr;
+    int mClosePupIdx = 0;
 
     // Scene info
     int mSceneFrames = 0;
@@ -41,10 +42,11 @@ private:
     const float mMinPullFlingDist = 1000.f;
     const float mMaxPullFlingDist = 3200.f;
 
-    // Consts
-    const float mPullPower = 1.5f;
-    const float mPullPowerRate = 75.f;
-    const float mPullDistanceMin = 850.f;
+    // Configuration
+    float mPullPower = 50.f;
+    float mPullPowerRate = 50.f;
+    float mPullDistanceMin = 800.f;
+    float mPullDistanceMax = 3000.f;
 
 public:
     void tick(StageScene* scene, PlayerActorHakoniwa* p1);
@@ -58,6 +60,14 @@ public:
     float getPullDistanceMin();
 
     bool isSceneAlive();
+
+    int getDifficultyDistance() { return mPullDistanceMin; }
+
+    void setDifficultyVeryEasy() { mPullDistanceMin = 2000.f; }
+    void setDifficultyEasy() { mPullDistanceMin = 1000.f; }
+    void setDifficultyNormal() { mPullDistanceMin = 800.f; }
+    void setDifficultyHard() { mPullDistanceMin = 600.f; }
+    void setDifficultyVeryHard() { mPullDistanceMin = 350.f; }
 
     // Visual data
     bool mBounceInc = true;
