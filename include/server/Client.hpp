@@ -15,6 +15,7 @@
 #include "al/async/FunctorV0M.hpp"
 #include "al/LiveActor/LiveActor.h"
 #include "al/layout/LayoutInitInfo.h"
+#include "al/layout/SimpleLayoutAppearWaitEnd.h"
 #include "al/layout/WindowConfirmWait.h"
 #include "al/util.hpp"
 #include "al/layout/LayoutActor.h"
@@ -32,8 +33,7 @@
 #include "game/GameData/GameDataHolderWriter.h"
 #include "game/GameData/GameDataFunction.h"
 
-#include "heap/seadFrameHeap.h"
-#include "heap/seadHeap.h"
+#include "heap/seadExpHeap.h"
 #include "layouts/HideAndSeekIcon.h"
 #include "rs/util.hpp"
 
@@ -66,6 +66,7 @@
 
 #include "puppets/PuppetInfo.h"
 
+#include <cstddef>
 #include <stdlib.h>
 
 #define MAXPUPINDEX 32
@@ -85,12 +86,9 @@ class Client {
 
         void init(al::LayoutInitInfo const &initInfo, GameDataHolderAccessor holder);
 
-        bool StartThreads();
+        bool startThread();
         void readFunc();
-        void recvFunc();
-        static void restartConnection();
 
-        bool isDone() { return mReadThread->isDone(); };
         static bool isSocketActive() { return sInstance ? sInstance->mSocket->isConnected() : false; };
         bool isPlayerConnected(int index) { return mPuppetInfoArr[index]->isConnected; }
         static bool isNeedUpdateShines();
@@ -104,15 +102,20 @@ class Client {
         static void sendShineCollectPacket(int shineId);
         static void sendTagInfPacket();
         static void sendCaptureInfPacket(const PlayerActorHakoniwa *player);
+        void resendInitPackets();
 
         int getCollectedShinesCount() { return curCollectedShines.size(); }
         int getShineID(int index) { if (index < curCollectedShines.size()) { return curCollectedShines[index]; } return -1; }
 
-        static void setStageInfo(GameDataHolderAccessor holder);
+        static void update();
+
+        static void clearArrays();
 
         static bool tryAddPuppet(PuppetActor *puppet);
 
         static bool tryAddDebugPuppet(PuppetActor* puppet);
+
+        static bool isFirstConnect() { return sInstance ? sInstance->mIsFirstConnect : false;}
 
         static const char *getClientName() { return sInstance ? sInstance->mUsername.cstr() : "Player"; }
 
@@ -126,23 +129,11 @@ class Client {
 
         static PuppetActor* getDebugPuppet();
 
+        static sead::Heap *getClientHeap() { return sInstance ? sInstance->mHeap : nullptr; }
+
         static int getMaxPlayerCount() { return sInstance ? sInstance->maxPuppets + 1 : 10;}
 
-        static void updateStates();
-
-        static void clearArrays();
-
-        static Keyboard* getKeyboard();
-
-        static const char* getCurrentIP();
-
-        static void setLastUsedIP(const char* ip);
-
         static const int getCurrentPort();
-
-        static void setLastUsedPort(const int port);
-
-        static void setTagState(bool state);
 
         static int getConnectCount() {
             if (sInstance)
@@ -156,6 +147,22 @@ class Client {
             return nullptr;
         }
 
+        static Keyboard* getKeyboard();
+
+        static const char* getCurrentIP();
+
+        static nn::account::Uid getClientId() { return sInstance ? sInstance->mUserID : nn::account::Uid::EmptyId;}
+        
+        static sead::FixedSafeString<0x20> getUsername() { return sInstance ? sInstance->mUsername : sead::FixedSafeString<0x20>::cEmptyString;}
+
+        static void setStageInfo(GameDataHolderAccessor holder);
+
+        static void setLastUsedIP(const char* ip);
+
+        static void setLastUsedPort(const int port);
+
+        static void setTagState(bool state);
+
         static void setSceneInfo(const al::ActorInitInfo& initInfo, const StageScene *stageScene);
 
         static bool tryRegisterShine(Shine* shine);
@@ -167,11 +174,8 @@ class Client {
         static bool openKeyboardIP();
         static bool openKeyboardPort();
 
-        static void showConnect();
-
-        static void showConnectError(const char16_t* msg);
-
-        static void hideConnect();
+        static void showUIMessage(const char16_t* msg);
+        static void hideUIMessage();
 
         void resetCollectedShines();
 
@@ -190,6 +194,8 @@ class Client {
         void updateTagInfo(TagInf *packet);
         void updateCaptureInfo(CaptureInf* packet);
         void sendToStage(ChangeStagePacket* packet);
+        void sendUdpHolePunch();
+        void sendUdpInit();
         void disconnectPlayer(PlayerDC *packet);
 
         PuppetInfo* findPuppetInfo(const nn::account::Uid& id, bool isFindAvailable);
@@ -198,9 +204,7 @@ class Client {
 
         // --- General Server Members ---
 
-        // currently, only readThread is used to recieve and update PuppetInfo, while the main game thread is used to send packets without queueing them up first, which might cause performance issues
-        al::AsyncFunctorThread *mReadThread = nullptr;    // TODO: use this thread to send any queued packets
-        // al::AsyncFunctorThread *mRecvThread; // TODO: use this thread to recieve packets and update PuppetInfo
+        al::AsyncFunctorThread *mReadThread = nullptr; // processes data queued in the SocketClient's RecvQueue
         
         int mConnectCount = 0;
 
@@ -212,7 +216,7 @@ class Client {
 
         // --- Server Syncing Members --- 
         
-        // array of shine IDs for checking if multiple shines have been collected in quick sucession, all moons within the players stage that match the ID will be deleted
+        // array of shine IDs for checking if multiple shines have been collected in quick succession, all moons within the players stage that match the ID will be deleted
         sead::SafeArray<int, 128> curCollectedShines;
         int collectedShineCount = 0;
 
@@ -221,7 +225,10 @@ class Client {
         // Backups for our last player/game packets, used for example to re-send them for newly connected clients
         PlayerInf lastPlayerInfPacket = PlayerInf();
         GameInf lastGameInfPacket = GameInf();
+        GameInf emptyGameInfPacket = GameInf();
         CostumeInf lastCostumeInfPacket = CostumeInf();
+        TagInf lastTagInfPacket = TagInf();
+        CaptureInf lastCaptureInfPacket = CaptureInf();
 
         Keyboard* mKeyboard = nullptr; // keyboard for setting server IP
 
@@ -230,11 +237,11 @@ class Client {
         int mServerPort = 0;
 
         bool waitForGameInit = true;
-        bool isFirstConnect = true;
+        bool mIsFirstConnect = true;
 
         // --- Game Layouts ---
-
-        al::WindowConfirmWait* mConnectionWait;
+        al::WindowConfirmWait* mUIMessage;
+        al::SimpleLayoutAppearWaitEnd *mConnectStatus;
 
         // --- Game Info ---
 
@@ -257,7 +264,7 @@ class Client {
 
         u8 mScenario = 0;
 
-        sead::FrameHeap *mHeap = nullptr; // Custom FrameHeap used for all Client related memory
+        sead::ExpHeap *mHeap = nullptr; // Custom FrameHeap used for all Client related memory
 
         // --- Puppet Info ---
 
