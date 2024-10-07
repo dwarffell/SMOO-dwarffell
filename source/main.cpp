@@ -71,7 +71,7 @@ int debugPuppetIndex = 0;
 int debugCaptureIndex = 0;
 static int pageIndex = 0;
 
-static const int maxPages = 4;
+static const int maxPages = 3;
 
 void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead::DrawContext* drawContext) {
     Time::calcTime();  // this needs to be ran every frame, so running it here works
@@ -219,17 +219,6 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
             break;
         case 1:
             {
-                gTextWriter->printf("----------------- Debug Puppet ------------------\n\n");
-                PuppetActor* debugPuppet = Client::getDebugPuppet();
-                PuppetInfo*  debugInfo   = Client::getDebugPuppetInfo();
-
-                if (debugPuppet && debugInfo) {
-                    gTextWriter->printf("Is Debug Puppet Tagged: %s\n", BTOC(debugInfo->isIt));
-                }
-            }
-            break;
-        case 2:
-            {
                 gTextWriter->printf("--------------- Animation & Cappy ---------------\n\n");
                 PlayerHackKeeper* hackKeeper = playerBase->getPlayerHackKeeper();
 
@@ -265,7 +254,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
                 }
             }
             break;
-        case 3:
+        case 2:
             {
                 gTextWriter->printf("------------------- Controls --------------------\n\n");
                 gTextWriter->printf("Main/Pause Menu:\n");
