@@ -33,7 +33,7 @@ SocketClient::SocketClient(const char* name, sead::Heap* heap, Client* client) :
 
 nn::Result SocketClient::init(const char* ip, u16 port) {
 
-    this->sock_ip = ip;
+    strcpy(this->sock_ip, ip);
     this->port    = port;
     
     in_addr  hostAddress   = { 0 };
@@ -178,14 +178,14 @@ s32 SocketClient::setPeerUdpPort(u16 port) {
 
 const char* SocketClient::getUdpStateChar() {
     if (this->mUdpAddress.port == 0) {
-        return "Waiting for handshake";
+        return "Not in use";
     }
 
     if (!this->mHasRecvUdp) {
-        return "Waiting for holepunch";
+        return "Initializing...";
     }
 
-    return "Utilizing UDP";
+    return "Using";
 }
 bool SocketClient::send(Packet *packet) {
 
@@ -541,10 +541,9 @@ void SocketClient::recvFunc() {
 }
 
 bool SocketClient::queuePacket(Packet* packet) {
-    if (socket_log_state == SOCKET_LOG_CONNECTED && mPacketQueueOpen) {
-        mSendQueue.push((s64)packet,
-                        sead::MessageQueue::BlockType::NonBlocking);  // as this is non-blocking, it
-                                                                      // will always return true.
+    if (socket_log_state == SOCKET_LOG_CONNECTED && mPacketQueueOpen && !mSendQueue.isFull()) {
+        // as this is non-blocking, it will always return true.
+        mSendQueue.push((s64)packet, sead::MessageQueue::BlockType::NonBlocking);
         return true;
     } else {
         mHeap->free(packet);
