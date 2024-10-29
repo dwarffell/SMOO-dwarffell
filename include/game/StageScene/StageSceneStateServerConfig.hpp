@@ -41,6 +41,7 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         virtual void appear(void) override;
         virtual void kill(void) override;
 
+        void clean();
         void exeMainMenu();
         void exeOpenKeyboardIP();
         void exeOpenKeyboardPort();

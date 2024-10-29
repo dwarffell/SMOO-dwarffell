@@ -119,6 +119,7 @@ void initStateHook(
 ) {
     thisPtr->mStateOption = new StageSceneStateOption(stateName, host, initInfo, footer, data, unkBool);
 
+    if (sceneStateServerConfig) { sceneStateServerConfig->clean(); }
     sceneStateServerConfig = new StageSceneStateServerConfig("ServerConfig", host, initInfo, footer, data, unkBool);
 }
 
