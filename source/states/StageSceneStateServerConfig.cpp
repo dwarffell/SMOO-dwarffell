@@ -1,18 +1,25 @@
 #include "game/StageScene/StageSceneStateServerConfig.hpp"
+
 #include <cstdlib>
 #include <cstring>
 #include <math.h>
+
 #include "al/string/StringTmp.h"
 #include "al/util.hpp"
-#include "basis/seadNew.h"
+
 #include "game/SaveData/SaveDataAccessFunction.h"
-#include "server/Client.hpp"
-#include "container/seadPtrArray.h"
-#include "container/seadSafeArray.h"
+
 #include "logger.hpp"
-#include "prim/seadSafeString.h"
-#include "prim/seadStringUtil.h"
+
 #include "rs/util/InputUtil.h"
+
+#include "sead/basis/seadNew.h"
+#include "sead/container/seadPtrArray.h"
+#include "sead/container/seadSafeArray.h"
+#include "sead/prim/seadSafeString.h"
+#include "sead/prim/seadStringUtil.h"
+
+#include "server/Client.hpp"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/gamemode/GameModeFactory.hpp"
 #include "server/gamemode/GameModeManager.hpp"
@@ -44,7 +51,7 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(
 
     mMainMenuOptions = new sead::SafeArray<sead::WFixedSafeString<0x200>, mMainMenuOptionsCount>();
     mMainMenuOptions->mBuffer[ServerConfigOption::GAMEMODECONFIG].copy(u"Gamemode Config");
-    mMainMenuOptions->mBuffer[ServerConfigOption::GAMEMODESWITCH].copy(u"Change Gamemode");
+    mMainMenuOptions->mBuffer[ServerConfigOption::GAMEMODESWITCH].copy(u"Change Gamemode               "); // TBD
     mMainMenuOptions->mBuffer[ServerConfigOption::SETIP].copy(u"Change Server (needs restart)");
     mMainMenuOptions->mBuffer[ServerConfigOption::SETPORT].copy(u"Change Port (needs restart)");
     mMainMenuOptions->mBuffer[ServerConfigOption::HIDESERVER].copy(u"Hide Server in Debug (OFF)"); // TBD
@@ -58,14 +65,14 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(
 
     al::setPaneString(mModeSelect, "TxtOption", u"Gamemode Selection", 0);
 
-    const int modeCount = GameModeFactory::getModeCount();
+    const int modeCount = GameModeFactory::getModeCount() - 1;
 
     mModeSelectList->initDataNoResetSelected(modeCount);
 
     auto* modeSelectOptions = new sead::SafeArray<sead::WFixedSafeString<0x200>, modeCount>();
 
     for (size_t i = 0; i < modeCount; i++) {
-        const char* modeName = GameModeFactory::getModeName(i);
+        const char* modeName = GameModeFactory::getModeName(i + 1);
         modeSelectOptions->mBuffer[i].convertFromMultiByteString(modeName, strlen(modeName));
     }
 
@@ -81,7 +88,16 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(
         entry.mLayout = new SimpleLayoutMenu("GameModeConfigMenu", "OptionSelect", initInfo, 0, false);
         entry.mList   = new CommonVerticalList(entry.mLayout, initInfo, true);
 
-        al::setPaneString(entry.mLayout, "TxtOption", u"Gamemode Configuration", 0);
+        const char* modeName = GameModeFactory::getModeName(mode + 1);
+        int size = strlen(modeName) + 15;
+        char title[size];
+        strcpy(title, modeName);
+        strcat(title, " Configuration");
+
+        char16_t title16[size];
+        std::copy(title, title + size, title16);
+
+        al::setPaneString(entry.mLayout, "TxtOption", title16, 0);
     }
 
     mCurrentList = mMainOptionsList;
@@ -121,6 +137,12 @@ void StageSceneStateServerConfig::kill(void) {
 
 al::MessageSystem* StageSceneStateServerConfig::getMessageSystem(void) const {
     return mMsgSystem;
+}
+
+void StageSceneStateServerConfig::clean() {
+    for (int mode = 0; mode < GameModeFactory::getModeCount() - 1; mode++) {
+        mGamemodeConfigMenus[mode].mMenu->clean();
+    }
 }
 
 void StageSceneStateServerConfig::exeMainMenu() {
@@ -219,16 +241,14 @@ void StageSceneStateServerConfig::exeOpenKeyboardPort() {
 void StageSceneStateServerConfig::exeHideServer() {
     if (al::isFirstStep(this)) {
         Client::toggleServerHidden();
-        mMainOptionsList->initDataNoResetSelected(mMainMenuOptionsCount);
-        mMainOptionsList->addStringData(getMainMenuOptions(), "TxtContent");
-        mMainOptionsList->updateParts();
+        mainMenuRefresh();
         al::setNerve(this, &nrvStageSceneStateServerConfigSaveData);
     }
 }
 
 void StageSceneStateServerConfig::exeGamemodeConfig() {
     if (al::isFirstStep(this)) {
-        mGamemodeConfigMenu = &mGamemodeConfigMenus[GameModeManager::instance()->getGameMode()];
+        mGamemodeConfigMenu = &mGamemodeConfigMenus[GameModeManager::instance()->getGameMode() - 1];
 
         mGamemodeConfigMenu->mList->initDataNoResetSelected(mGamemodeConfigMenu->mMenu->getMenuSize());
         mGamemodeConfigMenu->mList->addStringData(mGamemodeConfigMenu->mMenu->getStringData(), "TxtContent");
@@ -262,6 +282,8 @@ void StageSceneStateServerConfig::exeGamemodeConfig() {
 
 void StageSceneStateServerConfig::exeGamemodeSelect() {
     if (al::isFirstStep(this)) {
+        mModeSelectList->mCurSelected = GameModeManager::instance()->getNextGameMode() - 1;
+
         mCurrentList = mModeSelectList;
         mCurrentMenu = mModeSelect;
 
@@ -271,8 +293,9 @@ void StageSceneStateServerConfig::exeGamemodeSelect() {
     subMenuUpdate();
 
     if (mIsDecideConfig && mCurrentList->isDecideEnd()) {
-        Logger::log("Setting Server Mode to: %d\n", mCurrentList->mCurSelected);
-        GameModeManager::instance()->setMode(static_cast<GameMode>(mCurrentList->mCurSelected));
+        Logger::log("Setting Server Mode to: %d\n", mCurrentList->mCurSelected + 1);
+        GameModeManager::instance()->setMode(static_cast<GameMode>(mCurrentList->mCurSelected + 1));
+        mainMenuRefresh();
         endSubMenu();
     }
 }
@@ -334,14 +357,35 @@ void StageSceneStateServerConfig::subMenuUpdate() {
 }
 
 void StageSceneStateServerConfig::subMenuRefresh() {
-    mGamemodeConfigMenu = &mGamemodeConfigMenus[GameModeManager::instance()->getGameMode()];
+    mGamemodeConfigMenu = &mGamemodeConfigMenus[GameModeManager::instance()->getGameMode() - 1];
     mGamemodeConfigMenu->mList->initDataNoResetSelected(mGamemodeConfigMenu->mMenu->getMenuSize());
     mGamemodeConfigMenu->mList->addStringData(mGamemodeConfigMenu->mMenu->getStringData(), "TxtContent");
     mGamemodeConfigMenu->mList->updateParts();
     activateInput();
 }
 
+void StageSceneStateServerConfig::mainMenuRefresh() {
+    mMainOptionsList->initDataNoResetSelected(mMainMenuOptionsCount);
+    mMainOptionsList->addStringData(getMainMenuOptions(), "TxtContent");
+    mMainOptionsList->updateParts();
+}
+
 const sead::WFixedSafeString<0x200>* StageSceneStateServerConfig::getMainMenuOptions() {
+    // "$gameModeName Config" option
+    const char* gameModeName = GameModeFactory::getModeName(GameModeManager::instance()->getGameMode());
+    int size = strlen(gameModeName) + 7 + 1;
+    char gameModeConfig[size];
+    strcpy(gameModeConfig, gameModeName);
+    strcat(gameModeConfig, " Config");
+    mMainMenuOptions->mBuffer[ServerConfigOption::GAMEMODECONFIG].convertFromMultiByteString(gameModeConfig, size);
+
+    mMainMenuOptions->mBuffer[ServerConfigOption::GAMEMODESWITCH].copy(
+        GameModeManager::instance()->getInfo<GameModeInfoBase>()
+        ? u"Change Gamemode (needs reload)"
+        : u"Change Gamemode               "
+    );
+
+    // "Hide Server in Debug" option
     mMainMenuOptions->mBuffer[ServerConfigOption::HIDESERVER].copy(
         Client::isServerHidden()
         ? u"Hide Server in Debug (ON) "

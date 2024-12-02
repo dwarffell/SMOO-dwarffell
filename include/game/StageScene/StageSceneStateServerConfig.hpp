@@ -41,6 +41,7 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         virtual void appear(void) override;
         virtual void kill(void) override;
 
+        void clean();
         void exeMainMenu();
         void exeOpenKeyboardIP();
         void exeOpenKeyboardPort();
@@ -55,6 +56,7 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         inline void subMenuStart();
         inline void subMenuUpdate();
         inline void subMenuRefresh();
+        inline void mainMenuRefresh();
 
         al::MessageSystem* mMsgSystem      = nullptr;
         FooterParts*       mFooterParts    = nullptr;
