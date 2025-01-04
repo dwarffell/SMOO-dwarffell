@@ -5,11 +5,10 @@
 #include "server/gamemode/GameModeConfigMenu.hpp"
 #include "server/freeze-tag/FreezeTagInfo.h"
 
-class FreezeTagConfigMenu : public GameModeConfigMenu {
+class FreezeTagConfigMenu : public GameModeConfigMenu, public sead::IDisposer {
     public:
         FreezeTagConfigMenu();
-
-        void clean() override;
+        ~FreezeTagConfigMenu() override = default;
 
         const sead::WFixedSafeString<0x200>* getStringData() override;
         GameModeConfigMenu::UpdateAction updateMenu(int selectIndex) override;
@@ -19,5 +18,5 @@ class FreezeTagConfigMenu : public GameModeConfigMenu {
     private:
         static constexpr int mItemCount = 8;
         sead::SafeArray<sead::WFixedSafeString<0x200>, mItemCount>* mItems = nullptr;
-        Keyboard* mKeyboard;
+        Keyboard mKeyboard = Keyboard(6);
 };

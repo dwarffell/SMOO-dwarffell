@@ -83,6 +83,7 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(
     for (int mode = 0; mode < factory.getMenuCount(); mode++) {
         GameModeEntry& entry = mGamemodeConfigMenus[mode];
         const char*    name  = factory.getMenuName(mode);
+        Logger::log("Initializing GamemodeConfig %s in slot %d.\n", name, mode);
 
         entry.mMenu   = factory.getCreator(name)(name);
         entry.mLayout = new SimpleLayoutMenu("GameModeConfigMenu", "OptionSelect", initInfo, 0, false);
@@ -137,12 +138,6 @@ void StageSceneStateServerConfig::kill(void) {
 
 al::MessageSystem* StageSceneStateServerConfig::getMessageSystem(void) const {
     return mMsgSystem;
-}
-
-void StageSceneStateServerConfig::clean() {
-    for (int mode = 0; mode < GameModeFactory::getModeCount() - 1; mode++) {
-        mGamemodeConfigMenus[mode].mMenu->clean();
-    }
 }
 
 void StageSceneStateServerConfig::exeMainMenu() {

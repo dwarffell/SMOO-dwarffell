@@ -2,6 +2,7 @@
 
 #include "al/async/FunctorV0M.hpp"
 #include "nn/swkbd/swkbd.h"
+#include "logger.hpp"
 
 Keyboard::Keyboard(ulong strSize) : mResultString(strSize) {
     this->mThread = new al::AsyncFunctorThread(
