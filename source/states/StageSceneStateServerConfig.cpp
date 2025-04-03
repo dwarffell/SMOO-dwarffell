@@ -24,6 +24,8 @@
 #include "server/gamemode/GameModeFactory.hpp"
 #include "server/gamemode/GameModeManager.hpp"
 
+#include "tether.h"
+
 StageSceneStateServerConfig::StageSceneStateServerConfig(
     const char* name,
     al::Scene* scene,
@@ -51,9 +53,12 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(
 
     mMainMenuOptions = new sead::SafeArray<sead::WFixedSafeString<0x200>, mMainMenuOptionsCount>();
     mMainMenuOptions->mBuffer[ServerConfigOption::GAMEMODECONFIG].copy(u"Gamemode Config");
-    mMainMenuOptions->mBuffer[ServerConfigOption::GAMEMODESWITCH].copy(u"Change Gamemode               "); // TBD
+    mMainMenuOptions->mBuffer[ServerConfigOption::GAMEMODESWITCH].copy(u"Change Gamemode"); // TBD
+    mMainMenuOptions->mBuffer[ServerConfigOption::TETHERCONFIG].copy(u"Chained Difficulty"); // TBD
+    mMainMenuOptions->mBuffer[ServerConfigOption::DUOPARTNER].copy(u"Chained Teammate"); // TBD
     mMainMenuOptions->mBuffer[ServerConfigOption::SETIP].copy(u"Change Server (needs restart)");
     mMainMenuOptions->mBuffer[ServerConfigOption::SETPORT].copy(u"Change Port (needs restart)");
+    mMainMenuOptions->mBuffer[ServerConfigOption::TOGGLEMUSIC].copy(u"Play In-Game Music (OFF)"); // TBD
     mMainMenuOptions->mBuffer[ServerConfigOption::HIDESERVER].copy(u"Hide Server in Debug (OFF)"); // TBD
 
     mMainOptionsList->addStringData(getMainMenuOptions(), "TxtContent");
@@ -77,6 +82,45 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(
     }
 
     mModeSelectList->addStringData(modeSelectOptions->mBuffer, "TxtContent");
+
+    // tether config menu
+    mTetherSelect = new SimpleLayoutMenu("TetherSelectMenu", "OptionSelect", initInfo, 0, false);
+    mTetherSelectList = new CommonVerticalList(mTetherSelect, initInfo, true);
+
+    al::setPaneString(mTetherSelect, "TxtOption", u"Tether Config", 0);
+
+    mTetherSelectList->initDataNoResetSelected(5);
+
+    sead::SafeArray<sead::WFixedSafeString<0x200>, 5>* tetherSelectOptions =
+        new sead::SafeArray<sead::WFixedSafeString<0x200>, 5>();
+
+    tetherSelectOptions->mBuffer[0].convertFromMultiByteString("Very Long / Very Easy", strlen("Very Long / Very Easy"));
+    tetherSelectOptions->mBuffer[1].convertFromMultiByteString("Long / Easy", strlen("Long / Easy"));
+    tetherSelectOptions->mBuffer[2].convertFromMultiByteString("Medium / Normal", strlen("Medium / Normal"));
+    tetherSelectOptions->mBuffer[3].convertFromMultiByteString("Short / Hard", strlen("Short / Hard"));
+    tetherSelectOptions->mBuffer[4].convertFromMultiByteString("Tiny / Very Hard", strlen("Tiny / Very Hard"));
+    
+    mTetherSelectList->addStringData(tetherSelectOptions->mBuffer, "TxtContent");
+
+    // duo teammate menu
+    static constexpr const int listSize = 10;
+
+    mDuoPartnerSelect = new SimpleLayoutMenu("DuoPartnerMenu", "OptionSelect", initInfo, 0, false);
+    mDuoPartnerSelectList = new CommonVerticalList(mDuoPartnerSelect, initInfo, true);
+
+    al::setPaneString(mDuoPartnerSelect, "TxtOption", u"Teammate Selection", 0);
+
+    mDuoPartnerSelectList->initDataNoResetSelected(listSize);
+
+    sead::SafeArray<sead::WFixedSafeString<0x200>, listSize>* duoSelectOptions =
+        new sead::SafeArray<sead::WFixedSafeString<0x200>, listSize>();
+    
+    for (int i = 0; i < listSize; i++) {
+        PuppetInfo* info = Client::getPuppetInfo(i);
+        duoSelectOptions->mBuffer[i].convertFromMultiByteString(info->puppetName, strlen(info->puppetName));
+    }
+    
+    mDuoPartnerSelectList->addStringData(duoSelectOptions->mBuffer, "TxtContent");
 
     // gamemode config menu
     GameModeConfigMenuFactory factory("GameModeConfigFactory");
@@ -175,12 +219,24 @@ void StageSceneStateServerConfig::exeMainMenu() {
                 al::setNerve(this, &nrvStageSceneStateServerConfigGamemodeSelect);
                 break;
             }
+            case ServerConfigOption::TETHERCONFIG: {
+                al::setNerve(this, &nrvStageSceneStateServerConfigTetherConfig);
+                break;
+            }
+            case ServerConfigOption::DUOPARTNER: {
+                al::setNerve(this, &nrvStageSceneStateServerConfigDuoPartner);
+                break;
+            }
             case ServerConfigOption::SETIP: {
                 al::setNerve(this, &nrvStageSceneStateServerConfigOpenKeyboardIP);
                 break;
             }
             case ServerConfigOption::SETPORT: {
                 al::setNerve(this, &nrvStageSceneStateServerConfigOpenKeyboardPort);
+                break;
+            }
+            case ServerConfigOption::TOGGLEMUSIC: {
+                al::setNerve(this, &nrvStageSceneStateServerConfigToggleMusic);
                 break;
             }
             case ServerConfigOption::HIDESERVER: {
@@ -241,6 +297,14 @@ void StageSceneStateServerConfig::exeHideServer() {
     }
 }
 
+void StageSceneStateServerConfig::exeToggleMusic() {
+    if (al::isFirstStep(this)) {
+        Client::toggleMusicDisabled();
+        mainMenuRefresh();
+        al::setNerve(this, &nrvStageSceneStateServerConfigSaveData);
+    }
+}
+
 void StageSceneStateServerConfig::exeGamemodeConfig() {
     if (al::isFirstStep(this)) {
         mGamemodeConfigMenu = &mGamemodeConfigMenus[GameModeManager::instance()->getGameMode() - 1];
@@ -291,6 +355,53 @@ void StageSceneStateServerConfig::exeGamemodeSelect() {
         Logger::log("Setting Server Mode to: %d\n", mCurrentList->mCurSelected + 1);
         GameModeManager::instance()->setMode(static_cast<GameMode>(mCurrentList->mCurSelected + 1));
         mainMenuRefresh();
+        endSubMenu();
+    }
+}
+
+void StageSceneStateServerConfig::exeTetherConfig() {
+    if (al::isFirstStep(this)) {
+        mCurrentList = mTetherSelectList;
+        mCurrentMenu = mTetherSelect;
+        subMenuStart();
+    }
+
+    subMenuUpdate();
+
+    if (mIsDecideConfig && mCurrentList->isDecideEnd()) {
+        switch(mCurrentList->mCurSelected) {
+            case 0:
+                getTether().setDifficultyVeryEasy();
+                break;
+            case 1:
+                getTether().setDifficultyEasy();
+                break;
+            case 2:
+                getTether().setDifficultyNormal();
+                break;
+            case 3:
+                getTether().setDifficultyHard();
+                break;
+            case 4:
+                getTether().setDifficultyVeryHard();
+                break;
+        };
+
+        Logger::log("Set tether difficulty to %d / %d\n", mCurrentList->mCurSelected, getTether().getDifficultyDistance());
+        endSubMenu();
+    }
+}
+
+void StageSceneStateServerConfig::exeDuoPartner() {
+    if (al::isFirstStep(this)) {
+        mCurrentList = mDuoPartnerSelectList;
+        mCurrentMenu = mDuoPartnerSelect;
+        subMenuStart();
+    }
+
+    subMenuUpdate();
+
+    if (mIsDecideConfig && mCurrentList->isDecideEnd()) {
         endSubMenu();
     }
 }
@@ -387,6 +498,12 @@ const sead::WFixedSafeString<0x200>* StageSceneStateServerConfig::getMainMenuOpt
         : u"Hide Server in Debug (OFF)"
     );
 
+    mMainMenuOptions->mBuffer[ServerConfigOption::TOGGLEMUSIC].copy(
+        Client::isMusicDisabled()
+        ? u"Play In-Game Music (OFF)"
+        : u"Play In-Game Music (ON)"
+    );
+
     return mMainMenuOptions->mBuffer;
 }
 
@@ -409,7 +526,10 @@ namespace {
     NERVE_IMPL(StageSceneStateServerConfig, OpenKeyboardIP)
     NERVE_IMPL(StageSceneStateServerConfig, OpenKeyboardPort)
     NERVE_IMPL(StageSceneStateServerConfig, HideServer)
+    NERVE_IMPL(StageSceneStateServerConfig, ToggleMusic)
     NERVE_IMPL(StageSceneStateServerConfig, GamemodeConfig)
     NERVE_IMPL(StageSceneStateServerConfig, GamemodeSelect)
+    NERVE_IMPL(StageSceneStateServerConfig, TetherConfig)
+    NERVE_IMPL(StageSceneStateServerConfig, DuoPartner)
     NERVE_IMPL(StageSceneStateServerConfig, SaveData)
 }

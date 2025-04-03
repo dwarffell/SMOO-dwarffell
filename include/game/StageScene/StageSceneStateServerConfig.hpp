@@ -32,8 +32,10 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
             GAMEMODECONFIG,
             GAMEMODESWITCH,
             TETHERCONFIG,
+            DUOPARTNER,
             SETIP,
             SETPORT,
+            TOGGLEMUSIC,
             HIDESERVER,
         };
 
@@ -46,9 +48,11 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         void exeOpenKeyboardIP();
         void exeOpenKeyboardPort();
         void exeHideServer();
+        void exeToggleMusic();
         void exeGamemodeConfig();
         void exeGamemodeSelect();
         void exeTetherConfig();
+        void exeDuoPartner();
         void exeSaveData();
 
         void endSubMenu();
@@ -75,9 +79,14 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         // Sub-Page of Mode config, used to select a gamemode for the client to use
         SimpleLayoutMenu*   mModeSelect     = nullptr;
         CommonVerticalList* mModeSelectList = nullptr;
+
         // Sub-Page of tether config
         SimpleLayoutMenu* mTetherSelect = nullptr;
         CommonVerticalList* mTetherSelectList = nullptr;
+
+        // Sub-Page of duo teammate selection
+        SimpleLayoutMenu* mDuoPartnerSelect = nullptr;
+        CommonVerticalList* mDuoPartnerSelectList = nullptr;
 
 
         // Sub-Pages for Mode configuration, has buttons for selecting current gamemode and configuring currently selected mode (if no mode is chosen, button will not do anything)
@@ -93,7 +102,7 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         inline void deactivateInput();
 
         // Main Menu Options
-        static constexpr int mMainMenuOptionsCount = 5;
+        static constexpr int mMainMenuOptionsCount = 8;
         sead::SafeArray<sead::WFixedSafeString<0x200>, mMainMenuOptionsCount>* mMainMenuOptions = nullptr;
         const sead::WFixedSafeString<0x200>* getMainMenuOptions();
 
@@ -105,8 +114,10 @@ namespace {
     NERVE_HEADER(StageSceneStateServerConfig, OpenKeyboardIP)
     NERVE_HEADER(StageSceneStateServerConfig, OpenKeyboardPort)
     NERVE_HEADER(StageSceneStateServerConfig, HideServer)
+    NERVE_HEADER(StageSceneStateServerConfig, ToggleMusic)
     NERVE_HEADER(StageSceneStateServerConfig, GamemodeConfig)
     NERVE_HEADER(StageSceneStateServerConfig, GamemodeSelect)
     NERVE_HEADER(StageSceneStateServerConfig, TetherConfig)
+    NERVE_HEADER(StageSceneStateServerConfig, DuoPartner)
     NERVE_HEADER(StageSceneStateServerConfig, SaveData)
 }

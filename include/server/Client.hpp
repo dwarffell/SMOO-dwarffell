@@ -135,6 +135,9 @@ class Client {
         static void setServerHidden(bool hide) { if (sInstance) { sInstance->mServerHidden = hide; } }
         static void toggleServerHidden() { if (sInstance) { sInstance->mServerHidden = !sInstance->mServerHidden; } }
 
+        static bool isMusicDisabled() { return sInstance->mIsDisableMusic; }
+        static void toggleMusicDisabled() { if (sInstance) { sInstance->mIsDisableMusic = !sInstance->mIsDisableMusic; } }
+
         static nn::account::Uid getClientId() { return sInstance ? sInstance->mUserID : nn::account::Uid::EmptyId;}
 
         static sead::FixedSafeString<0x20> getUsername() { return sInstance ? sInstance->mUsername : sead::FixedSafeString<0x20>::cEmptyString;}
@@ -219,10 +222,12 @@ class Client {
 
         hostname mServerIP;
         int mServerPort = 0;
-        bool mServerHidden = false;
+        bool mServerHidden = true;
 
         bool waitForGameInit = true;
         bool mIsFirstConnect = true;
+
+        bool mIsDisableMusic = true;
 
         // --- Game Layouts ---
         al::WindowConfirmWait* mUIMessage;

@@ -84,10 +84,6 @@ void PlayerTether::tick(StageScene* scene, PlayerActorHakoniwa* p1)
         GameDataFunction::tryChangeNextStage(accessor, &info);
     }
 
-    // Death hotkey
-    if (al::isPadHoldZL(-1) && al::isPadTriggerLeft(-1))
-        GameDataFunction::killPlayer(scene->mHolder);
-
     // Player Flicking
     // if (closePuppetDistance < mPullDistanceMax && closePuppetIndex != -1 && mSceneFrames > 50) {
     //     if (al::isPadTriggerPressLeftStick(-1) && rs::isPlayerOnGround(p1) && !p1->getPlayerHackKeeper()->currentHackActor) {
