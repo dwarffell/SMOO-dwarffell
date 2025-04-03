@@ -46,6 +46,8 @@
 
 #include "rs/util.hpp"
 
+#include "tether.h"
+
 static int pInfSendTimer = 0;
 static int gameInfSendTimer = 0;
 
@@ -93,6 +95,43 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
     }
 
     if (!debugMode) {
+        al::Scene *curScene = curSequence->curScene;
+        PlayerTether& tether = getTether();
+
+        if(curScene && isInGame && tether.isSceneAlive() && tether.getSceneFrames() > 30 && tether.mIsTargetPupAlive) {
+            PlayerActorBase* playerBase = rs::getPlayerActor(curScene);
+
+            sead::LookAtCamera *cam = al::getLookAtCamera(curScene, 0);
+            sead::Projection* projection = al::getProjectionSead(curScene, 0);
+
+            sead::PrimitiveRenderer *renderer = sead::PrimitiveRenderer::instance();
+            renderer->setDrawContext(drawContext);
+            renderer->setCamera(*cam);
+            renderer->setProjection(*projection);
+
+            renderer->begin();
+            renderer->setModelMatrix(sead::Matrix34f::ident);
+
+            sead::Vector3f* p1Pos = tether.getPlayerPos();
+            sead::Vector3f* pupPos = tether.getPuppetPos();\
+            if(!p1Pos || !pupPos){
+                renderer->end();
+                al::executeDraw(curSequence->mLytKit, "２Ｄバック（メイン画面）");
+                return;
+            }
+            
+            sead::Vector3f direction = *pupPos - *p1Pos;
+            al::normalize(&direction);
+            
+            float playerDist = al::calcDistance(playerBase, *pupPos);
+
+            for (int i = 0; i < int(playerDist) / 10; i++) {
+                renderer->drawSphere4x8(*p1Pos + (direction * i * 10.f), 6.5f, {1.f, 1.f, 1.f, 0.5f});
+            }
+
+            renderer->end();
+        }
+
         al::executeDraw(curSequence->mLytKit, "２Ｄバック（メイン画面）");
         return;
     }
@@ -320,6 +359,13 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
     al::executeDraw(curSequence->mLytKit, "２Ｄバック（メイン画面）");
 }
 
+bool sceneKillHook(GameDataHolderAccessor value)
+{
+    getTether().setSceneKilled();
+
+    return GameDataFunction::isMissEndPrevStageForSceneDead(value);
+}
+
 void sendShinePacket(GameDataHolderAccessor thisPtr, Shine* curShine) {
     if (!curShine->isGot()) {
         GameDataFile::HintInfo* curHintInfo = &thisPtr.mData->mGameDataFile->mShineHintList[curShine->mShineIdx];
@@ -407,6 +453,17 @@ bool hakoniwaSequenceHook(HakoniwaSequence* sequence) {
     PlayerActorBase*  playerBase = al::tryGetPlayerActor(pHolder, 0);
 
     bool isYukimaru = !playerBase->getPlayerInfo();
+
+    bool isPause = stageScene->isPause();
+    bool isDemo = rs::isActiveDemo(playerBase);
+    bool isDead = PlayerFunction::isPlayerDeadStatus(playerBase);
+    bool isInterupted = isDead || isDemo || isPause;
+
+    if(!getTether().isSceneAlive() && !isInterupted && getTether().getSceneFrames() > 15)
+        getTether().setSceneAlive(GameDataFunction::getCurrentStageName(stageScene), al::getTransPtr(playerBase), playerBase);
+    
+    if(!isInterupted && !isYukimaru)
+        getTether().tick(stageScene, (PlayerActorHakoniwa*)playerBase);
 
     isInGame = !stageScene->isPause();
 

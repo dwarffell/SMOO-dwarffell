@@ -1,12 +1,19 @@
-#include "tether.h"
 #include "al/LiveActor/LiveActor.h"
 #include "al/util/ControllerUtil.h"
 #include "al/util/LiveActorUtil.h"
 #include "al/util/MathUtil.h"
+
+#include "game/GameData/GameDataFunction.h"
+
+#include "sead/math/seadMathCalcCommon.h"
+
 #include "helpers.hpp"
-#include "math/seadMathCalcCommon.h"
+
 #include "puppets/PuppetInfo.h"
+
 #include "rs/util.hpp"
+
+#include "tether.h"
 
 PlayerTether& getTether()
 {
