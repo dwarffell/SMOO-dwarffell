@@ -1,6 +1,7 @@
 #include "SocketBase.hpp"
+
 #include <cstring>
-#include "nn/result.h"
+#include "nn/socket.h"
 #include "types.h"
 
 SocketBase::SocketBase(const char *name)
@@ -18,15 +19,15 @@ const char *SocketBase::getStateChar() {
     switch (this->socket_log_state)
     {
     case SOCKET_LOG_CONNECTED:
-        return "Socket Connected";
+        return "Connected";
     case SOCKET_LOG_UNAVAILABLE:
-        return "Socket Unavailable";
+        return "Unavailable";
     case SOCKET_LOG_UNINITIALIZED:
-        return "Socket Unitialized";
+        return "Unitialized";
     case SOCKET_LOG_DISCONNECTED:
-        return "Socket Disconnected";
+        return "Disconnected";
     default:
-        return "Unknown State";
+        return "Unknown";
     }
 }
 
