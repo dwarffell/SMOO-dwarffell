@@ -61,7 +61,9 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         inline void subMenuStart();
         inline void subMenuUpdate();
         inline void subMenuRefresh();
+
         inline void mainMenuRefresh();
+        inline void duoPartnerMenuRefresh();
 
         al::MessageSystem* mMsgSystem      = nullptr;
         FooterParts*       mFooterParts    = nullptr;
@@ -105,6 +107,11 @@ class StageSceneStateServerConfig : public al::HostStateBase<al::Scene>, public 
         static constexpr int mMainMenuOptionsCount = 8;
         sead::SafeArray<sead::WFixedSafeString<0x200>, mMainMenuOptionsCount>* mMainMenuOptions = nullptr;
         const sead::WFixedSafeString<0x200>* getMainMenuOptions();
+
+        static constexpr int mDuoPartnerOptionsCount = 10;
+        sead::FixedSafeString<0x10> mDuoPartnerList[mDuoPartnerOptionsCount] = {};
+        sead::SafeArray<sead::WFixedSafeString<0x200>, mDuoPartnerOptionsCount>* mDuoPartnerOptions = nullptr;
+        const sead::WFixedSafeString<0x200>* getDuoPartnerOptions();
 
         bool mIsDecideConfig = false;
 };

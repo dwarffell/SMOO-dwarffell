@@ -114,7 +114,7 @@ void drawMainHook(HakoniwaSequence* curSequence, sead::Viewport* viewport, sead:
 
             sead::Vector3f* p1Pos = tether.getPlayerPos();
             sead::Vector3f* pupPos = tether.getPuppetPos();\
-            if(!p1Pos || !pupPos){
+            if(!p1Pos || !pupPos || !tether.getClosePuppet() || !tether.getClosePuppet()->isConnected){
                 renderer->end();
                 al::executeDraw(curSequence->mLytKit, "２Ｄバック（メイン画面）");
                 return;

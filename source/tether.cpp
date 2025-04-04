@@ -29,7 +29,6 @@ void PlayerTether::tick(StageScene* scene, PlayerActorHakoniwa* p1)
         return;
 
     float closePuppetDistance = -1.f;
-    int closePuppetIndex = -1;
     int newPCount = Client::getConnectCount();
 
     if (newPCount != mPlayerCount) {
@@ -38,27 +37,21 @@ void PlayerTether::tick(StageScene* scene, PlayerActorHakoniwa* p1)
     }
 
     // Puppet finder
-    for (size_t i = 0; i < Client::getPuppetHolder()->getSize(); i++) {
-        PuppetInfo* curInfo = Client::getPuppetInfo(i);
-        float dist = al::calcDistance(p1, curInfo->playerPos);
-        bool isInSameScene = false;
+    if (!mDuoPartner.isEmpty()) {
+        mClosePup = Client::getPuppetInfo(mDuoPartner.cstr());
+        mIsTargetPupAlive = !al::isEqualSubString(PlayerAnims::FindStr(mClosePup->curAnim), "Dead");
 
-        if (mIsSceneAlive)
-            isInSameScene = al::isEqualString(mSceneName, curInfo->stageName);
-
-        if ((dist < closePuppetDistance || closePuppetDistance == -1.f) && isInSameScene) {
-            closePuppetIndex = i;
-            closePuppetDistance = dist;
-            mClosePup = curInfo;
-            mIsTargetPupAlive = !al::isEqualSubString(PlayerAnims::FindStr(curInfo->curAnim), "Dead");
-        }
+        closePuppetDistance = al::calcDistance(p1, mClosePup->playerPos);
+    } else {
+        mClosePup = nullptr;
+        mIsTargetPupAlive = false;
     }
 
     // Player pulling
-    if (closePuppetDistance >= mPullDistanceMin && closePuppetIndex != -1 && mClosePup && mSceneFrames > 90 && mIsTargetPupAlive && !mIsRingPull) {
+    if (closePuppetDistance >= mPullDistanceMin && mClosePup && mClosePup->isConnected && mSceneFrames > 90 && mIsTargetPupAlive && !mIsRingPull) {
         if (closePuppetDistance < mPullDistanceMax) {
             al::LiveActor* hack = p1->getPlayerHackKeeper()->currentHackActor;
-            sead::Vector3f target = Client::getPuppetInfo(closePuppetIndex)->playerPos;
+            sead::Vector3f target = mClosePup->playerPos;
 
             if (!hack) {
                 sead::Vector3f* playerPos = al::getTransPtr(p1);
@@ -77,12 +70,12 @@ void PlayerTether::tick(StageScene* scene, PlayerActorHakoniwa* p1)
     }
 
     // Player warping
-    if (mClosePup && !mClosePup->isInSameStage && mSceneFrames > 150 && mIsTargetPupAlive) {
-        mIsSceneChangeFromPuppet = true;
-        GameDataHolderAccessor accessor = scene->mHolder;
-        ChangeStageInfo info(accessor.mData, "start", mClosePup->stageName, false, mClosePup->scenarioNo, ChangeStageInfo::SubScenarioType::UNK);
-        GameDataFunction::tryChangeNextStage(accessor, &info);
-    }
+    // if (mClosePup && !mClosePup->isInSameStage && mSceneFrames > 150 && mIsTargetPupAlive) {
+    //     mIsSceneChangeFromPuppet = true;
+    //     GameDataHolderAccessor accessor = scene->mHolder;
+    //     ChangeStageInfo info(accessor.mData, "start", mClosePup->stageName, false, mClosePup->scenarioNo, ChangeStageInfo::SubScenarioType::UNK);
+    //     GameDataFunction::tryChangeNextStage(accessor, &info);
+    // }
 
     // Player Flicking
     // if (closePuppetDistance < mPullDistanceMax && closePuppetIndex != -1 && mSceneFrames > 50) {
@@ -180,4 +173,10 @@ float PlayerTether::getPullDistanceMin()
 bool PlayerTether::isSceneAlive()
 {
     return mIsSceneAlive;
+}
+
+void PlayerTether::setDuoPartner(const char* name)
+{
+    mDuoPartner.clear();
+    mDuoPartner.append(name);
 }

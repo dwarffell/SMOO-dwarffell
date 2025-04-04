@@ -28,7 +28,8 @@ private:
     const char* mSceneName = nullptr;
     sead::Vector3f* mPlayerPos = nullptr;
     PuppetInfo* mClosePup = nullptr;
-    int mClosePupIdx = 0;
+
+    sead::FixedSafeString<0x10> mDuoPartner;
 
     // Scene info
     int mSceneFrames = 0;
@@ -45,7 +46,7 @@ private:
     // Configuration
     float mPullPower = 50.f;
     float mPullPowerRate = 50.f;
-    float mPullDistanceMin = 800.f;
+    float mPullDistanceMin = 600.f;
     float mPullDistanceMax = 3000.f;
 
 public:
@@ -56,6 +57,7 @@ public:
 
     sead::Vector3f* getPlayerPos();
     sead::Vector3f* getPuppetPos();
+    inline PuppetInfo* getClosePuppet() { return mClosePup; }
     float getSceneFrames();
     float getPullDistanceMin();
 
@@ -68,6 +70,9 @@ public:
     void setDifficultyNormal() { mPullDistanceMin = 800.f; }
     void setDifficultyHard() { mPullDistanceMin = 600.f; }
     void setDifficultyVeryHard() { mPullDistanceMin = 350.f; }
+
+    void setDuoPartner(const char*);
+    void clearDuoPartner() { mDuoPartner.clear(); }
 
     // Visual data
     bool mBounceInc = true;

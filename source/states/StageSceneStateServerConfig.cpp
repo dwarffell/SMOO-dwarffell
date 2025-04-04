@@ -103,24 +103,21 @@ StageSceneStateServerConfig::StageSceneStateServerConfig(
     mTetherSelectList->addStringData(tetherSelectOptions->mBuffer, "TxtContent");
 
     // duo teammate menu
-    static constexpr const int listSize = 10;
-
     mDuoPartnerSelect = new SimpleLayoutMenu("DuoPartnerMenu", "OptionSelect", initInfo, 0, false);
     mDuoPartnerSelectList = new CommonVerticalList(mDuoPartnerSelect, initInfo, true);
 
     al::setPaneString(mDuoPartnerSelect, "TxtOption", u"Teammate Selection", 0);
 
-    mDuoPartnerSelectList->initDataNoResetSelected(listSize);
+    mDuoPartnerSelectList->initDataNoResetSelected(mDuoPartnerOptionsCount);
 
-    sead::SafeArray<sead::WFixedSafeString<0x200>, listSize>* duoSelectOptions =
-        new sead::SafeArray<sead::WFixedSafeString<0x200>, listSize>();
+    mDuoPartnerOptions = new sead::SafeArray<sead::WFixedSafeString<0x200>, mDuoPartnerOptionsCount>();
     
-    for (int i = 0; i < listSize; i++) {
+    for (int i = 0; i < mDuoPartnerOptionsCount; i++) {
         PuppetInfo* info = Client::getPuppetInfo(i);
-        duoSelectOptions->mBuffer[i].convertFromMultiByteString(info->puppetName, strlen(info->puppetName));
+        mDuoPartnerOptions->mBuffer[i].convertFromMultiByteString(info->puppetName, strlen(info->puppetName));
     }
     
-    mDuoPartnerSelectList->addStringData(duoSelectOptions->mBuffer, "TxtContent");
+    mDuoPartnerSelectList->addStringData(mDuoPartnerOptions->mBuffer, "TxtContent");
 
     // gamemode config menu
     GameModeConfigMenuFactory factory("GameModeConfigFactory");
@@ -394,6 +391,8 @@ void StageSceneStateServerConfig::exeTetherConfig() {
 
 void StageSceneStateServerConfig::exeDuoPartner() {
     if (al::isFirstStep(this)) {
+        duoPartnerMenuRefresh();
+
         mCurrentList = mDuoPartnerSelectList;
         mCurrentMenu = mDuoPartnerSelect;
         subMenuStart();
@@ -402,6 +401,14 @@ void StageSceneStateServerConfig::exeDuoPartner() {
     subMenuUpdate();
 
     if (mIsDecideConfig && mCurrentList->isDecideEnd()) {
+        int idx = mCurrentList->mCurSelected;
+        sead::FixedSafeString<0x10> partner = mDuoPartnerList[idx];
+
+        if (al::isEqualSubString(partner.cstr(), "Empty Slot "))
+            getTether().clearDuoPartner();
+        else
+            getTether().setDuoPartner(partner.cstr());
+
         endSubMenu();
     }
 }
@@ -476,6 +483,12 @@ void StageSceneStateServerConfig::mainMenuRefresh() {
     mMainOptionsList->updateParts();
 }
 
+void StageSceneStateServerConfig::duoPartnerMenuRefresh() {
+    mDuoPartnerSelectList->initDataNoResetSelected(mDuoPartnerOptionsCount);
+    mDuoPartnerSelectList->addStringData(getDuoPartnerOptions(), "TxtContent");
+    mDuoPartnerSelectList->updateParts();
+}
+
 const sead::WFixedSafeString<0x200>* StageSceneStateServerConfig::getMainMenuOptions() {
     // "$gameModeName Config" option
     const char* gameModeName = GameModeFactory::getModeName(GameModeManager::instance()->getGameMode());
@@ -505,6 +518,17 @@ const sead::WFixedSafeString<0x200>* StageSceneStateServerConfig::getMainMenuOpt
     );
 
     return mMainMenuOptions->mBuffer;
+}
+
+const sead::WFixedSafeString<0x200>* StageSceneStateServerConfig::getDuoPartnerOptions() {
+    for (int i = 0; i < mDuoPartnerOptionsCount; i++) {
+        PuppetInfo* info = Client::getPuppetInfo(i);
+        mDuoPartnerOptions->mBuffer[i].convertFromMultiByteString(info->puppetName, strlen(info->puppetName));
+        mDuoPartnerList[i].clear();
+        mDuoPartnerList[i].append(info->puppetName);
+    }
+
+    return mDuoPartnerOptions->mBuffer;
 }
 
 void StageSceneStateServerConfig::activateInput() {
