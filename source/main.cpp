@@ -112,7 +112,7 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
     sead::Heap* clientHeap = Client::getClientHeap();
     sead::Heap *gmHeap = GameModeManager::instance()->getHeap();
     
-    gTextWriter->printf("SMOO-dwarffell TEST-01");
+    gTextWriter->printf("SMOO-dwarffell TEST-02");
     if (clientHeap) {
         gTextWriter->printf("Client Heap Free Size: %f/%f\n", clientHeap->getFreeSize() * 0.001f, clientHeap->getSize() * 0.001f);
         gTextWriter->printf("Gamemode Heap Free Size: %f/%f\n", gmHeap->getFreeSize() * 0.001f, gmHeap->getSize()* 0.001f);
