@@ -22,6 +22,8 @@ class SocketBase {
 
         void set_sock_flags(int flags);
 
+        const char* getIP() {return this->sock_ip;}
+        u16 getPort() {return this -> port;}
 
         void setName(const char *name) {strcpy(sockName, name);};
         u32 socket_errno;

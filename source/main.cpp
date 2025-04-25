@@ -100,7 +100,8 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
     gTextWriter->mColor = sead::Color4f(1.f, 1.f, 1.f, 0.8f);
 
     drawBackground((agl::DrawContext *)drawContext);
-
+    Client* client = Client::instance();
+    SocketClient* socket = client->mSocket;
     gTextWriter->beginDraw();
     gTextWriter->setCursorFromTopLeft(sead::Vector2f(10.f, 10.f));
 
@@ -112,7 +113,9 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
     sead::Heap* clientHeap = Client::getClientHeap();
     sead::Heap *gmHeap = GameModeManager::instance()->getHeap();
     
-    gTextWriter->printf("SMOO-dwarffell TEST-02");
+    gTextWriter->printf("SMOO-dwarffell Sardines Version 01\nSuper Mario Odyssey Online by Craftyboss\nSardines by Amethyst-szs\n");
+    gTextWriter->printf("Server: %s:%d\n", socket->getIP(), socket->getPort());
+
     if (clientHeap) {
         gTextWriter->printf("Client Heap Free Size: %f/%f\n", clientHeap->getFreeSize() * 0.001f, clientHeap->getSize() * 0.001f);
         gTextWriter->printf("Gamemode Heap Free Size: %f/%f\n", gmHeap->getFreeSize() * 0.001f, gmHeap->getSize()* 0.001f);
@@ -165,10 +168,10 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
                         gTextWriter->printf("Puppet Index: %d\n", debugPuppetIndex);
                         gTextWriter->printf("Player Name: %s\n", curPupInfo->puppetName);
                         gTextWriter->printf("Connection Status: %s\n", curPupInfo->isConnected ? "Online" : "Offline");
-                        gTextWriter->printf("Is in Same Stage: %s\n", curPupInfo->isInSameStage ? "True" : "False");
-                        gTextWriter->printf("Is in Capture: %s\n", curPupInfo->isCaptured ? "True" : "False");
-                        gTextWriter->printf("Puppet Stage: %s\n", curPupInfo->stageName);
-                        gTextWriter->printf("Puppet Scenario: %u\n", curPupInfo->scenarioNo);
+                        //gTextWriter->printf("Is in Same Stage: %s\n", curPupInfo->isInSameStage ? "True" : "False");
+                        //gTextWriter->printf("Is in Capture: %s\n", curPupInfo->isCaptured ? "True" : "False");
+                        //gTextWriter->printf("Puppet Stage: %s\n", curPupInfo->stageName);
+                        //gTextWriter->printf("Puppet Scenario: %u\n", curPupInfo->scenarioNo);
                         gTextWriter->printf("Puppet Costume: H: %s B: %s\n", curPupInfo->costumeHead, curPupInfo->costumeBody);
                         //gTextWriter->printf("Packet Coords:\nX: %f\nY: %f\nZ: %f\n", curPupInfo->playerPos.x, curPupInfo->playerPos.y, curPupInfo->playerPos.z);
                         // if (curModel) {
@@ -177,14 +180,14 @@ void drawMainHook(HakoniwaSequence *curSequence, sead::Viewport *viewport, sead:
                         // }
 
                         if(curPupInfo->isCaptured) {
-                            gTextWriter->printf("Current Capture: %s\n", curPupInfo->curHack);
-                            gTextWriter->printf("Current Packet Animation: %s\n", curPupInfo->curAnimStr);
-                            gTextWriter->printf("Animation Index: %d\n", curPupInfo->curAnim);
+                            //gTextWriter->printf("Current Capture: %s\n", curPupInfo->curHack);
+                            //gTextWriter->printf("Current Packet Animation: %s\n", curPupInfo->curAnimStr);
+                            //gTextWriter->printf("Animation Index: %d\n", curPupInfo->curAnim);
                         }else {
-                            gTextWriter->printf("Current Packet Animation: %s\n", curPupInfo->curAnimStr);
-                            gTextWriter->printf("Animation Index: %d\n", curPupInfo->curAnim);
+                            //gTextWriter->printf("Current Packet Animation: %s\n", curPupInfo->curAnimStr);
+                            //gTextWriter->printf("Animation Index: %d\n", curPupInfo->curAnim);
                             if (curModel) {
-                                gTextWriter->printf("Current Animation: %s\n", al::getActionName(curModel));
+                                //gTextWriter->printf("Current Animation: %s\n", al::getActionName(curModel));
                             }
                         }
                     }
