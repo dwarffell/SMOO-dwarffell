@@ -54,7 +54,7 @@ runs:
       cp  -r  ./romfs/  ./starlight_patch_100/atmosphere/contents/0100000000010000/.
   -
     name : Upload artifacts
-    uses : actions/upload-artifact@v3
+    uses : actions/upload-artifact@v4
     with:
       name              : ${{ steps.env.outputs.filename }}
       path              : ./starlight_patch_100/
