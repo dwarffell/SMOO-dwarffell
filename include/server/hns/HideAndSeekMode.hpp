@@ -1,6 +1,8 @@
 #pragma once
 
 #include <math.h>
+#include <basis/seadTypes.h>
+
 #include "al/camera/CameraTicket.h"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/gamemode/GameModeInfoBase.hpp"
@@ -14,6 +16,20 @@ struct HideAndSeekInfo : GameModeInfoBase {
     bool mIsUseGravity = false;
     bool mIsUseGravityCam = false;
     GameTime mHidingTime;
+
+    sead::PtrArray<PuppetInfo> isIt;
+};
+
+enum TagUpdateType : u8 {
+    TIME                 = 1 << 0,
+    STATE                = 1 << 1
+};
+struct PACKED HideAndSeekPacket : Packet {
+    HideAndSeekPacket() : Packet() { this->mType = PacketType::GAMEMODEINF; mPacketSize = sizeof(HideAndSeekPacket) - sizeof(Packet);};
+    TagUpdateType updateType;
+    bool1 isIt = false;
+    u8 seconds;
+    u16 minutes;
 };
 
 class HideAndSeekMode : public GameModeBase {
@@ -22,11 +38,21 @@ class HideAndSeekMode : public GameModeBase {
 
         void init(GameModeInitInfo const& info) override;
 
-        virtual void begin() override;
-        virtual void update() override;
-        virtual void end() override;
+        void begin() override;
+        void update() override;
+        void end() override;
+    
+        void pause() override;
+        void unpause() override;
 
-        bool isPlayerIt() const { return mInfo->mIsPlayerIt; };
+        bool isUseNormalUI() const override { return false; }
+
+        void processPacket(Packet* packet) override;
+        Packet* createPacket() override;
+
+        bool isPlayerIt() const { return mInfo->mIsPlayerIt; }
+
+        float getInvulnTime() const { return mInvulnTime; }
 
         void setPlayerTagState(bool state) { mInfo->mIsPlayerIt = state; }
 
@@ -34,13 +60,21 @@ class HideAndSeekMode : public GameModeBase {
         void disableGravityMode() { mInfo->mIsUseGravity = false; }
         bool isUseGravity() const { return mInfo->mIsUseGravity; }
 
-        void setCameraTicket(al::CameraTicket *ticket) {mTicket = ticket;}
+
+        void updateSpectateCam(PlayerActorBase* playerBase); // Updates the frozen spectator camera
+
+        void setCameraTicket(al::CameraTicket* ticket) { mTicket = ticket; }
+        
 
     private:
         float mInvulnTime = 0.0f;
         GameModeTimer* mModeTimer = nullptr;
         HideAndSeekIcon *mModeLayout = nullptr;
         HideAndSeekInfo* mInfo = nullptr;
-        al::CameraTicket *mTicket = nullptr;
+
+        // Spectate camera ticket and target information
+    al::CameraTicket* mTicket = nullptr;
+    int mPrevSpectateIndex = -2;
+    int mSpectateIndex = -1;
 
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include "algorithms/PlayerAnims.h"
 #include "packets/Packet.h"
 
@@ -47,4 +48,15 @@ struct PuppetInfo {
     bool isIt = false;
     u8 seconds = 0;
     u16 minutes = 0;
+    // Freeze Tag Gamemode Info
+    uint16_t freezeTagScore = 0;
+    bool isFreezeTagRunner = true;
+    bool isFreezeTagFreeze = false;
+    bool isFreezeTagFallenOff = false; // When runenr falls off and is automatically frozen, this flag is set
+    float freezeIconSize = 0.f;
+// Hot Potato Gamemode Info
+uint16_t hotPotatoScore = 0;
+bool isHotPotatoRunner = true;
+bool isHotPotatoFreeze = false;
+bool isHotPotatoFallenOff = false; // When runenr falls off and is automatically frozen, this flag is set
 };

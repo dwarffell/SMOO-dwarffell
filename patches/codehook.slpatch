@@ -28,7 +28,7 @@ B59E28 B seadPrintHook // sead::system::print
 41B4E4 BL setPlayerModel
 
 1B3F0C NOP // disables call to open HTML viewer during first time odyssey flight
-1F2A2C MOV W0, #1 // patches checkpoint system to always allow warping
+1f2998 B checkpointPatch // Patches checkpoint system to always allow warping
 216FAC MOV W0, #0 // disables AppearSwitchTimer's camera switch
 
 // Puppet Actor Setup
@@ -99,13 +99,14 @@ B59E28 B seadPrintHook // sead::system::print
 
 // Pause Menu Changes
 
-4EAEC4 B overrideNerveHook // makes any button on pause menu run a specific nerve
+// 4EAEC4 B overrideNerveHook // makes any button on pause menu run a specific nerve
 4EA104 MOV W2, #5 // update state count to account for new custom state
 4EA1F0 BL initNerveStateHook // inits options nerve state and server config state
 4EA174 MOV X0, X20 // moves StageSceneStatePauseMenu to first arg
 4EA17C NOP // prevents first new of StageSceneStateOption
 4EA1A8 BL initStateHook // inits StageSceneStateOption and StageSceneStateServerConfig
 4EA1C0 NOP // prevents mStateOption ptr from being overriden
+4EAFA4 B overrideHelpFadeNerve
 
 // Gravity hooks
 
@@ -125,3 +126,29 @@ B59E28 B seadPrintHook // sead::system::print
 
 // 891394 BL drawInitHook
 // 91328 BL updateInitHook
+
+//Unlocks costume doors
+262850 MOV W0, #0
+2609b4 MOV W0, #0
+25ff74 MOV X0, #1
+25ffac MOV X0, #0
+
+// Remap Snapshot to !L + Down, disables snapshot mode in freeze tag
+577014 B comboBtnHook
+
+//LifeUpMaxItem demo skip
+4DB934 NOP
+
+//Notes
+2D250C B 71002D2604
+
+// Custom Boot Screen Hooks
+// 50ef28 BL speedboot::hakoniwaSetNerveSetup
+// 50eb88 ORR w2, wzr, #0x1f // nerve state count
+// 50eb64 BL speedboot::prepareLayoutInitInfo
+
+// Freeze Tag + Hot Potato Hooks
+4272f0 BL newDeathArea // Replaces functionality of death areas in freeze tag
+538a94 B customPlayerHitPointDamage // Reimplements the damage function, disabling it's functionality in Freeze Tag
+51b280 B forceKidsMode // Forces kids mode to be enabled during Freeze Tag
+1cfba0 BL customMoonHitboxDisable // When mode enabled, disable hitboxes with moons to avoid softlocks

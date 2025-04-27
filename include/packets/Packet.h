@@ -18,7 +18,7 @@ enum PacketType : short {
     PLAYERINF,
     HACKCAPINF,
     GAMEINF,
-    TAGINF,
+    GAMEMODEINF,
     PLAYERCON,
     PLAYERDC,
     COSTUMEINF,
@@ -26,8 +26,6 @@ enum PacketType : short {
     CAPTUREINF,
     CHANGESTAGE,
     CMD,
-    UDPINIT,
-    HOLEPUNCH,
     End // end of enum for bounds checking
 };
 
@@ -38,16 +36,14 @@ USED static const char *packetNames[] = {
     "Player Info",
     "Player Cap Info",
     "Game Info",
-    "Tag Info",
+    "Gamemode Info",
     "Player Connect",
     "Player Disconnect",
     "Costume Info",
     "Moon Collection",
     "Capture Info",
     "Change Stage",
-    "Server Command",
-    "Udp Initialization",
-    "Hole punch",
+    "Server Command"
 };
 
 enum SenderType {
@@ -80,7 +76,6 @@ struct PACKED Packet {
 #include "packets/PlayerConnect.h"
 #include "packets/PlayerDC.h"
 #include "packets/GameInf.h"
-#include "packets/TagInf.h"
 #include "packets/CostumeInf.h"
 #include "packets/ServerCommand.h"
 #include "packets/ShineCollect.h"
@@ -88,5 +83,3 @@ struct PACKED Packet {
 #include "packets/HackCapInf.h"
 #include "packets/ChangeStagePacket.h"
 #include "packets/InitPacket.h"
-#include "packets/UdpPacket.h"
-#include "packets/HolePunchPacket.h"

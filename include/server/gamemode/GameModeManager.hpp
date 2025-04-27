@@ -19,12 +19,39 @@ public:
     void begin();
     void end();
     void update();
+    void pause();
+    void unpause();
 
     GameMode getGameMode() const { return mCurMode; }
     template<class T> T* getMode() const { return static_cast<T*>(mCurModeBase); }
     template<class T> T* getInfo() const { return static_cast<T*>(mModeInfo); }
-    void setInfo(GameModeInfoBase* info) {
-        mModeInfo = info;
+    template<class T> T* tryGetOrCreateInfo(GameMode mode);
+    void setInfo(GameModeInfoBase* info) { mModeInfo = info; }
+    static bool tryReceivePuppetMsg(const al::SensorMsg* msg, al::HitSensor* source, al::HitSensor* target) {
+        return instance()->mCurModeBase && instance()->isActive() && instance()->mCurModeBase->mIsUsePuppetSensor ? instance()->mCurModeBase->receiveMsg(msg, source, target) : false;
+    }
+    static bool tryReceiveCapMsg(const al::SensorMsg* msg, al::HitSensor* source, al::HitSensor* target) {
+        return instance()->mCurModeBase && instance()->isActive() && instance()->mCurModeBase->mIsUseCapSensor ? instance()->mCurModeBase->receiveMsg(msg, source, target) : false;
+    }
+    // returns false if default attack behavior should be used instead 
+    static bool tryAttackPuppetSensor(al::HitSensor* source, al::HitSensor* target) {
+        return instance()->mCurModeBase && instance()->isActive() && instance()->mCurModeBase->mIsUsePuppetSensor ? instance()->mCurModeBase->attackSensor(source, target) : false;
+    }
+    static bool tryAttackCapSensor(al::HitSensor* source, al::HitSensor* target) {
+        return instance()->mCurModeBase && instance()->isActive() && instance()->mCurModeBase->mIsUseCapSensor ? instance()->mCurModeBase->attackSensor(source, target) : false;
+    }
+
+    static void processModePacket(Packet *packet) {
+        if(instance()->mCurModeBase) {
+            instance()->mCurModeBase->processPacket(packet);
+        }
+    }
+
+    static Packet *createModePacket() {
+        if(instance()->mCurModeBase) {
+            return instance()->mCurModeBase->createPacket();
+        }
+        return nullptr;
     }
 
     template<class T>
@@ -38,7 +65,9 @@ public:
     bool isMode(GameMode mode) const { return mCurMode == mode; }
     bool isActive() const { return mActive; }
     bool isModeAndActive(GameMode mode) const { return isMode(mode) && isActive(); }
+    bool isModeRequireUI() { return isActive() && !mCurModeBase->isUseNormalUI(); }
     bool isPaused() const { return mPaused; }
+    bool wasSceneTrans() const { return mWasSceneTrans; }
 private:
     sead::Heap* mHeap = nullptr;
 
@@ -46,6 +75,7 @@ private:
     bool mPaused = false;
     bool mWasSceneTrans = false;
     bool mWasSetMode = false;
+    bool mWasPaused = false;
     GameMode mCurMode = GameMode::NONE;
     GameModeBase* mCurModeBase = nullptr;
     GameModeInfoBase *mModeInfo = nullptr;
@@ -60,4 +90,15 @@ T* GameModeManager::createModeInfo() {
     T* info = new T();
     mModeInfo = info;
     return info;
+}
+
+template<class T>
+T* GameModeManager::tryGetOrCreateInfo(GameMode mode) {
+    if (mModeInfo && mModeInfo->mMode == mode)
+        return static_cast<T*>(mModeInfo);
+
+    if (mModeInfo)
+        delete mModeInfo;  // attempt to destory previous info before creating new one
+
+    return createModeInfo<T>();
 }

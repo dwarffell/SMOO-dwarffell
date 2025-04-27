@@ -23,9 +23,21 @@
 #include "math/seadVector.h"
 #include "rs/util/InputUtil.h"
 #include "sead/prim/seadSafeString.h"
+#include "server/freeze/FreezeTagMode.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
 
+bool checkpointPatch()
+{
+    if (GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return false;
+    
+    return true;
+}
+
 bool comboBtnHook(int port) {
+    if(GameModeManager::instance()->isModeAndActive(GameMode::FREEZETAG))
+        return false;
+
     if (GameModeManager::instance()->isActive()) { // only switch to combo if any gamemode is active
         return !al::isPadHoldL(port) && al::isPadTriggerDown(port);
     } else {
@@ -78,13 +90,21 @@ bool registerShineToList(Shine* shineActor) {
     return al::isAlive(shineActor);
 }
 
-void overrideNerveHook(StageSceneStatePauseMenu* thisPtr, al::Nerve* nrvSet) {
+// void overrideNerveHook(StageSceneStatePauseMenu* thisPtr, al::Nerve* nrvSet) {
 
-    if (al::isPadHoldZL(-1)) {
-        al::setNerve(thisPtr, &nrvStageSceneStatePauseMenuServerConfig);
-    } else {
-        al::setNerve(thisPtr, nrvSet);
-    }
+//     if (al::isPadHoldZL(-1)) {
+//         al::setNerve(thisPtr, &nrvStageSceneStatePauseMenuServerConfig);
+//     } else {
+//         al::setNerve(thisPtr, nrvSet);
+//     }
+// }
+
+void overrideHelpFadeNerve(StageSceneStatePauseMenu* thisPtr)
+{
+    // Set label in menu inside LocalizedData/lang/MessageData/LayoutData/Menu.msbt
+    thisPtr->exeServerConfig();
+    al::setNerve(thisPtr, &nrvStageSceneStatePauseMenuServerConfig);
+    return;
 }
 
 StageSceneStateServerConfig *sceneStateServerConfig = nullptr;
@@ -107,19 +127,19 @@ void initNerveStateHook(StageSceneStatePauseMenu* stateParent, StageSceneStateOp
 
 // skips starting both coin counters
 void startCounterHook(CoinCounter* thisPtr) {
-    if (!GameModeManager::instance()->isActive()) {
+    if (!GameModeManager::instance()->isModeRequireUI()) {
         thisPtr->tryStart();
     }
 }
 
 // Simple hook that can be used to override isModeE3 checks to enable/disable certain behaviors
 bool modeE3Hook() {
-    return GameModeManager::instance()->isActive();
+    return GameModeManager::instance()->isModeRequireUI();
 }
 
 // Skips ending the play guide layout if a mode is active, since the mode would have already ended it
 void playGuideEndHook(al::SimpleLayoutAppearWaitEnd* thisPtr) {
-    if (!GameModeManager::instance()->isActive()) {
+    if (!GameModeManager::instance()->isModeRequireUI()) {
         thisPtr->end();
     }
 }
@@ -142,6 +162,20 @@ al::PlayerHolder* createTicketHook(StageScene* curScene) {
                 HideAndSeekMode* mode = GameModeManager::instance()->getMode<HideAndSeekMode>();
 
                 mode->setCameraTicket(gravityCamera);
+            }
+        }
+    }
+
+    if (GameModeManager::instance()->isMode(GameMode::FREEZETAG)) {
+        al::CameraDirector* director = curScene->getCameraDirector();
+        if (director) {
+            if (director->mFactory) {
+                al::CameraTicket* spectateCamera = director->createCameraFromFactory(
+                    "CameraPoserActorSpectate", nullptr, 0, 5, sead::Matrix34f::ident);
+
+                FreezeTagMode* mode = GameModeManager::instance()->getMode<FreezeTagMode>();
+
+                mode->setCameraTicket(spectateCamera);
             }
         }
     }

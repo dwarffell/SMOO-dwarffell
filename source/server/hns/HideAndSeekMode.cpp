@@ -3,6 +3,7 @@
 #include "al/async/FunctorV0M.hpp"
 #include "al/util.hpp"
 #include "al/util/ControllerUtil.h"
+#include "al/util/LiveActorUtil.h"
 #include "game/GameData/GameDataHolderAccessor.h"
 #include "game/Layouts/CoinCounter.h"
 #include "game/Layouts/MapMini.h"
@@ -11,16 +12,23 @@
 #include "heap/seadHeapMgr.h"
 #include "layouts/HideAndSeekIcon.h"
 #include "logger.hpp"
+#include "math/seadVector.h"
+#include "packets/Packet.h"
 #include "rs/util.hpp"
+#include "rs/util/PlayerUtil.h"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/Client.hpp"
 #include "server/gamemode/GameModeTimer.hpp"
 #include <heap/seadHeap.h>
+#include <math.h>
 #include "server/gamemode/GameModeManager.hpp"
 #include "server/gamemode/GameModeFactory.hpp"
 
 #include "basis/seadNew.h"
 #include "server/hns/HideAndSeekConfigMenu.hpp"
+
+//Spectator Files
+#include "cameras/CameraPoserActorSpectate.h"
 
 HideAndSeekMode::HideAndSeekMode(const char* name) : GameModeBase(name) {}
 
@@ -54,11 +62,86 @@ void HideAndSeekMode::init(const GameModeInitInfo& info) {
 
 }
 
+void HideAndSeekMode::processPacket(Packet *packet) {
+    HideAndSeekPacket* tagPacket = (HideAndSeekPacket*)packet;
+
+    // if the packet is for our player, edit info for our player
+    if (tagPacket->mUserID == Client::getClientId() && GameModeManager::instance()->isMode(GameMode::HIDEANDSEEK)) {
+
+        HideAndSeekMode* mode = GameModeManager::instance()->getMode<HideAndSeekMode>();
+        HideAndSeekInfo* curInfo = GameModeManager::instance()->getInfo<HideAndSeekInfo>();
+
+        if (tagPacket->updateType & TagUpdateType::STATE) {
+            mode->setPlayerTagState(tagPacket->isIt);
+        }
+
+        if (tagPacket->updateType & TagUpdateType::TIME) {
+            curInfo->mHidingTime.mSeconds = tagPacket->seconds;
+            curInfo->mHidingTime.mMinutes = tagPacket->minutes;
+        }
+
+        return;
+
+    }
+
+    PuppetInfo* curInfo = Client::findPuppetInfo(tagPacket->mUserID, false);
+
+    if (!curInfo) {
+        return;
+    }
+
+    curInfo->isIt = tagPacket->isIt;
+    curInfo->seconds = tagPacket->seconds;
+    curInfo->minutes = tagPacket->minutes;
+}
+
+Packet *HideAndSeekMode::createPacket() {
+
+    HideAndSeekPacket *packet = new HideAndSeekPacket();
+
+    packet->mUserID = Client::getClientId();
+
+    packet->isIt = isPlayerIt();
+
+    packet->minutes = mInfo->mHidingTime.mMinutes;
+    packet->seconds = mInfo->mHidingTime.mSeconds;
+    packet->updateType = static_cast<TagUpdateType>(TagUpdateType::STATE | TagUpdateType::TIME);
+
+    return packet;
+}
+
 void HideAndSeekMode::begin() {
-    mModeLayout->appear();
+
+    unpause();
 
     mIsFirstFrame = true;
+    
+    mInvulnTime = 0.0f;
+    mSpectateIndex = -1;
 
+    GameModeBase::begin();
+}
+
+
+void HideAndSeekMode::end() {
+
+    pause();
+
+    GameModeBase::end();
+}
+
+void HideAndSeekMode::pause() {
+    GameModeBase::pause();
+
+    mModeLayout->tryEnd();
+    mModeTimer->disableTimer();
+}
+
+void HideAndSeekMode::unpause() {
+    GameModeBase::unpause();
+
+    mModeLayout->appear();
+    
     if (!mInfo->mIsPlayerIt) {
         mModeTimer->enableTimer();
         mModeLayout->showHiding();
@@ -66,58 +149,13 @@ void HideAndSeekMode::begin() {
         mModeTimer->disableTimer();
         mModeLayout->showSeeking();
     }
-
-    CoinCounter *coinCollect = mCurScene->mSceneLayout->mCoinCollectLyt;
-    CoinCounter* coinCounter = mCurScene->mSceneLayout->mCoinCountLyt;
-    MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
-    al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
-
-    mInvulnTime = 0;
-
-    if(coinCounter->mIsAlive)
-        coinCounter->tryEnd();
-    if(coinCollect->mIsAlive)
-        coinCollect->tryEnd();
-    if (compass->mIsAlive)
-        compass->end();
-    if (playGuideLyt->mIsAlive)
-        playGuideLyt->end();
-
-    GameModeBase::begin();
-
-    Client::sendTagInfPacket();
-}
-
-void HideAndSeekMode::end() {
-
-    mModeLayout->tryEnd();
-
-    mModeTimer->disableTimer();
-
-    CoinCounter *coinCollect = mCurScene->mSceneLayout->mCoinCollectLyt;
-    CoinCounter* coinCounter = mCurScene->mSceneLayout->mCoinCountLyt;
-    MapMini* compass = mCurScene->mSceneLayout->mMapMiniLyt;
-    al::SimpleLayoutAppearWaitEnd* playGuideLyt = mCurScene->mSceneLayout->mPlayGuideMenuLyt;
-
-    mInvulnTime = 0.0f;
-
-    if(!coinCounter->mIsAlive)
-        coinCounter->tryStart();
-    if(!coinCollect->mIsAlive)
-        coinCollect->tryStart();
-    if (!compass->mIsAlive)
-        compass->appearSlideIn();
-    if (!playGuideLyt->mIsAlive)
-        playGuideLyt->appear();
-
-    GameModeBase::end();
-
-    Client::sendTagInfPacket();
 }
 
 void HideAndSeekMode::update() {
 
+
     PlayerActorBase* playerBase = rs::getPlayerActor(mCurScene);
+    
 
     bool isYukimaru = !playerBase->getPlayerInfo(); // if PlayerInfo is a nullptr, that means we're dealing with the bound bowl racer
 
@@ -129,6 +167,11 @@ void HideAndSeekMode::update() {
 
         mIsFirstFrame = false;
     }
+
+    if (rs::isActiveDemoPlayerPuppetable(playerBase)) {
+        mInvulnTime = 0.0f; // if player is in a demo, reset invuln time
+    }
+
 
     if (!mInfo->mIsPlayerIt) {
         if (mInvulnTime >= 5) {  
@@ -143,8 +186,10 @@ void HideAndSeekMode::update() {
                         break;
                     }
 
-                    if(curInfo->isConnected && curInfo->isInSameStage && curInfo->isIt) { 
+                    if(curInfo->isConnected && curInfo->isInSameStage && curInfo->isIt) {
 
+                        sead::Vector3f offset = sead::Vector3f(0.0f, 80.0f, 0.0f);
+            
                         float pupDist = al::calcDistance(playerBase, curInfo->playerPos); // TODO: remove distance calculations and use hit sensors to determine this
 
                         if (!isYukimaru) {
@@ -162,7 +207,7 @@ void HideAndSeekMode::update() {
                                     mModeTimer->disableTimer();
                                     mModeLayout->showSeeking();
                                     
-                                    Client::sendTagInfPacket();
+                                    Client::sendGamemodePacket();
                                 }
                             } else if (PlayerFunction::isPlayerDeadStatus(playerBase)) {
 
@@ -170,19 +215,21 @@ void HideAndSeekMode::update() {
                                 mModeTimer->disableTimer();
                                 mModeLayout->showSeeking();
 
-                                Client::sendTagInfPacket();
+                                Client::sendGamemodePacket();
                                 
                             }
                         }
                     }
                 }
             }
-            
         }else {
             mInvulnTime += Time::deltaTime;
         }
 
         mModeTimer->updateTimer();
+        
+    } else {
+        mModeTimer->timerControl();
     }
 
     if (mInfo->mIsUseGravity && !isYukimaru) {
@@ -211,7 +258,7 @@ void HideAndSeekMode::update() {
         }
     }
 
-    if (al::isPadTriggerUp(-1) && !al::isPadHoldZL(-1))
+    if (al::isPadTriggerUp(-1) && !al::isPadHoldR(-1))
     {
         mInfo->mIsPlayerIt = !mInfo->mIsPlayerIt;
 
@@ -224,8 +271,87 @@ void HideAndSeekMode::update() {
             mModeLayout->showSeeking();
         }
 
-        Client::sendTagInfPacket();
+        Client::sendGamemodePacket();
     }
 
     mInfo->mHidingTime = mModeTimer->getTime();
+
+// Check if R and D-pad Left are pressed at the same time
+if (al::isPadHoldR(-1) && al::isPadTriggerUp(-1)) {
+    if (!mTicket->mIsActive && mInfo->mIsPlayerIt) {
+        al::startCamera(mCurScene, mTicket, -1);  // Activate the camera
+    } else if (mTicket->mIsActive) {
+        al::endCamera(mCurScene, mTicket, 0, false);  // Deactivate the camera
+    }
+}
+
+// Existing Spectate Camera logic
+if (mTicket->mIsActive && mInfo->mIsPlayerIt) {
+    updateSpectateCam(playerBase);
+}
+
+}
+
+
+void HideAndSeekMode::updateSpectateCam(PlayerActorBase* playerBase)
+{
+    //If the specate camera ticket is active, get the camera poser
+    al::CameraPoser* curPoser;
+    al::CameraDirector* director = mCurScene->getCameraDirector();
+    if (director) {
+        al::CameraPoseUpdater* updater = director->getPoseUpdater(0);
+        if (updater && updater->mTicket) {
+            curPoser = updater->mTicket->mPoser;
+        }
+    }
+    
+    //Verify 100% that this poser is the actor spectator
+    if (al::isEqualString(curPoser->getName(), "CameraPoserActorSpectate")) {
+        cc::CameraPoserActorSpectate* spectatePoser = (cc::CameraPoserActorSpectate*)curPoser;
+        spectatePoser->setPlayer(playerBase);
+        //Increase or decrease spectate index, followed by clamping it
+        int indexDirection = 0;
+        if(al::isPadTriggerRight(-1)) indexDirection = 1; //Move index right
+        if(al::isPadTriggerLeft(-1)) indexDirection = -1; //Move index left
+        //Force index to increase if your current target changes stages
+        if(mSpectateIndex != -1)
+            if(!mInfo->isIt.at(mSpectateIndex)->isInSameStage)
+                indexDirection = 1; //Move index right
+        //Loop over indexs until you find a sutible one in the same stage
+        bool isFinalIndex = false;
+        while(!isFinalIndex) {
+            mSpectateIndex += indexDirection;
+            // Start by clamping the index
+            if(mSpectateIndex < -1) mSpectateIndex = mInfo->isIt.size() - 1;
+            if(mSpectateIndex >= mInfo->isIt.size()) mSpectateIndex = -1;
+            // If not in same stage, skip
+            if(mSpectateIndex != -1) {
+                if(mInfo->isIt.at(mSpectateIndex)->isInSameStage)
+                    isFinalIndex = true;
+            } else {
+                isFinalIndex = true;
+            }
+        }
+        
+        //If no index change is happening, end here
+        if(mPrevSpectateIndex == mSpectateIndex)
+            return;
+        //Apply index to target actor and HUD
+        if(mSpectateIndex == -1) {
+            spectatePoser->setTargetActor(al::getTransPtr(playerBase));
+        } else {
+            spectatePoser->setTargetActor(&mInfo->isIt.at(mSpectateIndex)->playerPos);
+        }
+        mPrevSpectateIndex = mSpectateIndex;
+    }
+}
+
+
+
+
+// Hooks
+
+namespace al {
+    class Triangle;
+    bool isFloorCode(al::Triangle const&,char const*);
 }

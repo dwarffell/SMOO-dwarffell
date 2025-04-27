@@ -3,6 +3,10 @@
 #include "al/factory/Factory.h"
 #include "server/gamemode/GameModeBase.hpp"
 #include "server/hns/HideAndSeekMode.hpp"
+#include "server/inf/InfectionMode.hpp"
+#include "server/freeze/FreezeTagMode.hpp"
+#include "server/hotpotato/HotPotatoMode.hpp"
+#include "server/snh/SardineMode.hpp"
 
 typedef GameModeBase* (*createMode)(const char* name);
 
@@ -13,11 +17,19 @@ GameModeBase* createGameMode(const char* name)
 };
 
 __attribute((used)) constexpr al::NameToCreator<createMode> modeTable[] = {
-    {"HideAndSeek", &createGameMode<HideAndSeekMode>}
+    {"HideAndSeek", &createGameMode<HideAndSeekMode>},
+    {"Sardines", &createGameMode<SardineMode>},
+    {"FreezeTag", &createGameMode<FreezeTagMode>},
+    {"Infection", &createGameMode<InfectionMode>},
+    {"HotPotato", &createGameMode<HotPotatoMode>}
 };
 
 constexpr const char* modeNames[] = {
-    "Hide and Seek"
+    "Hide and Seek",
+    "Sardines",
+    "Freeze Tag",
+    "Infection",
+    "Hot Potato"
 };
 
 class GameModeFactory : public al::Factory<createMode> {

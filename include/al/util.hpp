@@ -146,6 +146,7 @@ namespace al
     void setPaneLocalSize(al::IUseLayout *layout, const char *paneName, sead::Vector2f const &);
     void setPaneLocalScale(al::IUseLayout *layout, const char *paneName, sead::Vector2f const &);
     void setPaneLocalRotate(al::IUseLayout *layout, const char *paneName, sead::Vector3f const &);
+    void setPaneVtxColor(al::IUseLayout const* layout, char const* paneName, sead::Color4u8 const&);
 
     sead::Vector3f &getPaneLocalTrans(const al::IUseLayout *layout, const char *paneName);
     void getPaneLocalSize(sead::Vector2f *, const al::IUseLayout *layout, const char *paneName);
@@ -391,6 +392,12 @@ namespace al
     void initActorInitInfo(al::ActorInitInfo *,al::Scene const*,al::PlacementInfo const*,al::LayoutInitInfo const*,al::ActorFactory const*,al::SceneMsgCtrl *,GameDataHolderBase *);
 
     // misc
+
+    uint32_t getPostProcessingFilterPresetId(const Scene*);
+    void incrementPostProcessingFilterPreset(Scene const*);
+    void decrementPostProcessingFilterPreset(Scene const*);
+    void validatePostProcessingFilter(al::Scene const*);
+    void invalidatePostProcessingFilter(al::Scene const*);
 
     void readSaveDataSync(const char* dataFile, uint, uint);
     
